@@ -164,3 +164,17 @@ class Test_MoreConnectMe4(object):
         outfile = os.path.join(thisdir, 'test-trunc.out')
         n = ht.do_truncated_partition(filename, outfile, 0)
         assert n == 103, n
+
+###
+
+    def test_high_abund_break(self):
+        ht = khmer.new_hashtable(20, 4**12+1)
+
+        link = 'ACTGGGACTCTGGGAGCACG'
+        for i in range(256):
+            ht.count(link)
+            
+        filename = os.path.join(thisdir, 'test-high-abund.fa')
+        outfile = os.path.join(thisdir, 'test-trunc.out')
+        n = ht.do_truncated_partition(filename, outfile, 0)
+        assert n == 2, n

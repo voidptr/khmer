@@ -9,6 +9,8 @@
 #define PARTITION_ALL_TAG_DEPTH 500
 #define PARTITION_MAX_TAG_EXAMINED 1e6
 
+#define TRUNCATE_HIGH_ABUNDANCE 1
+
 using namespace khmer;
 using namespace std;
 
@@ -1700,6 +1702,12 @@ void Hashtable::partition_find_all_tags(const HashIntoType kmer_f,
     if (val == 0) {
       return;
     }
+
+#if TRUNCATE_HIGH_ABUNDANCE
+    if (val == 255) {
+      return;
+    }
+#endif 
 
     // have we already seen me? don't count; exit.
     SeenSet::iterator i = keeper.find(kmer);
