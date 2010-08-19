@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
 
   bf.output_sets();
   
+  bf.output_partitioned_file(argv[1], argv[4]);  
   end = time(NULL);
   
   

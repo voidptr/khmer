@@ -285,7 +285,7 @@ namespace khmer {
 			     SeenSet& tagged_kmers,
 			     bool surrender);
 
-    unsigned int output_partitioned_file(const std::string infilename,
+    virtual unsigned int output_partitioned_file(const std::string infilename,
 					 const std::string outputfilename,
 					 CallbackFn callback=0,
 					 void * callback_data=0);

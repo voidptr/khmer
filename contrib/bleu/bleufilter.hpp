@@ -2,6 +2,7 @@
 #define BLEUFILTER_HPP
 
 #include "../../lib/hashtable.hh"
+#include "../../lib/parsers.hh"
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -11,6 +12,9 @@
 #include <set>
 #include <assert.h>
 #include <time.h>
+
+#define CALLBACK_PERIOD 10000
+
 
 namespace bleu {
   
@@ -49,13 +53,18 @@ namespace bleu {
       {
         count++;
       }
-     
+      
+      SetID getCurrentPrimarySetID()
+      {
+        return *(mSetIDs.begin());      
+      }
+      
       SetID join( SetID & aSetID, map<unsigned int, Set*> & aAllSetsByID, SetID * aAllSetIDsByBin, HashIntoType aTablesize)
       {
         Set * lSet = aAllSetsByID[ aSetID ];
         
         count += lSet->count;
-                
+        
         for (set<SetID>::iterator lIt = lSet->mSetIDs.begin(); lIt != lSet->mSetIDs.end(); ++lIt)
         { 
           aAllSetsByID[*lIt] = this; // re-point all the old pointers.
@@ -64,17 +73,17 @@ namespace bleu {
         
         delete lSet; // this should work.
         
-
+        
         
         if ( mSetIDs.size() > collapse_threshold )
         {
           last_span_time = difftime( time(NULL), global_span_start );
           
           cout << "LAST SPAN TOOK " << last_span_time << " seconds" << endl;
-        
+          
           time_t start, end;
           start = time(NULL);
-           
+          
           cout << "COLLAPSING " << mSetIDs.size() << endl;
           SetID lCollapsedID = *(mSetIDs.begin());
           
@@ -82,14 +91,14 @@ namespace bleu {
           int lEntries = 0;
           
           for (HashIntoType i = 0; i < aTablesize; ++i)
-          //for (map<HashIntoType, SetID>::iterator lIt = aAllSetIDsByBin.begin(); lIt != aAllSetIDsByBin.end(); ++lIt)
+            //for (map<HashIntoType, SetID>::iterator lIt = aAllSetIDsByBin.begin(); lIt != aAllSetIDsByBin.end(); ++lIt)
           { 
             if ( aAllSetIDsByBin[ i ] > 0 )
             {
               if ( aAllSetIDsByBin[ i ] != lCollapsedID 
-                && mSetIDs.find( aAllSetIDsByBin[ i ] ) != mSetIDs.end() )
-            //if ( lIt->second != lCollapsedID && mSetIDs.find( lIt->second ) != mSetIDs.end() )
-            
+                  && mSetIDs.find( aAllSetIDsByBin[ i ] ) != mSetIDs.end() )
+                //if ( lIt->second != lCollapsedID && mSetIDs.find( lIt->second ) != mSetIDs.end() )
+                
               {
                 aAllSetIDsByBin[ i ] = lCollapsedID;
                 //lIt->second = lCollapsedID;
@@ -99,15 +108,15 @@ namespace bleu {
               
               assert( aAllSetsByID[ aAllSetIDsByBin[ i ] ] > 0 );
               //assert ( aAllSetsByID[ lIt->second ] > 0 );
-
+              
             }
             
           }
           
-                              
+          
           set<SetID>::iterator lIt2 = mSetIDs.begin();
           lIt2++;
-                             
+          
           for (; lIt2 != mSetIDs.end(); ++lIt2)
           {
             aAllSetsByID.erase( *lIt2 ); // remove the extra entry in the map for this set.
@@ -115,16 +124,15 @@ namespace bleu {
           
           mSetIDs.erase( mSetIDs.begin(), mSetIDs.end() ); // erase the whole list
           mSetIDs.insert( lCollapsedID );
-                    
+          
           end = time(NULL);
           
           last_collapse_time = difftime(end, start);
           
           cout << "COLLAPSING " << lCollapsed << " out of " << lEntries <<  " ENTRIES TOOK " << last_collapse_time << " seconds" << std::endl;          
-                    
+          
           global_span_start = time(NULL); // reset this puppy.
-          
-          
+                    
           if ( last_span_time > 10 && last_span_time > (last_collapse_time * 2) && collapse_threshold > basement )
           {
             last_span_time_before_switch = last_span_time;
@@ -179,13 +187,8 @@ namespace bleu {
       delete _counts; // not using these right now. Will later for presence flags.
       _counts = NULL;
       
-      // Fixed-length array.
-      cout << "STARTING INIT" << endl;
       _set_IDs = new SetID[_tablesize];
-      cout << "STARTING MEMSET" << endl;
       memset(_set_IDs, 0, _tablesize * sizeof(SetID));
-      // end
-      cout << "ENDING MEMSET" << endl;
     }
     
     // consume_string: run through every k-mer in the given string, & hash it.
@@ -199,11 +202,11 @@ namespace bleu {
       unsigned int n_consumed = 0;
       
       HashIntoType forward_hash = 0, reverse_hash = 0;
-
+      
       // generate the hash for the first kmer in the read (fair amount of work)
       HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
       HashIntoType bin = hash % _tablesize;
-                  
+      
       SetID set_ID = 0; // init the set_pointer-number to no set.
       set_ID = initial_set_fetch_or_assignment( bin );
       n_consumed++;
@@ -223,7 +226,7 @@ namespace bleu {
     SetID initial_set_fetch_or_assignment( HashIntoType aBin )
     {
       if ( _set_IDs[ aBin ] == 0 )
-      //if ( _set_IDs.find( aBin ) == _set_IDs.end() )
+        //if ( _set_IDs.find( aBin ) == _set_IDs.end() )
         _set_IDs[aBin] = init_new_set();
       
       return _set_IDs[aBin];
@@ -250,7 +253,7 @@ namespace bleu {
       
       
       if ( _set_IDs[ aBin ] == 0 )
-      //if ( _set_IDs.find( aBin ) == _set_IDs.end() ) // no set found for this bin
+        //if ( _set_IDs.find( aBin ) == _set_IDs.end() ) // no set found for this bin
       {
         _set_IDs[aBin] = aSetID; // assign
         _sets[ aSetID ]->increment();
@@ -271,7 +274,7 @@ namespace bleu {
         else // they weren't different after all.
           return aSetID;    
       }
-
+      
     }
     
     HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
@@ -296,8 +299,70 @@ namespace bleu {
         mUniqueSets.insert( lIt->second );
       }
       
+      for (set<Set *>::iterator lIt2 = mUniqueSets.begin(); lIt2 != mUniqueSets.end(); ++lIt2)
+      {
+        cout << (*lIt2)->getCurrentPrimarySetID() << " " << (*lIt2)->count << endl;
+      
+      }
+      
       cout << setw(6) << "unique set count: "<< mUniqueSets.size() << endl;
       cout << endl;
+    }
+    
+    virtual unsigned int output_partitioned_file(const std::string infilename,
+                                                 const std::string outputfilename,
+                                                 CallbackFn callback=0,
+                                                 void * callback_data=0)
+    {
+      IParser* parser = IParser::get_parser(infilename);
+      ofstream outfile(outputfilename.c_str());
+      
+      unsigned int total_reads = 0;
+      unsigned int reads_kept = 0;
+      
+      Read read;
+      string seq;
+      
+      std::string first_kmer;
+      HashIntoType forward_hash = 0, reverse_hash = 0;
+      
+      while(!parser->is_complete()) {
+        read = parser->get_next_read();
+        seq = read.seq;
+        
+        if (check_read(seq)) {
+          first_kmer = seq.substr(0, _ksize);
+          
+          // generate the hash for the first kmer in the read (fair amount of work)
+          HashIntoType hash = _hash(first_kmer.c_str(), _ksize, forward_hash, reverse_hash);
+          HashIntoType bin = hash % _tablesize;
+          
+          SetID lActualFinalSetID = _sets[ _set_IDs[ bin ] ]->getCurrentPrimarySetID();
+          
+          outfile << ">" << read.name << "\t" << lActualFinalSetID
+          << " " << "\n" 
+          << seq << "\n";
+          
+          // reset the sequence info, increment read number
+          total_reads++;
+          
+          // run callback, if specified
+          if (total_reads % CALLBACK_PERIOD == 0 && callback) {
+            try {
+              callback("do_truncated_partition/output", callback_data,
+                       total_reads, reads_kept);
+            } catch (...) {
+              delete parser; parser = NULL;
+              outfile.close();
+              throw;
+            }
+          }
+        }
+      }
+      
+      delete parser; parser = NULL;
+      
+      return mUniqueSets.size();
     }
     
   };
