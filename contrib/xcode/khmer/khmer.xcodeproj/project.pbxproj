@@ -1,0 +1,459 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 45;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		8DD76F6A0486A84900D96B5E /* khmer.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* khmer.1 */; };
+		D89804C6121D832B0007A0AB /* bittest.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BA121D832B0007A0AB /* bittest.cc */; };
+		D89804C7121D832B0007A0AB /* consume_prof.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BB121D832B0007A0AB /* consume_prof.cc */; };
+		D89804C8121D832B0007A0AB /* graphtest.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BC121D832B0007A0AB /* graphtest.cc */; };
+		D89804C9121D832B0007A0AB /* hashtable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BD121D832B0007A0AB /* hashtable.cc */; };
+		D89804CA121D832B0007A0AB /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804C0121D832B0007A0AB /* ktable.cc */; };
+		D89804CB121D832B0007A0AB /* parsers.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804C2121D832B0007A0AB /* parsers.cc */; };
+		D89804CC121D832B0007A0AB /* test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804C5121D832B0007A0AB /* test.cc */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8DD76F690486A84900D96B5E /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 8;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				8DD76F6A0486A84900D96B5E /* khmer.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		8DD76F6C0486A84900D96B5E /* khmer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = khmer; sourceTree = BUILT_PRODUCTS_DIR; };
+		C6859E8B029090EE04C91782 /* khmer.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = khmer.1; sourceTree = "<group>"; };
+		D89804BA121D832B0007A0AB /* bittest.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bittest.cc; path = ../../../lib/bittest.cc; sourceTree = SOURCE_ROOT; };
+		D89804BB121D832B0007A0AB /* consume_prof.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = consume_prof.cc; path = ../../../lib/consume_prof.cc; sourceTree = SOURCE_ROOT; };
+		D89804BC121D832B0007A0AB /* graphtest.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = graphtest.cc; path = ../../../lib/graphtest.cc; sourceTree = SOURCE_ROOT; };
+		D89804BD121D832B0007A0AB /* hashtable.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hashtable.cc; path = ../../../lib/hashtable.cc; sourceTree = SOURCE_ROOT; };
+		D89804BE121D832B0007A0AB /* hashtable.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = hashtable.hh; path = ../../../lib/hashtable.hh; sourceTree = SOURCE_ROOT; };
+		D89804BF121D832B0007A0AB /* khmer.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = khmer.hh; path = ../../../lib/khmer.hh; sourceTree = SOURCE_ROOT; };
+		D89804C0121D832B0007A0AB /* ktable.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ktable.cc; path = ../../../lib/ktable.cc; sourceTree = SOURCE_ROOT; };
+		D89804C1121D832B0007A0AB /* ktable.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ktable.hh; path = ../../../lib/ktable.hh; sourceTree = SOURCE_ROOT; };
+		D89804C2121D832B0007A0AB /* parsers.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = parsers.cc; path = ../../../lib/parsers.cc; sourceTree = SOURCE_ROOT; };
+		D89804C3121D832B0007A0AB /* parsers.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = parsers.hh; path = ../../../lib/parsers.hh; sourceTree = SOURCE_ROOT; };
+		D89804C4121D832B0007A0AB /* storage.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = storage.hh; path = ../../../lib/storage.hh; sourceTree = SOURCE_ROOT; };
+		D89804C5121D832B0007A0AB /* test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = test.cc; path = ../../../lib/test.cc; sourceTree = SOURCE_ROOT; };
+		D89804D2121D839D0007A0AB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../../lib/Makefile; sourceTree = SOURCE_ROOT; };
+		D89804F2121D84EF0007A0AB /* bittest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = bittest; path = build/Debug/bittest; sourceTree = "<group>"; };
+		D89805BD121D9DC30007A0AB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../../Makefile; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8DD76F660486A84900D96B5E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D89804F0121D84EF0007A0AB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		08FB7794FE84155DC02AAC07 /* khmer */ = {
+			isa = PBXGroup;
+			children = (
+				D89804D0121D83820007A0AB /* Makefiles */,
+				08FB7795FE84155DC02AAC07 /* Source */,
+				C6859E8C029090F304C91782 /* Documentation */,
+				1AB674ADFE9D54B511CA2CBB /* Products */,
+			);
+			name = khmer;
+			sourceTree = "<group>";
+		};
+		08FB7795FE84155DC02AAC07 /* Source */ = {
+			isa = PBXGroup;
+			children = (
+				D89804BA121D832B0007A0AB /* bittest.cc */,
+				D89804BB121D832B0007A0AB /* consume_prof.cc */,
+				D89804BC121D832B0007A0AB /* graphtest.cc */,
+				D89804BD121D832B0007A0AB /* hashtable.cc */,
+				D89804BE121D832B0007A0AB /* hashtable.hh */,
+				D89804BF121D832B0007A0AB /* khmer.hh */,
+				D89804C0121D832B0007A0AB /* ktable.cc */,
+				D89804C1121D832B0007A0AB /* ktable.hh */,
+				D89804C2121D832B0007A0AB /* parsers.cc */,
+				D89804C3121D832B0007A0AB /* parsers.hh */,
+				D89804C4121D832B0007A0AB /* storage.hh */,
+				D89804C5121D832B0007A0AB /* test.cc */,
+			);
+			name = Source;
+			sourceTree = "<group>";
+		};
+		1AB674ADFE9D54B511CA2CBB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8DD76F6C0486A84900D96B5E /* khmer */,
+				D89804F2121D84EF0007A0AB /* bittest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6859E8C029090F304C91782 /* Documentation */ = {
+			isa = PBXGroup;
+			children = (
+				C6859E8B029090EE04C91782 /* khmer.1 */,
+			);
+			name = Documentation;
+			sourceTree = "<group>";
+		};
+		D89804D0121D83820007A0AB /* Makefiles */ = {
+			isa = PBXGroup;
+			children = (
+				D89805BD121D9DC30007A0AB /* Makefile */,
+				D89804D2121D839D0007A0AB /* Makefile */,
+			);
+			name = Makefiles;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		D89804CD121D83570007A0AB /* make bittest */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = bittest;
+			buildConfigurationList = D89804D1121D83820007A0AB /* Build configuration list for PBXLegacyTarget "make bittest" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = /Users/rosiec/Dropbox/Research/khmer/khmer/lib;
+			dependencies = (
+			);
+			name = "make bittest";
+			passBuildSettingsInEnvironment = 1;
+			productName = "make bittest";
+		};
+		D89804D3121D83B80007A0AB /* make graphtest */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = graphtest;
+			buildConfigurationList = D89804E6121D83EA0007A0AB /* Build configuration list for PBXLegacyTarget "make graphtest" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = /Users/rosiec/Dropbox/Research/khmer/khmer/lib;
+			dependencies = (
+			);
+			name = "make graphtest";
+			passBuildSettingsInEnvironment = 1;
+			productName = "make graphtest";
+		};
+		D89804E9121D84720007A0AB /* make consume_prof */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = consume_prof;
+			buildConfigurationList = D89804EE121D849D0007A0AB /* Build configuration list for PBXLegacyTarget "make consume_prof" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = /Users/rosiec/Dropbox/Research/khmer/khmer/lib;
+			dependencies = (
+			);
+			name = "make consume_prof";
+			passBuildSettingsInEnvironment = 1;
+			productName = "make consume_prof";
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXNativeTarget section */
+		8DD76F620486A84900D96B5E /* khmer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "khmer" */;
+			buildPhases = (
+				8DD76F640486A84900D96B5E /* Sources */,
+				8DD76F660486A84900D96B5E /* Frameworks */,
+				8DD76F690486A84900D96B5E /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = khmer;
+			productInstallPath = "$(HOME)/bin";
+			productName = khmer;
+			productReference = 8DD76F6C0486A84900D96B5E /* khmer */;
+			productType = "com.apple.product-type.tool";
+		};
+		D89804F1121D84EF0007A0AB /* bittest */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D89804F6121D852C0007A0AB /* Build configuration list for PBXNativeTarget "bittest" */;
+			buildPhases = (
+				D89804EF121D84EF0007A0AB /* Sources */,
+				D89804F0121D84EF0007A0AB /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = bittest;
+			productName = bittest;
+			productReference = D89804F2121D84EF0007A0AB /* bittest */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		08FB7793FE84155DC02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "khmer" */;
+			compatibilityVersion = "Xcode 3.1";
+			hasScannedForEncodings = 1;
+			mainGroup = 08FB7794FE84155DC02AAC07 /* khmer */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8DD76F620486A84900D96B5E /* khmer */,
+				D89804F1121D84EF0007A0AB /* bittest */,
+				D89804CD121D83570007A0AB /* make bittest */,
+				D89804D3121D83B80007A0AB /* make graphtest */,
+				D89804E9121D84720007A0AB /* make consume_prof */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8DD76F640486A84900D96B5E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D89804C6121D832B0007A0AB /* bittest.cc in Sources */,
+				D89804C7121D832B0007A0AB /* consume_prof.cc in Sources */,
+				D89804C8121D832B0007A0AB /* graphtest.cc in Sources */,
+				D89804C9121D832B0007A0AB /* hashtable.cc in Sources */,
+				D89804CA121D832B0007A0AB /* ktable.cc in Sources */,
+				D89804CB121D832B0007A0AB /* parsers.cc in Sources */,
+				D89804CC121D832B0007A0AB /* test.cc in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D89804EF121D84EF0007A0AB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB923208733DC60010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				PRODUCT_NAME = khmer;
+			};
+			name = Debug;
+		};
+		1DEB923308733DC60010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PRODUCT_NAME = khmer;
+			};
+			name = Release;
+		};
+		1DEB923608733DC60010E9CD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PREBINDING = NO;
+				SDKROOT = macosx10.6;
+			};
+			name = Debug;
+		};
+		1DEB923708733DC60010E9CD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				PREBINDING = NO;
+				SDKROOT = macosx10.6;
+			};
+			name = Release;
+		};
+		D89804CE121D83580007A0AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				PRODUCT_NAME = "make bittest";
+			};
+			name = Debug;
+		};
+		D89804CF121D83580007A0AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = "make bittest";
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		D89804D4121D83B80007A0AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				PRODUCT_NAME = "make graphtest";
+			};
+			name = Debug;
+		};
+		D89804D5121D83B80007A0AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = "make graphtest";
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		D89804EA121D84720007A0AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				PRODUCT_NAME = "make consume_prof";
+			};
+			name = Debug;
+		};
+		D89804EB121D84720007A0AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = "make consume_prof";
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		D89804F4121D84EF0007A0AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = bittest;
+			};
+			name = Debug;
+		};
+		D89804F5121D84EF0007A0AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_MODEL_TUNING = G5;
+				INSTALL_PATH = /usr/local/bin;
+				PREBINDING = NO;
+				PRODUCT_NAME = bittest;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "khmer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB923208733DC60010E9CD /* Debug */,
+				1DEB923308733DC60010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "khmer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB923608733DC60010E9CD /* Debug */,
+				1DEB923708733DC60010E9CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D89804D1121D83820007A0AB /* Build configuration list for PBXLegacyTarget "make bittest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D89804CE121D83580007A0AB /* Debug */,
+				D89804CF121D83580007A0AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D89804E6121D83EA0007A0AB /* Build configuration list for PBXLegacyTarget "make graphtest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D89804D4121D83B80007A0AB /* Debug */,
+				D89804D5121D83B80007A0AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D89804EE121D849D0007A0AB /* Build configuration list for PBXLegacyTarget "make consume_prof" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D89804EA121D84720007A0AB /* Debug */,
+				D89804EB121D84720007A0AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D89804F6121D852C0007A0AB /* Build configuration list for PBXNativeTarget "bittest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D89804F4121D84EF0007A0AB /* Debug */,
+				D89804F5121D84EF0007A0AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 08FB7793FE84155DC02AAC07 /* Project object */;
+}

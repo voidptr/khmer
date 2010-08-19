@@ -67,7 +67,7 @@ int main()
   unsigned long long n_consumed;
   khmer::Hashtable ht2(16, 4294967296);
   ht2.consume_fasta(filename, total_reads, n_consumed);
-  ht2.trim_graphs(100);
+//  ht2.trim_graphs(100);
 
   return 0;
 }

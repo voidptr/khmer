@@ -524,40 +524,40 @@ unsigned int Hashtable::consume_string(const std::string &s,
     if (!bounded || (bin >= lower_bound && bin < upper_bound)) {
       bin = bin % _tablesize;
       if (_counts[bin] != MAX_COUNT) {
-	_counts[bin]++;
+        _counts[bin]++;
       }
       n_consumed++;
     }
-
+    
     for (unsigned int i = _ksize; i < length; i++) {
       // left-shift the previous hash over
       h = h << 2;
-
+      
       // 'or' in the current nt
       h |= twobit_repr(sp[i]);
-
+      
       // mask off the 2 bits we shifted over.
       h &= bitmask;
-
+      
       // now handle reverse complement
       r = r >> 2;
       r |= (twobit_comp(sp[i]) << (_ksize*2 - 2));
-
+      
       bin = uniqify_rc(h, r);
-
+      
       if (!bounded || (bin >= lower_bound && bin < upper_bound)) {
-	bin = bin % _tablesize;
-	if (_counts[bin] != MAX_COUNT) {
-	  _counts[bin]++;
-	}
-	n_consumed++;
+        bin = bin % _tablesize;
+        if (_counts[bin] != MAX_COUNT) {
+          _counts[bin]++;
+        }
+        n_consumed++;
       }
     }
   } catch (...) {
     writelock_release();
     throw;
   }
-
+  
   writelock_release();
 
   return n_consumed;

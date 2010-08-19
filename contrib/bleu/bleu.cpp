@@ -1,0 +1,46 @@
+// bleu.cpp : main project file.
+
+#include "../../lib/khmer.hh"
+#include "../../lib/hashtable.hh"
+#include "bleufilter.hpp"
+
+#include <iostream>
+#include <time.h>
+
+time_t bleu::global_span_start;
+time_t bleu::last_span_time;
+time_t bleu::last_span_time_before_switch;
+time_t bleu::last_collapse_time;
+unsigned int bleu::collapse_threshold;
+short bleu::basement;
+
+int main(int argc, char *argv[])
+{
+  unsigned int total_reads;
+  unsigned long long n_consumed;
+
+  time_t start, end;
+  
+  start = time(NULL);
+  
+  bleu::global_span_start = time(NULL);
+  bleu::last_span_time = 0;
+  bleu::last_span_time_before_switch = 0;
+  bleu::last_collapse_time = 0;
+  bleu::collapse_threshold = 5000;
+  bleu::basement = 1000;
+    
+  bleu::BleuFilter bf(atoi(argv[2]), atoi(argv[3]));
+
+  bf.consume_fasta(argv[1], total_reads, n_consumed);
+
+  bf.output_sets();
+  
+  end = time(NULL);
+  
+  
+
+  std::cout << "DONE: " << difftime(end, start)<< " seconds" << std::endl;
+
+  return 0;
+}

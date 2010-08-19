@@ -1,6 +1,7 @@
 #ifndef HASHTABLE_HH
 #define HASHTABLE_HH
 
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <set>
@@ -48,7 +49,7 @@ namespace khmer {
       }
     }
 
-    void _allocate_counters() {
+    virtual void _allocate_counters() {
       _counts = new BoundedCounterType[_tablesize];
       memset(_counts, 0, _tablesize * sizeof(BoundedCounterType));
     }
@@ -142,7 +143,7 @@ namespace khmer {
     }
 
     // count every k-mer in the string.
-    unsigned int consume_string(const std::string &s,
+    virtual unsigned int consume_string(const std::string &s,
 				HashIntoType lower_bound = 0,
 				HashIntoType upper_bound = 0);
 
@@ -261,7 +262,7 @@ namespace khmer {
 	  if (cb_fn) {
 	    cb_fn(_revhash(i, _ksize).c_str(), count, data);
 	  } else{
-	    std::cout << _revhash(i, _ksize) << " " << count << std::endl;
+      std::cout << _revhash(i, _ksize) << " " << count << std::endl;
 	  }
 	}
       }
