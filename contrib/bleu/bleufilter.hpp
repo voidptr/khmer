@@ -340,7 +340,7 @@ namespace bleu {
           
           SetID lActualFinalSetID = _sets[ _set_IDs[ bin ] ]->getCurrentPrimarySetID();
           
-          outfile << ">" << read.name << "\t ..." << lActualFinalSetID << "... "
+          outfile << ">" << read.name << "\t" << lActualFinalSetID
           << " " << "\n" 
           << seq << "\n";
           
