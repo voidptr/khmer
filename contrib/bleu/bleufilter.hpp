@@ -301,7 +301,8 @@ namespace bleu {
       
       for (set<Set *>::iterator lIt2 = mUniqueSets.begin(); lIt2 != mUniqueSets.end(); ++lIt2)
       {
-        cout << (*lIt2)->getCurrentPrimarySetID() << " " << (*lIt2)->count << endl;
+        cout << setw(10) << (*lIt2)->getCurrentPrimarySetID();
+        cout << setw(10) << (*lIt2)->count << endl;
       
       }
       
@@ -339,7 +340,7 @@ namespace bleu {
           
           SetID lActualFinalSetID = _sets[ _set_IDs[ bin ] ]->getCurrentPrimarySetID();
           
-          outfile << ">" << read.name << "\t" << lActualFinalSetID
+          outfile << ">" << read.name << "\t ..." << lActualFinalSetID << "... "
           << " " << "\n" 
           << seq << "\n";
           
