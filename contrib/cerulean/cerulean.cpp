@@ -30,13 +30,13 @@ int main(int argc, char *argv[])
   cerulean::collapse_threshold = 5000;
   cerulean::basement = 1000;
     
-  cerulean::CeruleanFilter bf(atoi(argv[2]), atoi(argv[3]));
+  cerulean::CeruleanFilter bf(atoi(argv[2]), 0);
 
   bf.consume_fasta(argv[1], total_reads, n_consumed);
 
-  bf.output_sets();
+//  bf.output_sets();
   
-  bf.output_partitioned_file(argv[1], argv[4]);  
+  bf.output_partitioned_file(argv[1], argv[3]);  
   end = time(NULL);
   
   

@@ -36,22 +36,11 @@ namespace cerulean {
     class Set
     {
     public:
-      unsigned int count;
-      
       set<SetID> mSetIDs;
-      
-      static time_t thingy_start;
       
       Set( SetID aSet )      
       {
-        count = 0; // if we're being created, we must have at least one read to go in here.
-        
         mSetIDs.insert( aSet );
-      }
-      
-      void increment()
-      {
-        count++;
       }
       
       SetID getCurrentPrimarySetID()
@@ -59,14 +48,11 @@ namespace cerulean {
         return *(mSetIDs.begin());      
       }
       
-      SetID join( SetID & aSetID, map<unsigned int, Set*> & aAllSetsByID, 
-        //SetID * aAllSetIDsByBin, 
-        map<HashIntoType, SetID> & aAllSetIDsByBin,
-        HashIntoType aTablesize)
+      SetID join( SetID & aSetID, 
+                 map<unsigned int, Set*> & aAllSetsByID, 
+                 map<HashIntoType, SetID> & aAllSetIDsByBin)
       {
         Set * lSet = aAllSetsByID[ aSetID ];
-        
-        count += lSet->count;
         
         for (set<SetID>::iterator lIt = lSet->mSetIDs.begin(); lIt != lSet->mSetIDs.end(); ++lIt)
         { 
@@ -91,27 +77,17 @@ namespace cerulean {
           int lCollapsed = 0;
           int lEntries = 0;
           
-          //for (HashIntoType i = 0; i < aTablesize; ++i)
           for (map<HashIntoType, SetID>::iterator lIt = aAllSetIDsByBin.begin(); lIt != aAllSetIDsByBin.end(); ++lIt)
           { 
-//            if ( aAllSetIDsByBin[ i ] > 0 )
-//            {
-              //if ( aAllSetIDsByBin[ i ] != lCollapsedID 
-              //    && mSetIDs.find( aAllSetIDsByBin[ i ] ) != mSetIDs.end() )
               if ( lIt->second != lCollapsedID && mSetIDs.find( lIt->second ) != mSetIDs.end() )
                 
               {
-                //aAllSetIDsByBin[ i ] = lCollapsedID;
                 lIt->second = lCollapsedID;
                 lCollapsed++;                
               }
               lEntries++;
               
-              //assert( aAllSetsByID[ aAllSetIDsByBin[ i ] ] > 0 );
               assert ( aAllSetsByID[ lIt->second ] > 0 );
-              
-//            }
-            
           }
           
           set<SetID>::iterator lIt2 = mSetIDs.begin();
@@ -154,10 +130,7 @@ namespace cerulean {
               cout << "EXPANDING COLLAPSE THRESHOLD TO: " << collapse_threshold << endl;
             }
           }
-          
-          
           return lCollapsedID;
-          
         }
         else
           return aSetID;
@@ -170,10 +143,6 @@ namespace cerulean {
     
     // variable-length array
     map<HashIntoType, SetID> _set_IDs;
-    
-    // fixed-length array
-    //SetID * _set_IDs;
-    // end
     
     map<SetID, Set*> _sets;
     set<Set *> mUniqueSets;
@@ -188,8 +157,6 @@ namespace cerulean {
       delete _counts; // not using these right now. Will later for presence flags.
       _counts = NULL;
       
-      //_set_IDs = new SetID[_tablesize];
-      //memset(_set_IDs, 0, _tablesize * sizeof(SetID));
     }
     
     // consume_string: run through every k-mer in the given string, & hash it.
@@ -205,8 +172,7 @@ namespace cerulean {
       HashIntoType forward_hash = 0, reverse_hash = 0;
       
       // generate the hash for the first kmer in the read (fair amount of work)
-      HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-      HashIntoType bin = hash;// % _tablesize;
+      HashIntoType bin = _hash(sp, _ksize, forward_hash, reverse_hash);
       
       SetID set_ID = 0; // init the set_pointer-number to no set.
       set_ID = initial_set_fetch_or_assignment( bin );
@@ -214,8 +180,7 @@ namespace cerulean {
       
       // now, do the rest of the kmers in this read (add one nt at a time)
       for (unsigned int i = _ksize; i < length; i++) {
-        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
-        HashIntoType bin = next_hash;// % _tablesize;
+        HashIntoType bin = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
         set_ID = assign_or_bridge_sets( bin, set_ID );
         
         n_consumed++;
@@ -229,7 +194,6 @@ namespace cerulean {
       if ( _set_IDs[ aBin ] == 0 )
         _set_IDs[aBin] = init_new_set();
       
-      _sets[_set_IDs[aBin]]->increment();
       return _set_IDs[aBin];
     }
     
@@ -257,7 +221,6 @@ namespace cerulean {
       if ( _set_IDs.find( aBin ) == _set_IDs.end() ) // no set found for this bin
       {
         _set_IDs[aBin] = aSetID; // assign
-        _sets[ aSetID ]->increment();
         return aSetID; // yay!
       }
       else 
@@ -269,13 +232,12 @@ namespace cerulean {
         
         if ( lOriginatingSet != lEncounteredSet ) // bridge them.
         {
-          SetID lDominatingSetID = lEncounteredSet->join( aSetID, _sets, _set_IDs, _tablesize );
-          _sets[ lDominatingSetID ]->increment();
+          SetID lDominatingSetID = lEncounteredSet->join( aSetID, _sets, _set_IDs );
+
           return lDominatingSetID;
         }
         else // they weren't different after all.
         {
-          _sets[ aSetID ]->increment();
           return aSetID;    
         }
       }
@@ -297,18 +259,10 @@ namespace cerulean {
     }
     
     void output_sets()
-    {
-      
+    {      
       for ( map<unsigned int, Set*>::iterator lIt = _sets.begin(); lIt != _sets.end(); ++lIt )
       {
         mUniqueSets.insert( lIt->second );
-      }
-      
-      for (set<Set *>::iterator lIt2 = mUniqueSets.begin(); lIt2 != mUniqueSets.end(); ++lIt2)
-      {
-        cout << setw(10) << (*lIt2)->getCurrentPrimarySetID();
-        cout << setw(10) << (*lIt2)->count << endl;
-      
       }
       
       cout << setw(6) << "unique set count: "<< mUniqueSets.size() << endl;
@@ -332,6 +286,8 @@ namespace cerulean {
       std::string first_kmer;
       HashIntoType forward_hash = 0, reverse_hash = 0;
       
+      map<SetID, unsigned int> lReadCounts;
+      
       while(!parser->is_complete()) {
         read = parser->get_next_read();
         seq = read.seq;
@@ -340,10 +296,11 @@ namespace cerulean {
           first_kmer = seq.substr(0, _ksize);
           
           // generate the hash for the first kmer in the read (fair amount of work)
-          HashIntoType hash = _hash(first_kmer.c_str(), _ksize, forward_hash, reverse_hash);
-          HashIntoType bin = hash % _tablesize;
+          HashIntoType bin = _hash(first_kmer.c_str(), _ksize, forward_hash, reverse_hash);
           
           SetID lActualFinalSetID = _sets[ _set_IDs[ bin ] ]->getCurrentPrimarySetID();
+          
+          lReadCounts[lActualFinalSetID]++;
           
           outfile << ">" << read.name << "\t" << lActualFinalSetID
           << " " << "\n" 
@@ -366,9 +323,19 @@ namespace cerulean {
         }
       }
       
+      for ( map<SetID, unsigned int>::iterator lIt = lReadCounts.begin(); lIt != lReadCounts.end(); ++lIt )
+      {
+        cout << setw(10) << lIt->first;
+        cout << setw(10) << lIt->second << endl;        
+      }
+      
+      cout << setw(6) << "unique set count: "<< lReadCounts.size() << endl;
+      cout << endl;
+      
+      
       delete parser; parser = NULL;
       
-      return mUniqueSets.size();
+      return lReadCounts.size();
     }
     
   };

@@ -118,9 +118,9 @@
 /* End PBXLegacyTarget section */
 
 /* Begin PBXNativeTarget section */
-		8DD76F620486A84900D96B5E /* bleu */ = {
+		8DD76F620486A84900D96B5E /* cerulean */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "bleu" */;
+			buildConfigurationList = 1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "cerulean" */;
 			buildPhases = (
 				8DD76F640486A84900D96B5E /* Sources */,
 				8DD76F660486A84900D96B5E /* Frameworks */,
@@ -130,7 +130,7 @@
 			);
 			dependencies = (
 			);
-			name = bleu;
+			name = cerulean;
 			productInstallPath = "$(HOME)/bin";
 			productName = bleu;
 			productReference = 8DD76F6C0486A84900D96B5E /* bleu */;
@@ -148,7 +148,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8DD76F620486A84900D96B5E /* bleu */,
+				8DD76F620486A84900D96B5E /* cerulean */,
 				D8980516121D89F60007A0AB /* make cerulean */,
 			);
 		};
@@ -244,7 +244,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "bleu" */ = {
+		1DEB923108733DC60010E9CD /* Build configuration list for PBXNativeTarget "cerulean" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1DEB923208733DC60010E9CD /* Debug */,
