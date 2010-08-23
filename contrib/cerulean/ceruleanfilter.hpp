@@ -1,5 +1,5 @@
-#ifndef BLEUFILTER_HPP
-#define BLEUFILTER_HPP
+#ifndef CERULEANFILTER_HPP
+#define CERULEANFILTER_HPP
 
 #include "../../lib/hashtable.hh"
 #include "../../lib/parsers.hh"
@@ -16,7 +16,7 @@
 #define CALLBACK_PERIOD 10000
 
 
-namespace bleu {
+namespace cerulean {
   
   extern time_t global_span_start;
   extern time_t last_span_time;
@@ -30,7 +30,7 @@ namespace bleu {
   
   typedef unsigned int SetID;
   
-  class BleuFilter
+  class CeruleanFilter
   : public Hashtable
   {
     class Set
@@ -59,7 +59,10 @@ namespace bleu {
         return *(mSetIDs.begin());      
       }
       
-      SetID join( SetID & aSetID, map<unsigned int, Set*> & aAllSetsByID, SetID * aAllSetIDsByBin, HashIntoType aTablesize)
+      SetID join( SetID & aSetID, map<unsigned int, Set*> & aAllSetsByID, 
+        //SetID * aAllSetIDsByBin, 
+        map<HashIntoType, SetID> & aAllSetIDsByBin,
+        HashIntoType aTablesize)
       {
         Set * lSet = aAllSetsByID[ aSetID ];
         
@@ -88,26 +91,26 @@ namespace bleu {
           int lCollapsed = 0;
           int lEntries = 0;
           
-          for (HashIntoType i = 0; i < aTablesize; ++i)
-            //for (map<HashIntoType, SetID>::iterator lIt = aAllSetIDsByBin.begin(); lIt != aAllSetIDsByBin.end(); ++lIt)
+          //for (HashIntoType i = 0; i < aTablesize; ++i)
+          for (map<HashIntoType, SetID>::iterator lIt = aAllSetIDsByBin.begin(); lIt != aAllSetIDsByBin.end(); ++lIt)
           { 
-            if ( aAllSetIDsByBin[ i ] > 0 )
-            {
-              if ( aAllSetIDsByBin[ i ] != lCollapsedID 
-                  && mSetIDs.find( aAllSetIDsByBin[ i ] ) != mSetIDs.end() )
-                //if ( lIt->second != lCollapsedID && mSetIDs.find( lIt->second ) != mSetIDs.end() )
+//            if ( aAllSetIDsByBin[ i ] > 0 )
+//            {
+              //if ( aAllSetIDsByBin[ i ] != lCollapsedID 
+              //    && mSetIDs.find( aAllSetIDsByBin[ i ] ) != mSetIDs.end() )
+              if ( lIt->second != lCollapsedID && mSetIDs.find( lIt->second ) != mSetIDs.end() )
                 
               {
-                aAllSetIDsByBin[ i ] = lCollapsedID;
-                //lIt->second = lCollapsedID;
+                //aAllSetIDsByBin[ i ] = lCollapsedID;
+                lIt->second = lCollapsedID;
                 lCollapsed++;                
               }
               lEntries++;
               
-              assert( aAllSetsByID[ aAllSetIDsByBin[ i ] ] > 0 );
-              //assert ( aAllSetsByID[ lIt->second ] > 0 );
+              //assert( aAllSetsByID[ aAllSetIDsByBin[ i ] ] > 0 );
+              assert ( aAllSetsByID[ lIt->second ] > 0 );
               
-            }
+//            }
             
           }
           
@@ -166,17 +169,17 @@ namespace bleu {
     SetID _last_set;
     
     // variable-length array
-    //map<HashIntoType, SetID> _set_IDs;
+    map<HashIntoType, SetID> _set_IDs;
     
     // fixed-length array
-    SetID * _set_IDs;
+    //SetID * _set_IDs;
     // end
     
     map<SetID, Set*> _sets;
     set<Set *> mUniqueSets;
     
   public:
-    BleuFilter(WordLength ksize, HashIntoType tablesize)
+    CeruleanFilter(WordLength ksize, HashIntoType tablesize)
     
     : Hashtable(ksize, tablesize)
     {
@@ -185,8 +188,8 @@ namespace bleu {
       delete _counts; // not using these right now. Will later for presence flags.
       _counts = NULL;
       
-      _set_IDs = new SetID[_tablesize];
-      memset(_set_IDs, 0, _tablesize * sizeof(SetID));
+      //_set_IDs = new SetID[_tablesize];
+      //memset(_set_IDs, 0, _tablesize * sizeof(SetID));
     }
     
     // consume_string: run through every k-mer in the given string, & hash it.
@@ -203,7 +206,7 @@ namespace bleu {
       
       // generate the hash for the first kmer in the read (fair amount of work)
       HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-      HashIntoType bin = hash % _tablesize;
+      HashIntoType bin = hash;// % _tablesize;
       
       SetID set_ID = 0; // init the set_pointer-number to no set.
       set_ID = initial_set_fetch_or_assignment( bin );
@@ -212,7 +215,7 @@ namespace bleu {
       // now, do the rest of the kmers in this read (add one nt at a time)
       for (unsigned int i = _ksize; i < length; i++) {
         HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
-        HashIntoType bin = next_hash % _tablesize;
+        HashIntoType bin = next_hash;// % _tablesize;
         set_ID = assign_or_bridge_sets( bin, set_ID );
         
         n_consumed++;
@@ -250,8 +253,8 @@ namespace bleu {
       // otherwise, if the bin already has a set ID, which points to a different Set them, we should bridge.
       
       
-      if ( _set_IDs[ aBin ] == 0 )
-        //if ( _set_IDs.find( aBin ) == _set_IDs.end() ) // no set found for this bin
+      //if ( _set_IDs[ aBin ] == 0 )
+      if ( _set_IDs.find( aBin ) == _set_IDs.end() ) // no set found for this bin
       {
         _set_IDs[aBin] = aSetID; // assign
         _sets[ aSetID ]->increment();
@@ -371,5 +374,5 @@ namespace bleu {
   };
 }
 
-#endif //BLEUFILTER_HPP
+#endif //CERULEANFILTER_HPP
 
