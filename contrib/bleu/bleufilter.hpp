@@ -36,8 +36,6 @@ namespace bleu {
     class Set
     {
     public:
-      unsigned int count;
-      
       set<SetID> mSetIDs;
       
       static time_t thingy_start;
@@ -48,12 +46,7 @@ namespace bleu {
         
         mSetIDs.insert( aSet );
       }
-      
-      void increment()
-      {
-        count++;
-      }
-      
+            
       SetID getCurrentPrimarySetID()
       {
         return *(mSetIDs.begin());      
@@ -62,9 +55,7 @@ namespace bleu {
       SetID join( SetID & aSetID, map<unsigned int, Set*> & aAllSetsByID, SetID * aAllSetIDsByBin, HashIntoType aTablesize)
       {
         Set * lSet = aAllSetsByID[ aSetID ];
-        
-        count += lSet->count;
-        
+                
         for (set<SetID>::iterator lIt = lSet->mSetIDs.begin(); lIt != lSet->mSetIDs.end(); ++lIt)
         { 
           aAllSetsByID[*lIt] = this; // re-point all the old pointers.
@@ -212,7 +203,7 @@ namespace bleu {
       // now, do the rest of the kmers in this read (add one nt at a time)
       for (unsigned int i = _ksize; i < length; i++) {
         HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
-        HashIntoType bin = next_hash % _tablesize;
+        bin = next_hash % _tablesize;
         set_ID = assign_or_bridge_sets( bin, set_ID );
         
         n_consumed++;
@@ -226,7 +217,6 @@ namespace bleu {
       if ( _set_IDs[ aBin ] == 0 )
         _set_IDs[aBin] = init_new_set();
       
-      _sets[_set_IDs[aBin]]->increment();
       return _set_IDs[aBin];
     }
     
@@ -254,7 +244,6 @@ namespace bleu {
         //if ( _set_IDs.find( aBin ) == _set_IDs.end() ) // no set found for this bin
       {
         _set_IDs[aBin] = aSetID; // assign
-        _sets[ aSetID ]->increment();
         return aSetID; // yay!
       }
       else 
@@ -267,12 +256,10 @@ namespace bleu {
         if ( lOriginatingSet != lEncounteredSet ) // bridge them.
         {
           SetID lDominatingSetID = lEncounteredSet->join( aSetID, _sets, _set_IDs, _tablesize );
-          _sets[ lDominatingSetID ]->increment();
           return lDominatingSetID;
         }
         else // they weren't different after all.
         {
-          _sets[ aSetID ]->increment();
           return aSetID;    
         }
       }
@@ -295,19 +282,11 @@ namespace bleu {
     
     void output_sets()
     {
-      
       for ( map<unsigned int, Set*>::iterator lIt = _sets.begin(); lIt != _sets.end(); ++lIt )
       {
         mUniqueSets.insert( lIt->second );
       }
-      
-      for (set<Set *>::iterator lIt2 = mUniqueSets.begin(); lIt2 != mUniqueSets.end(); ++lIt2)
-      {
-        cout << setw(10) << (*lIt2)->getCurrentPrimarySetID();
-        cout << setw(10) << (*lIt2)->count << endl;
-      
-      }
-      
+            
       cout << setw(6) << "unique set count: "<< mUniqueSets.size() << endl;
       cout << endl;
     }
@@ -329,6 +308,8 @@ namespace bleu {
       std::string first_kmer;
       HashIntoType forward_hash = 0, reverse_hash = 0;
       
+      map<SetID, unsigned int> lReadCounts;
+      
       while(!parser->is_complete()) {
         read = parser->get_next_read();
         seq = read.seq;
@@ -341,6 +322,8 @@ namespace bleu {
           HashIntoType bin = hash % _tablesize;
           
           SetID lActualFinalSetID = _sets[ _set_IDs[ bin ] ]->getCurrentPrimarySetID();
+          
+          lReadCounts[ lActualFinalSetID ]++;
           
           outfile << ">" << read.name << "\t" << lActualFinalSetID
           << " " << "\n" 
@@ -362,6 +345,16 @@ namespace bleu {
           }
         }
       }
+      
+      for ( map<SetID, unsigned int>::iterator lIt = lReadCounts.begin(); lIt != lReadCounts.end(); ++lIt )
+      {
+        cout << setw(10) << lIt->first;
+        cout << setw(10) << lIt->second << endl;        
+      }
+      
+      cout << setw(6) << "unique set count: "<< lReadCounts.size() << endl;
+      cout << endl;
+
       
       delete parser; parser = NULL;
       
