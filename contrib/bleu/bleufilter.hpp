@@ -41,9 +41,7 @@ namespace bleu {
       static time_t thingy_start;
       
       Set( SetID aSet )      
-      {
-        count = 0; // if we're being created, we must have at least one read to go in here.
-        
+      {        
         mSetIDs.insert( aSet );
       }
             
