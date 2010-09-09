@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8DD76F6A0486A84900D96B5E /* bleu.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* bleu.1 */; };
+		D89424CB1238021800DCC84E /* cBitArray.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89424C81238021800DCC84E /* cBitArray.cc */; };
 		D8980522121D8A600007A0AB /* hashtable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051A121D8A600007A0AB /* hashtable.cc */; };
 		D8980523121D8A600007A0AB /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051D121D8A600007A0AB /* ktable.cc */; };
 		D8980524121D8A600007A0AB /* parsers.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051F121D8A600007A0AB /* parsers.cc */; };
@@ -30,6 +31,9 @@
 /* Begin PBXFileReference section */
 		8DD76F6C0486A84900D96B5E /* bleu */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bleu; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6859E8B029090EE04C91782 /* bleu.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = bleu.1; sourceTree = "<group>"; };
+		D89424C81238021800DCC84E /* cBitArray.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cBitArray.cc; path = ../../external_lib/cBitArray.cc; sourceTree = SOURCE_ROOT; };
+		D89424C91238021800DCC84E /* cBitArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cBitArray.h; path = ../../external_lib/cBitArray.h; sourceTree = SOURCE_ROOT; };
+		D89424CA1238021800DCC84E /* tArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tArray.h; path = ../../external_lib/tArray.h; sourceTree = SOURCE_ROOT; };
 		D8980512121D89930007A0AB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../bleu/Makefile; sourceTree = SOURCE_ROOT; };
 		D898051A121D8A600007A0AB /* hashtable.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hashtable.cc; path = ../../../lib/hashtable.cc; sourceTree = SOURCE_ROOT; };
 		D898051B121D8A600007A0AB /* hashtable.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = hashtable.hh; path = ../../../lib/hashtable.hh; sourceTree = SOURCE_ROOT; };
@@ -69,6 +73,9 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				D89424C81238021800DCC84E /* cBitArray.cc */,
+				D89424C91238021800DCC84E /* cBitArray.h */,
+				D89424CA1238021800DCC84E /* tArray.h */,
 				D898060D121DCF9D0007A0AB /* bleu.cpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
 				D898051A121D8A600007A0AB /* hashtable.cc */,
@@ -165,6 +172,7 @@
 				D8980523121D8A600007A0AB /* ktable.cc in Sources */,
 				D8980524121D8A600007A0AB /* parsers.cc in Sources */,
 				D898060F121DCF9D0007A0AB /* bleu.cpp in Sources */,
+				D89424CB1238021800DCC84E /* cBitArray.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -3,10 +3,12 @@
 
 #include "../../lib/hashtable.hh"
 #include "../../lib/parsers.hh"
+#include "../external_lib/cBitArray.h"
 #include <iostream>
 #include <iomanip>
 #include <vector>
 #include <string>
+#include <list>
 #include <map>
 #include <sstream>
 #include <set>
@@ -14,6 +16,7 @@
 #include <time.h>
 
 #define CALLBACK_PERIOD 10000
+#define KMER_BIT_COUNT_PARTITION 10000
 
 
 namespace bleu {
@@ -50,7 +53,7 @@ namespace bleu {
         return *(mSetIDs.begin());      
       }
       
-      SetID join( SetID & aSetID, map<unsigned int, Set*> & aAllSetsByID, SetID * aAllSetIDsByBin, HashIntoType aTablesize)
+      SetID join( SetID & aSetID, map<SetID, Set*> & aAllSetsByID, SetID * aAllSetIDsByBin, HashIntoType aNumberOfUniqueKmers)
       {
         Set * lSet = aAllSetsByID[ aSetID ];
                 
@@ -77,7 +80,7 @@ namespace bleu {
           int lCollapsed = 0;
           int lEntries = 0;
           
-          for (HashIntoType i = 0; i < aTablesize; ++i)
+          for (HashIntoType i = 0; i < aNumberOfUniqueKmers; ++i)
             //for (map<HashIntoType, SetID>::iterator lIt = aAllSetIDsByBin.begin(); lIt != aAllSetIDsByBin.end(); ++lIt)
           { 
             if ( aAllSetIDsByBin[ i ] > 0 )
@@ -85,14 +88,21 @@ namespace bleu {
               if ( aAllSetIDsByBin[ i ] != lCollapsedID 
                   && mSetIDs.find( aAllSetIDsByBin[ i ] ) != mSetIDs.end() )
                 //if ( lIt->second != lCollapsedID && mSetIDs.find( lIt->second ) != mSetIDs.end() )
-                
               {
+                
+                SetID lDeleteMe2 = aAllSetIDsByBin[ i ];
+                set<SetID>::iterator lDeleteMeIt = mSetIDs.find( lDeleteMe2 );
+                SetID lDeleteMe3 = *lDeleteMeIt;
+                
                 aAllSetIDsByBin[ i ] = lCollapsedID;
                 //lIt->second = lCollapsedID;
                 lCollapsed++;                
               }
               lEntries++;
               
+              SetID lDeleteMe = aAllSetIDsByBin[ i ];
+              Set * lDeleteMeSet = aAllSetsByID[ lDeleteMe ];
+            
               assert( aAllSetsByID[ aAllSetIDsByBin[ i ] ] > 0 );
               //assert ( aAllSetsByID[ lIt->second ] > 0 );
               
@@ -105,6 +115,7 @@ namespace bleu {
           
           for (; lIt2 != mSetIDs.end(); ++lIt2)
           {
+            SetID lToDel = *lIt2;
             aAllSetsByID.erase( *lIt2 ); // remove the extra entry in the map for this set.
           }
           
@@ -153,13 +164,13 @@ namespace bleu {
   protected:
     
     SetID _last_set;
-    
-    // variable-length array
-    //map<HashIntoType, SetID> _set_IDs;
-    
     // fixed-length array
     SetID * _set_IDs;
     // end
+    
+    cBitArray _kmer_flags;
+    unsigned int * _kmer_bit_counts;
+    HashIntoType _unique_kmer_count;
     
     map<SetID, Set*> _sets;
     set<Set *> mUniqueSets;
@@ -174,13 +185,188 @@ namespace bleu {
       delete _counts; // not using these right now. Will later for presence flags.
       _counts = NULL;
       
-      _set_IDs = new SetID[_tablesize];
-      memset(_set_IDs, 0, _tablesize * sizeof(SetID));
+//      _set_IDs = new SetID[_tablesize];
+//      memset(_set_IDs, 0, _tablesize * sizeof(SetID));
+      _set_IDs = NULL; // THIS WILL GET SET LATER
+      _unique_kmer_count = 0; // THIS WILL GET SET LATER
+      
+      _kmer_flags.ResizeClear(tablesize);
+      _kmer_bit_counts = new unsigned int[(tablesize / KMER_BIT_COUNT_PARTITION)+1];
+      
+      
     }
     
     // consume_string: run through every k-mer in the given string, & hash it.
     // overriding the Hashtable version to support my new thang.
     unsigned int consume_string(const std::string &s,
+                                HashIntoType lower_bound = 0,
+                                HashIntoType upper_bound = 0)
+    {
+      const char * sp = s.c_str();
+      const unsigned int length = s.length();
+      unsigned int n_consumed = 0;
+      
+      HashIntoType forward_hash = 0, reverse_hash = 0;
+      
+      // generate the hash for the first kmer in the read (fair amount of work)
+      HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+      HashIntoType bin = hash % _tablesize;
+      
+      _kmer_flags.Set(bin, true);
+      
+      n_consumed++;
+      
+      // now, do the rest of the kmers in this read (add one nt at a time)
+      for (unsigned int i = _ksize; i < length; i++) {
+        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
+        bin = next_hash % _tablesize;
+        
+        _kmer_flags.Set(bin, true);
+        
+        n_consumed++;
+      }
+      
+      return n_consumed;
+    }
+    
+    void prepare_set_arrays()
+    {
+      _unique_kmer_count = _kmer_flags.CountBits();
+      
+      _set_IDs = new SetID[_unique_kmer_count];  
+      memset(_set_IDs, 0, _unique_kmer_count * sizeof(SetID));
+      
+      for (int i = 0; i < (_tablesize / KMER_BIT_COUNT_PARTITION)+1; ++i)
+      {      
+        // temporarily store the single section count.
+        _kmer_bit_counts[i] = _kmer_flags.CountBits((i * KMER_BIT_COUNT_PARTITION), ((i+1) * KMER_BIT_COUNT_PARTITION) - 1);
+        
+        if ( i > 0 ) // apply the summation
+          _kmer_bit_counts[i] += _kmer_bit_counts[i-1];
+      }
+    }
+    
+    //
+    // generate_sets: consume a FASTA file of reads, again, to generate the sets.
+    //
+    
+    void generate_sets(const std::string &filename,
+                       unsigned int &total_reads,
+                       unsigned long long &n_consumed,
+                       HashIntoType lower_bound = 0,
+                       HashIntoType upper_bound = 0,
+                       ReadMaskTable ** orig_readmask = NULL,
+                       bool update_readmask = true,
+                       CallbackFn callback = NULL,
+                       void * callback_data = NULL)
+    {
+      total_reads = 0;
+      n_consumed = 0;
+      
+      IParser* parser = IParser::get_parser(filename.c_str());
+      Read read;
+      
+      string currName = "";
+      string currSeq = "";
+      
+      //
+      // readmask stuff: were we given one? do we want to update it?
+      // 
+      
+      ReadMaskTable * readmask = NULL;
+      std::list<unsigned int> masklist;
+      
+      if (orig_readmask && *orig_readmask) {
+        readmask = *orig_readmask;
+      }
+      
+      //
+      // iterate through the FASTA file & consume the reads.
+      //
+      
+      while(!parser->is_complete())  {
+        read = parser->get_next_read();
+        currSeq = read.seq;
+        currName = read.name; 
+        
+        // do we want to process it?
+        if (!readmask || readmask->get(total_reads)) {
+          
+          // yep! process.
+          unsigned int this_n_consumed;
+          bool is_valid;
+          
+          this_n_consumed = check_and_process_read_for_set(currSeq,
+                                                   is_valid,
+                                                   lower_bound,
+                                                   upper_bound);
+          
+          // was this an invalid sequence -> mark as bad?
+          if (!is_valid && update_readmask) {
+            if (readmask) {
+              readmask->set(total_reads, false);
+            } else {
+              masklist.push_back(total_reads);
+            }
+          } else {		// nope -- count it!
+            n_consumed += this_n_consumed;
+          }
+        }
+        
+        // reset the sequence info, increment read number
+        total_reads++;
+        
+        if (total_reads % 1000 == 0)
+          cout << total_reads << endl;
+        
+        // run callback, if specified
+        if (total_reads % CALLBACK_PERIOD == 0 && callback) {
+          try {
+            callback("consume_fasta", callback_data, total_reads, n_consumed);
+          } catch (...) {
+            throw;
+          }
+        }
+      }
+      
+      
+      //
+      // We've either updated the readmask in place, OR we need to create a
+      // new one.
+      //
+      
+      if (orig_readmask && update_readmask && readmask == NULL) {
+        // allocate, fill in from masklist
+        readmask = new ReadMaskTable(total_reads);
+        
+        list<unsigned int>::const_iterator it;
+        for(it = masklist.begin(); it != masklist.end(); ++it) {
+          readmask->set(*it, false);
+        }
+        *orig_readmask = readmask;
+      }
+    }
+    
+    //
+    // check_and_process_read: checks for non-ACGT characters before consuming
+    //
+    
+    unsigned int check_and_process_read_for_set(const std::string &read,
+                                                   bool &is_valid,
+                                                   HashIntoType lower_bound,
+                                                   HashIntoType upper_bound)
+    {
+      is_valid = check_read(read);
+      
+      if (!is_valid) { return 0; }
+      
+      return consume_string_for_set(read, lower_bound, upper_bound);
+    }
+    
+    
+    // consume_string: run through every k-mer in the given string, & hash it.
+    // overriding the Hashtable version to support my new thang.
+    unsigned int consume_string_for_set(const std::string &s,
                                 HashIntoType lower_bound = 0,
                                 HashIntoType upper_bound = 0)
     {
@@ -212,10 +398,33 @@ namespace bleu {
     
     SetID initial_set_fetch_or_assignment( HashIntoType aBin )
     {
-      if ( _set_IDs[ aBin ] == 0 )
-        _set_IDs[aBin] = init_new_set();
+      HashIntoType lSetBin = HashBinToSetBin( aBin );
       
-      return _set_IDs[aBin];
+      if ( _set_IDs[ lSetBin ] == 0 )
+        _set_IDs[lSetBin] = init_new_set();
+      
+      return _set_IDs[lSetBin];
+    }
+    
+    HashIntoType HashBinToSetBin( HashIntoType aBin )
+    {
+      unsigned int lBinSectionIndex = (aBin / KMER_BIT_COUNT_PARTITION); // the index of the section before the one we're in
+      unsigned int lSectionCountsSize = _tablesize / KMER_BIT_COUNT_PARTITION;
+      assert( lBinSectionIndex <= (_tablesize / KMER_BIT_COUNT_PARTITION));
+      
+      unsigned int lStartBit = lBinSectionIndex * KMER_BIT_COUNT_PARTITION;
+            
+
+      HashIntoType lJustThisSectionCount = _kmer_flags.CountBits( lBinSectionIndex * KMER_BIT_COUNT_PARTITION, aBin );
+      HashIntoType lSetBin = lJustThisSectionCount;
+      
+      if ( lBinSectionIndex > 0 )
+        lSetBin += _kmer_bit_counts[ lBinSectionIndex - 1 ];
+      
+      lSetBin -= 1; // to make it an array index rather than a count.
+      
+      assert( lSetBin < _unique_kmer_count );
+      return lSetBin;
     }
     
     SetID init_new_set()
@@ -231,29 +440,31 @@ namespace bleu {
     SetID assign_or_bridge_sets( HashIntoType aBin, SetID aSetID )
     {
       
+      
       // so, we have a bin, and a setID it should go with. Right, sounds good.
       
       // if the bin is empty, that's easy. put in our set ID, and move on.
       
       // otherwise, if the bin already has a set ID, which points to a different Set them, we should bridge.
       
+      HashIntoType lSetBin = HashBinToSetBin( aBin );      
       
-      if ( _set_IDs[ aBin ] == 0 )
+      if ( _set_IDs[ lSetBin ] == 0 )
         //if ( _set_IDs.find( aBin ) == _set_IDs.end() ) // no set found for this bin
       {
-        _set_IDs[aBin] = aSetID; // assign
+        _set_IDs[lSetBin] = aSetID; // assign
         return aSetID; // yay!
       }
       else 
       {
         Set * lOriginatingSet = _sets[ aSetID ];
         
-        SetID lEncounteredSetID = _set_IDs[ aBin ];        
+        SetID lEncounteredSetID = _set_IDs[ lSetBin ];        
         Set * lEncounteredSet = _sets[ lEncounteredSetID ];
         
         if ( lOriginatingSet != lEncounteredSet ) // bridge them.
         {
-          SetID lDominatingSetID = lEncounteredSet->join( aSetID, _sets, _set_IDs, _tablesize );
+          SetID lDominatingSetID = lEncounteredSet->join( aSetID, _sets, _set_IDs, _unique_kmer_count );
           return lDominatingSetID;
         }
         else // they weren't different after all.
@@ -319,7 +530,9 @@ namespace bleu {
           HashIntoType hash = _hash(first_kmer.c_str(), _ksize, forward_hash, reverse_hash);
           HashIntoType bin = hash % _tablesize;
           
-          SetID lActualFinalSetID = _sets[ _set_IDs[ bin ] ]->getCurrentPrimarySetID();
+          HashIntoType lSetBin = HashBinToSetBin( bin );    
+          
+          SetID lActualFinalSetID = _sets[ _set_IDs[ lSetBin ] ]->getCurrentPrimarySetID();
           
           lReadCounts[ lActualFinalSetID ]++;
           

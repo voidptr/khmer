@@ -33,6 +33,8 @@ int main(int argc, char *argv[])
   bleu::BleuFilter bf(atoi(argv[2]), atoi(argv[3]));
 
   bf.consume_fasta(argv[1], total_reads, n_consumed);
+  bf.prepare_set_arrays();
+  bf.generate_sets(argv[1], total_reads, n_consumed);
 
   bf.output_sets();
   
