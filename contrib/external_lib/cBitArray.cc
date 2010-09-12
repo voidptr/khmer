@@ -1,36 +1,36 @@
 #include "cBitArray.h"
 
-void cRawBitArray::Copy(const cRawBitArray & in_array, const int num_bits)
+void cRawBitArray::Copy(const cRawBitArray & in_array, const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
+  const unsigned long long num_fields = GetNumFields(num_bits);
   if (bit_fields != NULL) {
     delete [] bit_fields;
   }
   bit_fields = new unsigned int[num_fields];
-  for (int i = 0; i < num_fields; i++) {
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = in_array.bit_fields[i];
   }
 }
 
 
-bool cRawBitArray::IsEqual(const cRawBitArray & in_array, int num_bits) const
+bool cRawBitArray::IsEqual(const cRawBitArray & in_array, unsigned long long num_bits) const
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     if (bit_fields[i] != in_array.bit_fields[i]) return false;
   }
   return true;
 }
 
 
-void cRawBitArray::Resize(const int old_bits, const int new_bits)
+void cRawBitArray::Resize(const unsigned long long old_bits, const unsigned long long new_bits)
 {
-  const int num_old_fields = GetNumFields(old_bits);
-  const int num_new_fields = GetNumFields(new_bits);
+  const unsigned long long num_old_fields = GetNumFields(old_bits);
+  const unsigned long long num_new_fields = GetNumFields(new_bits);
   if (num_old_fields == num_new_fields) {
     // Clear all bits past the new end and stop.
-    unsigned int & last_field = bit_fields[num_new_fields - 1];
-    for (int i = new_bits; i < old_bits; i++) {
+    unsigned long long last_field = bit_fields[num_new_fields - 1];
+    for (unsigned long long i = new_bits; i < old_bits; i++) {
       const unsigned int clear_bit = i & 31;
       last_field &= ~(1 << clear_bit);
     }
@@ -40,22 +40,22 @@ void cRawBitArray::Resize(const int old_bits, const int new_bits)
   // If we made it this far, we have to change the number of fields.
   // Create the new bit array and copy the old one into it.
   unsigned int * new_bit_fields = new unsigned int[ num_new_fields ];
-  for (int i = 0; i < num_new_fields && i < num_old_fields; i++) {
+  for (unsigned long long i = 0; i < num_new_fields && i < num_old_fields; i++) {
     new_bit_fields[i] = bit_fields[i];
   }
   
   // If the old bits are longer, we need to clear the end of the last
   // bit field.
   if (num_old_fields > num_new_fields) {
-    unsigned int & last_field = new_bit_fields[num_new_fields - 1];
-    for (int clear_bit=GetFieldPos(new_bits); clear_bit < 32; clear_bit++) {
+    unsigned long long last_field = new_bit_fields[num_new_fields - 1];
+    for (unsigned int clear_bit=GetFieldPos(new_bits); clear_bit < 32; clear_bit++) {
       last_field &= ~(1 << clear_bit);
     }
   }
   
   // If the new bits are longer, clear everything past the end of the old
   // bits.
-  for (int i = num_old_fields; i < num_new_fields; i++) {
+  for (unsigned long long i = num_old_fields; i < num_new_fields; i++) {
     new_bit_fields[i] = 0;
   }
 
@@ -66,16 +66,16 @@ void cRawBitArray::Resize(const int old_bits, const int new_bits)
 }
 
 
-void cRawBitArray::ResizeSloppy(const int new_bits)
+void cRawBitArray::ResizeSloppy(const unsigned long long new_bits)
 {
-  const int new_fields = GetNumFields(new_bits);
+  const unsigned long long new_fields = GetNumFields(new_bits);
   if (bit_fields != NULL) {
     delete [] bit_fields;
   }
   bit_fields = new unsigned int[ new_fields ];
 }
 
-void cRawBitArray::ResizeClear(const int new_bits)
+void cRawBitArray::ResizeClear(const unsigned long long new_bits)
 {
   ResizeSloppy(new_bits);
   Zero(new_bits);
@@ -84,12 +84,12 @@ void cRawBitArray::ResizeClear(const int new_bits)
 
 // This technique counts the number of bits; it loops through once for each
 // bit equal to 1.  This is reasonably fast for sparse arrays.
-int cRawBitArray::CountBits(const int num_bits) const
+unsigned long long cRawBitArray::CountBits(const unsigned long long num_bits) const
 {
-  const int num_fields = GetNumFields(num_bits);
+  const unsigned long long num_fields = GetNumFields(num_bits);
   int bit_count = 0;
   
-  for (int i = 0; i < num_fields; i++) {
+  for (unsigned long long i = 0; i < num_fields; i++) {
     unsigned int temp = bit_fields[i];
     while (temp != 0) {
       temp = temp & (temp - 1);
@@ -101,17 +101,17 @@ int cRawBitArray::CountBits(const int num_bits) const
 
 // This technique counts the number of bits; it loops through once for each
 // bit equal to 1.  This is reasonably fast for sparse arrays.
-int cRawBitArray::CountBits(const int start_bit, const int stop_bit ) const
+unsigned long long cRawBitArray::CountBits(const unsigned long long start_bit, const unsigned long long stop_bit ) const
 {
   //const int num_fields = GetNumFields(stop_bit - start_bit);
   int bit_count = 0;
   
-  int start_field = GetField( start_bit );
-  int stop_field = GetField( stop_bit );
-  int start_pos = GetFieldPos( start_bit );
-  int stop_pos = GetFieldPos( stop_bit );
+  unsigned long long start_field = GetField( start_bit );
+  unsigned long long stop_field = GetField( stop_bit );
+  unsigned int start_pos = GetFieldPos( start_bit );
+  unsigned int stop_pos = GetFieldPos( stop_bit );
   
-  for (int i = start_field; i <= stop_field; ++i) {
+  for (unsigned long long i = start_field; i <= stop_field; ++i) {
     unsigned int temp = bit_fields[i];
     
     //cout << i << " " << start_field << endl;
@@ -138,13 +138,13 @@ int cRawBitArray::CountBits(const int start_bit, const int stop_bit ) const
 
 // This technique is another way of counting bits; It does a bunch of
 // clever bit tricks to do it in parallel in each int.
-int cRawBitArray::CountBits2(const int num_bits) const
+unsigned long long cRawBitArray::CountBits2(const unsigned long long num_bits) const
 {
-  const int num_fields = GetNumFields(num_bits);
+  const unsigned long long num_fields = GetNumFields(num_bits);
   int bit_count = 0;
   
-  for (int i = 0; i < num_fields; i++) {
-    const int  v = bit_fields[i];
+  for (unsigned long long i = 0; i < num_fields; i++) {
+    const int v = bit_fields[i];
     unsigned int const t1 = v - ((v >> 1) & 0x55555555);
     unsigned int const t2 = (t1 & 0x33333333) + ((t1 >> 2) & 0x33333333);
     bit_count += ((t2 + (t2 >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
@@ -152,42 +152,42 @@ int cRawBitArray::CountBits2(const int num_bits) const
   return bit_count;
 }
 
-int cRawBitArray::FindBit1(const int num_bits, const int start_pos) const
+unsigned long long cRawBitArray::FindBit1(const unsigned long long num_bits, const unsigned long long start_pos) const
 {
   // @CAO -- There are probably better ways to do this with bit tricks.
-  for (int i = start_pos; i < num_bits; i++) {
+  for (unsigned long long i = start_pos; i < num_bits; i++) {
     if (GetBit(i) == true) return i;
   }
 
-  return -1;
+  return 0;
 }
 
-tArray<int> cRawBitArray::GetOnes(const int num_bits) const
+tArray<int> cRawBitArray::GetOnes(const unsigned long long num_bits) const
 {
   // @CAO -- There are probably better ways to do this with bit tricks.
   tArray<int> out_array(CountBits2(num_bits));
-  int cur_pos = 0;
-  for (int i = 0; i < num_bits; i++) {
+  unsigned long long cur_pos = 0;
+  for (unsigned long long i = 0; i < num_bits; i++) {
     if (GetBit(i) == true) out_array[cur_pos++] = i;
   }
 
   return out_array;
 }
 
-void cRawBitArray::ShiftLeft(const int num_bits, const int shift_size)
+void cRawBitArray::ShiftLeft(const unsigned long long num_bits, const unsigned long long shift_size)
 {
   assert(shift_size > 0);
-  int num_fields = GetNumFields(num_bits);
-  int field_shift = shift_size / 32;
+  unsigned long long num_fields = GetNumFields(num_bits);
+  unsigned long long field_shift = shift_size / 32;
   int bit_shift = shift_size % 32;
   
   
   // acount for field_shift
   if (field_shift) {
-    for (int i = num_fields - 1; i >= field_shift; i--) {
+    for (unsigned long long i = num_fields - 1; i >= field_shift; i--) {
       bit_fields[i] = bit_fields[i - field_shift];
     }
-    for (int i = field_shift - 1; i >= 0; i--) {
+    for (unsigned long long i = field_shift - 1; i >= 0; i--) {
       bit_fields[i] = 0;
     }
   }
@@ -195,7 +195,7 @@ void cRawBitArray::ShiftLeft(const int num_bits, const int shift_size)
   
   // account for bit_shift
   int temp = 0;
-  for (int i = 0; i < num_fields; i++) {
+  for (unsigned long long i = 0; i < num_fields; i++) {
     temp = bit_fields[i] >> (32 - bit_shift);
     bit_fields[i] <<= bit_shift;
     if (i > 0) bit_fields[i - 1] |= temp;  // same as += in this case since lower bit_shift bits of bit_fields[i - 1] are all 0 at this point -- any advantage?  
@@ -209,19 +209,19 @@ void cRawBitArray::ShiftLeft(const int num_bits, const int shift_size)
 }
 
 // ALWAYS shifts in zeroes, irrespective of sign bit (since fields are unsigned)
-void cRawBitArray::ShiftRight(const int num_bits, const int shift_size)
+void cRawBitArray::ShiftRight(const unsigned long long num_bits, const unsigned long long shift_size)
 {
   assert(shift_size > 0);
-  int num_fields = GetNumFields(num_bits);
-  int field_shift = shift_size / 32;
+  unsigned long long num_fields = GetNumFields(num_bits);
+  unsigned long long field_shift = shift_size / 32;
   int bit_shift = shift_size % 32;
   
   // account for field_shift
   if (field_shift) {
-    for (int i = 0; i < num_fields - field_shift; i++) {
+    for (unsigned long long i = 0; i < num_fields - field_shift; i++) {
       bit_fields[i] = bit_fields[i + field_shift];
     }
-    for(int i = num_fields - field_shift; i < num_fields; i++) {
+    for(unsigned long long i = num_fields - field_shift; i < num_fields; i++) {
       bit_fields[i] = 0;
     }
   }
@@ -229,17 +229,17 @@ void cRawBitArray::ShiftRight(const int num_bits, const int shift_size)
   // account for bit_shift
   bit_fields[num_fields - 1] >>= bit_shift;  // drops off right end, may shift in ones if sign bit was set
   int temp = 0;
-  for (int i = num_fields - 2; i >= 0; i--) {
+  for (unsigned long long i = num_fields - 2; i >= 0; i--) {
     temp = bit_fields[i] << (32 - bit_shift);
     bit_fields[i] >>= bit_shift;
     bit_fields[i + 1] |= temp;
   }
 }
 
-void cRawBitArray::NOT(const int num_bits)
+void cRawBitArray::NOT(const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~bit_fields[i];
   }
 
@@ -249,26 +249,26 @@ void cRawBitArray::NOT(const int num_bits)
   }
 }
 
-void cRawBitArray::AND(const cRawBitArray & array2, const int num_bits)
+void cRawBitArray::AND(const cRawBitArray & array2, const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] &= array2.bit_fields[i];
   }
 }
 
-void cRawBitArray::OR(const cRawBitArray & array2, const int num_bits)
+void cRawBitArray::OR(const cRawBitArray & array2, const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] |= array2.bit_fields[i];
   }
 }
 
-void cRawBitArray::NAND(const cRawBitArray & array2, const int num_bits)
+void cRawBitArray::NAND(const cRawBitArray & array2, const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~(bit_fields[i] & array2.bit_fields[i]);
   }
 
@@ -278,32 +278,32 @@ void cRawBitArray::NAND(const cRawBitArray & array2, const int num_bits)
   }
 }
 
-void cRawBitArray::NOR(const cRawBitArray & array2, const int num_bits)
+void cRawBitArray::NOR(const cRawBitArray & array2, const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~(bit_fields[i] | array2.bit_fields[i]);
   }
 
-  const int last_bit = GetFieldPos(num_bits);
+  const unsigned long long last_bit = GetFieldPos(num_bits);
   if (last_bit > 0) {
     bit_fields[num_fields - 1] &= (1 << last_bit) - 1;
   }
 }
 
-void cRawBitArray::XOR(const cRawBitArray & array2, const int num_bits)
+void cRawBitArray::XOR(const cRawBitArray & array2, const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] ^= array2.bit_fields[i];
   }
 
 }
 
-void cRawBitArray::EQU(const cRawBitArray & array2, const int num_bits)
+void cRawBitArray::EQU(const cRawBitArray & array2, const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~(bit_fields[i] ^ array2.bit_fields[i]);
   }
 
@@ -313,7 +313,7 @@ void cRawBitArray::EQU(const cRawBitArray & array2, const int num_bits)
   }
 }
 
-void cRawBitArray::SHIFT(const int num_bits, const int shift_size)
+void cRawBitArray::SHIFT(const unsigned long long num_bits, const unsigned long long shift_size)
 {
   if (shift_size == 0) return;
   if (shift_size > 0) { ShiftLeft(num_bits, shift_size); return; }
@@ -321,9 +321,9 @@ void cRawBitArray::SHIFT(const int num_bits, const int shift_size)
   assert(false); // Should never get here.
 }
 
-void cRawBitArray::INCREMENT(const int num_bits)
+void cRawBitArray::INCREMENT(const unsigned long long num_bits)
 {
-  const int num_fields = GetNumFields(num_bits);
+  const unsigned long long num_fields = GetNumFields(num_bits);
   int i = 0;
   for (i = 0; i < num_fields; i++) {
     bit_fields[i]++;
@@ -337,16 +337,12 @@ void cRawBitArray::INCREMENT(const int num_bits)
   }
 }
 
-
-
-
-
-void cRawBitArray::NOT(const cRawBitArray & array1, const int num_bits)
+void cRawBitArray::NOT(const cRawBitArray & array1, const unsigned long long num_bits)
 {
   ResizeSloppy(num_bits);
 
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~array1.bit_fields[i];
   }
 
@@ -357,34 +353,34 @@ void cRawBitArray::NOT(const cRawBitArray & array1, const int num_bits)
 }
 
 void cRawBitArray::AND(const cRawBitArray & array1,
-		       const cRawBitArray & array2, const int num_bits)
+		       const cRawBitArray & array2, const unsigned long long num_bits)
 {
   ResizeSloppy(num_bits);
 
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = array1.bit_fields[i] & array2.bit_fields[i];
   }
 }
 
 void cRawBitArray::OR(const cRawBitArray & array1,
-		      const cRawBitArray & array2, const int num_bits)
+		      const cRawBitArray & array2, const unsigned long long num_bits)
 {
   ResizeSloppy(num_bits);
 
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = array1.bit_fields[i] | array2.bit_fields[i];
   }
 }
 
 void cRawBitArray::NAND(const cRawBitArray & array1,
-			const cRawBitArray & array2, const int num_bits)
+			const cRawBitArray & array2, const unsigned long long num_bits)
 {
   ResizeSloppy(num_bits);
 
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~(array1.bit_fields[i] & array2.bit_fields[i]);
   }
 
@@ -395,12 +391,12 @@ void cRawBitArray::NAND(const cRawBitArray & array1,
 }
 
 void cRawBitArray::NOR(const cRawBitArray & array1,
-		       const cRawBitArray & array2, const int num_bits)
+		       const cRawBitArray & array2, const unsigned long long num_bits)
 {
   ResizeSloppy(num_bits);
 
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~(array1.bit_fields[i] | array2.bit_fields[i]);
   }
 
@@ -411,23 +407,23 @@ void cRawBitArray::NOR(const cRawBitArray & array1,
 }
 
 void cRawBitArray::XOR(const cRawBitArray & array1,
-		       const cRawBitArray & array2, const int num_bits)
+		       const cRawBitArray & array2, const unsigned long long num_bits)
 {
   ResizeSloppy(num_bits);
 
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = array1.bit_fields[i] ^ array2.bit_fields[i];
   }
 
 }
 
-void cRawBitArray::EQU(const cRawBitArray & array1, const cRawBitArray & array2, const int num_bits)
+void cRawBitArray::EQU(const cRawBitArray & array1, const cRawBitArray & array2, const unsigned long long num_bits)
 {
   ResizeSloppy(num_bits);
 
-  const int num_fields = GetNumFields(num_bits);
-  for (int i = 0; i < num_fields; i++) {
+  const unsigned long long num_fields = GetNumFields(num_bits);
+  for (unsigned long long i = 0; i < num_fields; i++) {
     bit_fields[i] = ~(array1.bit_fields[i] ^ array2.bit_fields[i]);
   }
 
@@ -437,7 +433,7 @@ void cRawBitArray::EQU(const cRawBitArray & array1, const cRawBitArray & array2,
   }
 }
 
-void cRawBitArray::SHIFT(const cRawBitArray & array1, const int num_bits, const int shift_size)
+void cRawBitArray::SHIFT(const cRawBitArray & array1, const unsigned long long num_bits, const unsigned long long shift_size)
 {
   if (shift_size == 0) return;
   
@@ -446,7 +442,7 @@ void cRawBitArray::SHIFT(const cRawBitArray & array1, const int num_bits, const 
   SHIFT(num_bits, shift_size);
 }
 
-void cRawBitArray::INCREMENT(const cRawBitArray & array1, const int num_bits)
+void cRawBitArray::INCREMENT(const cRawBitArray & array1, const unsigned long long num_bits)
 {
   Copy(array1, num_bits);
   INCREMENT(num_bits);

@@ -99,9 +99,9 @@ private:
   const cRawBitArray & operator=(const cRawBitArray & in_array)
     { assert(false); return *this; }
 
-  inline int GetNumFields(const int num_bits) const { return 1 + ((num_bits - 1) >> 5); }
-  inline int GetField(const int index) const { return index >> 5; }
-  inline int GetFieldPos(const int index) const { return index & 31; }
+  inline unsigned long long GetNumFields(const unsigned long long num_bits) const { return 1 + ((num_bits - 1) >> 5); }
+  inline unsigned long long GetField(const unsigned long long index) const { return index >> 5; }
+  inline int GetFieldPos(const unsigned long long index) const { return index & 31; }
 public:
   cRawBitArray() : bit_fields(NULL) { ; }
   ~cRawBitArray() {
@@ -110,16 +110,16 @@ public:
     }
   }
 
-  void Zero(const int num_bits) {
+  void Zero(const unsigned long long num_bits) {
     const int num_fields = GetNumFields(num_bits);
-    for (int i = 0; i < num_fields; i++) {
+    for (unsigned long long i = 0; i < num_fields; i++) {
       bit_fields[i] = 0;
     }    
   }
 
-  void Ones(const int num_bits) {
-    const int num_fields = GetNumFields(num_bits);
-    for (int i = 0; i < num_fields; i++) {
+  void Ones(const unsigned long long num_bits) {
+    const unsigned long long num_fields = GetNumFields(num_bits);
+    for (unsigned long long i = 0; i < num_fields; i++) {
       bit_fields[i] = ~0;
     }    
     const int last_bit = GetFieldPos(num_bits);
@@ -128,16 +128,16 @@ public:
     }
   }
 
-  cRawBitArray(const int num_bits) {
-    const int num_fields = GetNumFields(num_bits);
+  cRawBitArray(const unsigned long long num_bits) {
+    const unsigned long long num_fields = GetNumFields(num_bits);
     bit_fields = new unsigned int[ num_fields ];
     Zero(num_bits);
   }
 
   // The Copy() method and the Copy Constructor must both be told how many
   // bits they are working with.
-  void Copy(const cRawBitArray & in_array, const int num_bits);
-  cRawBitArray(const cRawBitArray & in_array, const int num_bits)
+  void Copy(const cRawBitArray & in_array, const unsigned long long num_bits);
+  cRawBitArray(const cRawBitArray & in_array, const unsigned long long num_bits)
     : bit_fields(NULL)
   {
     Copy(in_array, num_bits);
@@ -147,14 +147,14 @@ public:
   // we're going to have a GetBit and a SetBit commamd.  For this raw version
   // we're also going to assume that the index is within range w/o any special
   // checks.
-  bool GetBit(const int index) const{
-    const int field_id = GetField(index);
+  bool GetBit(const unsigned long long index) const{
+    const unsigned long long field_id = GetField(index);
     const int pos_id = GetFieldPos(index);
     return (bit_fields[field_id] & (1 << pos_id)) != 0;
   }
 
-  void SetBit(const int index, const bool value) {
-    const int field_id = GetField(index);
+  void SetBit(const unsigned long long index, const bool value) {
+    const unsigned long long field_id = GetField(index);
     const int pos_id = GetFieldPos(index);
     const int pos_mask = 1 << pos_id;
 
@@ -165,38 +165,38 @@ public:
     }
   }
 
-  bool IsEqual(const cRawBitArray & in_array, int num_bits) const;
+  bool IsEqual(const cRawBitArray & in_array, unsigned long long num_bits) const;
 
-  void Resize(const int old_bits, const int new_bits);
-  void ResizeSloppy(const int new_bits);
-  void ResizeClear(const int new_bits);
+  void Resize(const unsigned long long old_bits, const unsigned long long new_bits);
+  void ResizeSloppy(const unsigned long long new_bits);
+  void ResizeClear(const unsigned long long new_bits);
 
   // Two different technique of bit counting...
-  int CountBits(const int num_bits) const; // Better for sparse arrays
-  int CountBits(const int start_bit, const int stop_bit) const; // count the bits between a start and stop point
-  int CountBits2(const int num_bits) const; // Better for dense arrays
+  unsigned long long CountBits(const unsigned long long num_bits) const; // Better for sparse arrays
+  unsigned long long CountBits(const unsigned long long start_bit, const unsigned long long stop_bit) const; // count the bits between a start and stop point
+  unsigned long long CountBits2(const unsigned long long num_bits) const; // Better for dense arrays
 
   // Other bit-play
-  int FindBit1(const int num_bits, const int start_pos) const;
-  tArray<int> GetOnes(const int num_bits) const;
-  void ShiftLeft(const int num_bits, const int shift_size); // Helper: call SHIFT with positive number instead
-  void ShiftRight(const int num_bits, const int shift_size); // Helper: call SHIFT with negative number instead
+  unsigned long long FindBit1(const unsigned long long num_bits, const unsigned long long start_pos) const;
+  tArray<int> GetOnes(const unsigned long long num_bits) const;
+  void ShiftLeft(const unsigned long long num_bits, const unsigned long long shift_size); // Helper: call SHIFT with positive number instead
+  void ShiftRight(const unsigned long long num_bits, const unsigned long long shift_size); // Helper: call SHIFT with negative number instead
 
-  void Print(const int num_bits, ostream & out=cout) const {
-    for (int i = 0; i < num_bits; i++) {
+  void Print(const unsigned long long num_bits, ostream & out=cout) const {
+    for (unsigned long long i = 0; i < num_bits; i++) {
       out << GetBit(i);
     }
   }
   
   // prints in the accepted human readable low-to-hight = right-to-left format, taking bit 0 as low bit
-  void PrintRightToLeft(const int num_bits, ostream & out=cout) const {
-    for (int i = num_bits - 1; i >= 0; i--) {
+  void PrintRightToLeft(const unsigned long long num_bits, ostream & out=cout) const {
+    for (unsigned long long i = num_bits - 1; i >= 0; i--) {
       out << GetBit(i);
     }
   }
 
-  void PrintOneIDs(const int num_bits, ostream & out=cout) const {
-    for (int i = 0; i < num_bits; i++) {
+  void PrintOneIDs(const unsigned long long num_bits, ostream & out=cout) const {
+    for (unsigned long long i = 0; i < num_bits; i++) {
       if (GetBit(i) == true) {
 	out << i << " ";
       }
@@ -205,47 +205,47 @@ public:
 
   // Fast bool operators where we uses this bit array as one of the 
   // inputs and the place to store the results.
-  void NOT(const int num_bits);
-  void AND(const cRawBitArray & array2, const int num_bits);
-  void OR(const cRawBitArray & array2, const int num_bits);
-  void NAND(const cRawBitArray & array2, const int num_bits);
-  void NOR(const cRawBitArray & array2, const int num_bits);
-  void XOR(const cRawBitArray & array2, const int num_bits);
-  void EQU(const cRawBitArray & array2, const int num_bits);
-  void SHIFT(const int num_bits, const int shift_size);  // positive numbers for left and negative for right (0 does nothing)
-  void INCREMENT(const int num_bits);
+  void NOT(const unsigned long long num_bits);
+  void AND(const cRawBitArray & array2, const unsigned long long num_bits);
+  void OR(const cRawBitArray & array2, const unsigned long long num_bits);
+  void NAND(const cRawBitArray & array2, const unsigned long long num_bits);
+  void NOR(const cRawBitArray & array2, const unsigned long long num_bits);
+  void XOR(const cRawBitArray & array2, const unsigned long long num_bits);
+  void EQU(const cRawBitArray & array2, const unsigned long long num_bits);
+  void SHIFT(const unsigned long long num_bits, const unsigned long long shift_size);  // positive numbers for left and negative for right (0 does nothing)
+  void INCREMENT(const unsigned long long num_bits);
 
   // Fast bool operators where we load all of the inputs and store the
   // results here.
-  void NOT(const cRawBitArray & array1, const int num_bits);
+  void NOT(const cRawBitArray & array1, const unsigned long long num_bits);
   void AND(const cRawBitArray & array1, const cRawBitArray & array2,
-	   const int num_bits);
+	   const unsigned long long num_bits);
   void OR(const cRawBitArray & array1, const cRawBitArray & array2,
-	  const int num_bits);
+	  const unsigned long long num_bits);
   void NAND(const cRawBitArray & array1, const cRawBitArray & array2,
-	    const int num_bits);
+	    const unsigned long long num_bits);
   void NOR(const cRawBitArray & array1, const cRawBitArray & array2,
-	   const int num_bits);
+	   const unsigned long long num_bits);
   void XOR(const cRawBitArray & array1, const cRawBitArray & array2,
-	   const int num_bits);
+	   const unsigned long long num_bits);
   void EQU(const cRawBitArray & array1, const cRawBitArray & array2,
-	   const int num_bits);
-  void SHIFT(const cRawBitArray & array1, const int num_bits, const int shift_size);
-  void INCREMENT(const cRawBitArray & array1, const int num_bits);  // implemented for completeness, but unused by cBitArray
+	   const unsigned long long num_bits);
+  void SHIFT(const cRawBitArray & array1, const unsigned long long num_bits, const unsigned long long shift_size);
+  void INCREMENT(const cRawBitArray & array1, const unsigned long long num_bits);  // implemented for completeness, but unused by cBitArray
 };
 
 class cBitArray {
 private:
   cRawBitArray bit_array;
-  int array_size;
+  unsigned long long array_size;
 
   // Setup a bit proxy so that we can use operator[] on bit arrays as a lvalue.
   class cBitProxy {
   private:
     cBitArray & array;
-    int index;
+    unsigned long long index;
   public:
-    cBitProxy(cBitArray & _array, int _idx) : array(_array), index(_idx) {;}
+    cBitProxy(cBitArray & _array, unsigned long long _idx) : array(_array), index(_idx) {;}
 
     inline cBitProxy & operator=(bool b);    // lvalue handling...
     inline operator bool() const;            // rvalue handling...
@@ -253,7 +253,7 @@ private:
   friend class cBitProxy;
 public:
   cBitArray() : array_size(0) { ; }
-  cBitArray(int in_size) : bit_array(in_size), array_size(in_size) { ; }
+  cBitArray(unsigned long long in_size) : bit_array(in_size), array_size(in_size) { ; }
   cBitArray(const cBitArray & in_array)
     : bit_array(in_array.bit_array, in_array.array_size)
     , array_size(in_array.array_size) { ; }
@@ -272,20 +272,20 @@ public:
     return bit_array.IsEqual(in_array.bit_array, array_size);
   }
 
-  int GetSize() const { return array_size; }
+  unsigned long long GetSize() const { return array_size; }
 
-  void Set(int index, bool value) {
+  void Set(unsigned long long index, bool value) {
     assert(index < array_size);
     bit_array.SetBit(index, value);
   }
 
-  bool Get(int index) const {
+  bool Get(unsigned long long index) const {
     assert(index < array_size);
     return bit_array.GetBit(index);
   }
 
-  bool operator[](int index) const { return Get(index); }
-  cBitProxy operator[](int index) { return cBitProxy(*this, index); }
+  bool operator[](unsigned long long index) const { return Get(index); }
+  cBitProxy operator[](unsigned long long index) { return cBitProxy(*this, index); }
 
   void Clear() { bit_array.Zero(array_size); }
   void SetAll() { bit_array.Ones(array_size); }
@@ -295,19 +295,19 @@ public:
   void PrintRightToLeft(ostream & out=cout) const { bit_array.PrintRightToLeft(array_size, out); }
   void PrintOneIDs(ostream & out=cout) const
     { bit_array.PrintOneIDs(array_size, out); }
-  void Resize(const int new_size) {
+  void Resize(const unsigned long long new_size) {
     bit_array.Resize(array_size, new_size);
     array_size = new_size;
   }
-  void ResizeClear(const int new_size) {
+  void ResizeClear(const unsigned long long new_size) {
     bit_array.ResizeClear(new_size);
     array_size = new_size;
   }
-  int CountBits() const { return bit_array.CountBits(array_size); }
-  int CountBits( int start_bit, int stop_bit ) const { return bit_array.CountBits( start_bit, stop_bit ); }
-  int CountBits2() const { return bit_array.CountBits2(array_size); }
+  unsigned long long CountBits() const { return bit_array.CountBits(array_size); }
+  unsigned long long CountBits( unsigned long long start_bit, unsigned long long stop_bit ) const { return bit_array.CountBits( start_bit, stop_bit ); }
+  unsigned long long CountBits2() const { return bit_array.CountBits2(array_size); }
 
-  int FindBit1(int start_bit=0) const
+  unsigned long long FindBit1(unsigned long long start_bit=0) const
     { return bit_array.FindBit1(array_size, start_bit); }
   tArray<int> GetOnes() const { return bit_array.GetOnes(array_size); }
 

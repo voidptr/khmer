@@ -50,8 +50,8 @@ namespace khmer {
     }
 
     virtual void _allocate_counters() {
-      _counts = new BoundedCounterType[_tablesize];
-      memset(_counts, 0, _tablesize * sizeof(BoundedCounterType));
+      //_counts = new BoundedCounterType[_tablesize];
+      //memset(_counts, 0, _tablesize * sizeof(BoundedCounterType));
     }
 
   public:

@@ -30,7 +30,16 @@ int main(int argc, char *argv[])
   bleu::collapse_threshold = 5000;
   bleu::basement = 1000;
     
-  bleu::BleuFilter bf(atoi(argv[2]), atoi(argv[3]));
+  //char * lBleh = argv[3];
+  //unsigned int lBleh2 = atol( lBleh );
+  
+  //unsigned long long lBleh3 = atoll( lBleh );
+  
+ // unsigned long long lVal = 32000000007;
+ // unsigned long long lVal =  3200000007;
+ //   unsigned long long lVal = 16000000007;
+  
+  bleu::BleuFilter bf(atoi(argv[2]), atoll(argv[3]));
 
   bf.consume_fasta(argv[1], total_reads, n_consumed);
   bf.prepare_set_arrays();
