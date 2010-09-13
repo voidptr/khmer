@@ -21,12 +21,12 @@
 
 namespace bleu {
   
-//  extern time_t global_span_start;
-//  extern time_t last_span_time;
-//  extern time_t last_span_time_before_switch;
-//  extern time_t last_collapse_time;
-//  extern unsigned int collapse_threshold;
-//  extern short basement;
+  extern time_t global_span_start;
+  extern time_t last_span_time;
+  extern time_t last_span_time_before_switch;
+  extern time_t last_collapse_time;
+  extern unsigned int collapse_threshold;
+  extern short basement;
   
   using namespace khmer;
   using namespace std;
@@ -40,44 +40,167 @@ namespace bleu {
     {
     public:
       
-      set<HashIntoType> ListOfSetBins;
-      set<HashIntoType> ListOfSet2Bins;
+//      set<HashIntoType> ListOfSetBins;
+//      set<HashIntoType> ListOfSet2Bins;
       
-      SetID mSetID;
+//      SetID mSetID;
+      
+      set<SetID> mSetIDs;
       
       static time_t thingy_start;
       
       Set( SetID aSetID )      
       {        
-        mSetID = aSetID;
+//        mSetID = aSetID;
+        mSetIDs.insert( aSetID );
       }
       
-      void addHash( HashIntoType aHash, BleuFilter * aParent )
+      SetID getCurrentPrimarySetID()
       {
-        ListOfSetBins.insert( aParent->HashToSetBin( aHash ) );
-        ListOfSet2Bins.insert( aParent->HashToSetBin2( aHash ) );
+        return *(mSetIDs.begin());
       }
       
-      SetID join( SetID & aSetID, map<SetID, Set*> & aSets, SetID * aSetIDs, set<SetID> ** aSetIDs2, HashIntoType aNumberOfUniqueKmers)
+//      void addHash( HashIntoType aHash, BleuFilter * aParent )
+//      {
+//        ListOfSetBins.insert( aParent->HashToSetBin( aHash ) );
+//        ListOfSet2Bins.insert( aParent->HashToSetBin2( aHash ) );
+//      }
+      
+      SetID join( SetID & aSetID, map<SetID, Set*> & aSets, SetID * aSetIDs, set<SetID> ** aSetIDs2, HashIntoType aNumberOfUniqueKmers,  HashIntoType aNumberOfUniqueKmers2)
       {
         Set * lSet = aSets[ aSetID ];
         
-        for ( set<HashIntoType>::iterator lSetBin = lSet->ListOfSetBins.begin(); lSetBin != lSet->ListOfSetBins.end(); ++lSetBin )
-        {
-          aSetIDs[ *lSetBin ] = mSetID;
-          ListOfSetBins.insert( *lSetBin );
-        }
+//        for ( set<HashIntoType>::iterator lSetBin = lSet->ListOfSetBins.begin(); lSetBin != lSet->ListOfSetBins.end(); ++lSetBin )
+//        {
+//          aSetIDs[ *lSetBin ] = mSetID;
+//          ListOfSetBins.insert( *lSetBin );
+//        }
+//        
+//        for ( set<HashIntoType>::iterator lSet2Bin = lSet->ListOfSet2Bins.begin(); lSet2Bin != lSet->ListOfSet2Bins.end(); ++lSet2Bin )
+//        {
+//          aSetIDs2[ *lSet2Bin ]->erase( lSet->mSetID );
+//          aSetIDs2[ *lSet2Bin ]->insert( mSetID );
+//          ListOfSet2Bins.insert( *lSet2Bin );
+//        }
         
-        for ( set<HashIntoType>::iterator lSet2Bin = lSet->ListOfSet2Bins.begin(); lSet2Bin != lSet->ListOfSet2Bins.end(); ++lSet2Bin )
+        for (set<SetID>::iterator lIt = lSet->mSetIDs.begin(); lIt != lSet->mSetIDs.end(); ++lIt)
         {
-          aSetIDs2[ *lSet2Bin ]->erase( lSet->mSetID );
-          aSetIDs2[ *lSet2Bin ]->insert( mSetID );
-          ListOfSet2Bins.insert( *lSet2Bin );
+          aSets[*lIt] = this; // re-point all the old pointers.
+          mSetIDs.insert( *lIt );
         }
         
         delete lSet; // this should work.
+        aSets.erase( aSetID );
+  
+        // COLLAPSE
+        if ( mSetIDs.size() > collapse_threshold )
+        {
+          last_span_time = difftime( time(NULL), global_span_start );
+          
+          cout << "LAST SPAN TOOK " << last_span_time << " seconds" << endl;
+          
+          time_t start, end;
+          start = time(NULL);
+          
+          cout << "COLLAPSING " << mSetIDs.size() << endl;
+          SetID lCollapsedID = *(mSetIDs.begin());
+          
+          int lCollapsed = 0;
+          int lEntries = 0;
+          
+          
+          // COLLAPSE may set IDs into a single setID
+          for (HashIntoType i = 0; i < aNumberOfUniqueKmers; ++i)
+          {
+            if ( aSetIDs[ i ] > 0 )
+            {
+              if ( aSetIDs[ i ] != lCollapsedID
+                  && mSetIDs.find( aSetIDs[ i ] ) != mSetIDs.end() )
+              {
+                aSetIDs[ i ] = lCollapsedID;
+                lCollapsed++;
+              }
+              lEntries++;
+              
+              assert( aSets[ aSetIDs[ i ] ] > 0 );
+              //assert ( aAllSetsByID[ lIt->second ] > 0 );
+              
+            }            
+          }
+          
+          // COLLAPSE ORs into a single setID
+          for (HashIntoType i = 0; i < aNumberOfUniqueKmers2; ++i)
+          {
+            if ( aSetIDs2[ i ] != NULL )
+            {
+              bool lFoundOne = false;
+              for ( set<SetID>::iterator lOrID = aSetIDs2[ i ]->begin(); lOrID != aSetIDs2[ i ]->end(); ++lOrID )
+              {
+                if ( mSetIDs.find( *lOrID ) != mSetIDs.end() ) // we found one
+                {
+                  lFoundOne = true;
+                  aSetIDs2[ i ]->erase( *lOrID );
+                  lCollapsed++;
+                }                
+                else
+                  assert( aSets[ *lOrID ] > 0 );
+              }
+              if ( lFoundOne )
+                aSetIDs2[ i ]->insert( lCollapsed );
+              
+              lEntries++;
+            }            
+          }
+          
+          
+          
+          set<SetID>::iterator lIt2 = mSetIDs.begin();
+          lIt2++;          
+          for (; lIt2 != mSetIDs.end(); ++lIt2)
+          {
+            aSets.erase( *lIt2 ); // remove the extra entry in the map for this set.
+          }
+          
+          mSetIDs.erase( mSetIDs.begin(), mSetIDs.end() ); // erase the whole list
+          mSetIDs.insert( lCollapsedID );
+          
+          end = time(NULL);
+          
+          last_collapse_time = difftime(end, start);
+          
+          cout << "COLLAPSING " << lCollapsed << " out of " << lEntries << " ENTRIES TOOK " << last_collapse_time << " seconds" << std::endl;
+          
+          global_span_start = time(NULL); // reset this puppy.
+          
+          if ( last_span_time > 10 && last_span_time > (last_collapse_time * 2) && collapse_threshold > basement )
+          {
+            last_span_time_before_switch = last_span_time;
+            last_span_time = 0;
+            last_collapse_time = 0;
+            collapse_threshold /= 2;
+            cout << "SHRINKING COLLAPSE THRESHOLD TO: " << collapse_threshold << endl;
+          }
+          else if ( last_span_time < last_collapse_time )
+          {
+            if ( last_span_time > 5 && ((last_span_time * 2) + last_collapse_time ) < last_span_time_before_switch )
+              cout << "MIGHT WANT TO RECONSIDER EXPANDING THIS ONE." << endl;
+            else
+            {
+              last_span_time_before_switch = last_span_time;
+              last_span_time = 0;
+              last_collapse_time = 0;
+              collapse_threshold *= 2;
+              cout << "EXPANDING COLLAPSE THRESHOLD TO: " << collapse_threshold << endl;
+            }
+          }          
+          
+          return lCollapsedID;
+          
+        }
+        else
+          return aSetID;
         
-        return mSetID;
+//        return mSetID;
       }
     };
     
@@ -365,7 +488,7 @@ namespace bleu {
         lSetID = HashToSetID( hash ); // use that set going forward
         lWorkingSet = _sets[ lSetID ];
         // no need to apply SetID. It's already there.
-        lWorkingSet->addHash( hash, this );
+//        lWorkingSet->addHash( hash, this );
       }
       else // create a new set for us to hold on to 
       {
@@ -374,7 +497,7 @@ namespace bleu {
         if ( HashToSetID( hash ) == 0 ) // we're blank, so we're all good
         {           
           ApplySetID( hash, lSetID );
-          lWorkingSet->addHash( hash, this );
+//          lWorkingSet->addHash( hash, this );
         }
       }
       
@@ -400,7 +523,7 @@ namespace bleu {
         else if ( HashToSetID( next_hash ) == 0 ) // empty set here.
         {
           ApplySetID( next_hash, lSetID );
-          lWorkingSet->addHash( next_hash, this );
+//          lWorkingSet->addHash( next_hash, this );
         }
                   
         assert (lSetID > 0 );
@@ -418,24 +541,47 @@ namespace bleu {
     {
       _set_IDs[ HashToSetBin(aHash) ] = aSetID;
       
-      if ( _set_IDs_2[ HashToSetBin2(aHash) ] == NULL )
-        _set_IDs_2[ HashToSetBin2(aHash) ] = new set<SetID>();
-      else {
-        cout << "OR" << endl;
-      }
+      HashIntoType lSetBin2 = HashToSetBin2(aHash);
       
-      _set_IDs_2[ HashToSetBin2(aHash) ]->insert( aSetID );
+      if ( _set_IDs_2[ lSetBin2 ] == NULL )
+        _set_IDs_2[ lSetBin2 ] = new set<SetID>();
+//      else {
+//        cout << ".";
+//      }
+      
+      int lSize = _set_IDs_2[ lSetBin2 ]->size();
+      
+      _set_IDs_2[ lSetBin2 ]->insert( aSetID );
+      
+      if ( _set_IDs_2[ lSetBin2 ]->size() > 5 && _set_IDs_2[ lSetBin2 ]->size() > lSize )
+        cout << _set_IDs_2[ lSetBin2 ]->size() << endl;
     }
     
     bool NotFalsePositive( HashIntoType aHash )
     {
       SetID lSetID1 = HashToSetID( aHash );
       
-      if ( lSetID1 == 0 && _set_IDs_2[ HashToSetBin2(aHash) ] == NULL )
+      HashIntoType lSetBin2 = HashToSetBin2(aHash);
+      
+      if ( lSetID1 == 0 && _set_IDs_2[ lSetBin2 ] == NULL )
         return true;
       
-      if ( _set_IDs_2[ HashToSetBin2(aHash) ] != NULL && _set_IDs_2[ HashToSetBin2(aHash) ]->find( lSetID1 ) != _set_IDs_2[ HashToSetBin2(aHash) ]->end() )
+      if ( _set_IDs_2[ lSetBin2 ] != NULL && 
+          _set_IDs_2[ lSetBin2 ]->find( lSetID1 ) != _set_IDs_2[ lSetBin2 ]->end() )
         return true;
+      
+      Set * lSet1 = _sets[ lSetID1 ];
+      
+      if ( _set_IDs_2[ lSetBin2 ] != NULL )
+      {
+        for ( set<SetID>::iterator lMatch = _set_IDs_2[ lSetBin2 ]->begin();
+            lMatch != _set_IDs_2[ lSetBin2 ]->end();
+            ++lMatch )
+        {
+          if ( lSet1 == _sets[ *lMatch ] )
+            return true;
+        }
+      }
       
       return false;                    
     }
@@ -529,10 +675,12 @@ namespace bleu {
       Set * lOriginatingSet = _sets[ aCurrentlyUsingSetID ];        
       Set * lEncounteredSet = _sets[ aEncounteredSetID ];
       
-      assert( lOriginatingSet != lEncounteredSet ); // set numbers should uniquely point to sets. (we'll collapse this list soon)
-       
-      
-      return lEncounteredSet->join( aCurrentlyUsingSetID, _sets, _set_IDs, _set_IDs_2, _total_unique_hash_count );      
+      //assert( lOriginatingSet != lEncounteredSet ); // set numbers should uniquely point to sets. (we'll collapse this list soon)
+             
+      if ( lOriginatingSet == lEncounteredSet )
+        return lEncounteredSet->join( aCurrentlyUsingSetID, _sets, _set_IDs, _set_IDs_2, _total_unique_hash_count, _total_unique_hash2_count );      
+      else
+        return aCurrentlyUsingSetID;
     }
     
     HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
@@ -590,10 +738,11 @@ namespace bleu {
           HashIntoType hash = _hash(first_kmer.c_str(), _ksize, forward_hash, reverse_hash);
 
           SetID lSetID = HashToSetID( hash );
+          SetID lActualFinalSetID = _sets[ lSetID ]->getCurrentPrimarySetID();
           
-          lReadCounts[ lSetID ]++;
+          lReadCounts[ lActualFinalSetID ]++;
           
-          outfile << ">" << read.name << "\t" << lSetID
+          outfile << ">" << read.name << "\t" << lActualFinalSetID
           << " " << "\n" 
           << seq << "\n";
           
