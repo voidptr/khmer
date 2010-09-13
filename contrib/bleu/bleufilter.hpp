@@ -21,12 +21,12 @@
 
 namespace bleu {
   
-  extern time_t global_span_start;
-  extern time_t last_span_time;
-  extern time_t last_span_time_before_switch;
-  extern time_t last_collapse_time;
-  extern unsigned int collapse_threshold;
-  extern short basement;
+//  extern time_t global_span_start;
+//  extern time_t last_span_time;
+//  extern time_t last_span_time_before_switch;
+//  extern time_t last_collapse_time;
+//  extern unsigned int collapse_threshold;
+//  extern short basement;
   
   using namespace khmer;
   using namespace std;
@@ -39,117 +39,45 @@ namespace bleu {
     class Set
     {
     public:
-      set<SetID> mSetIDs;
+      
+      set<HashIntoType> ListOfSetBins;
+      set<HashIntoType> ListOfSet2Bins;
+      
+      SetID mSetID;
       
       static time_t thingy_start;
       
-      Set( SetID aSet )      
+      Set( SetID aSetID )      
       {        
-        mSetIDs.insert( aSet );
-      }
-            
-      SetID getCurrentPrimarySetID()
-      {
-        return *(mSetIDs.begin());      
+        mSetID = aSetID;
       }
       
-      SetID join( SetID & aSetID, map<SetID, Set*> & aAllSetsByID, SetID * aAllSetIDsByBin, HashIntoType aNumberOfUniqueKmers)
+      void addHash( HashIntoType aHash, BleuFilter * aParent )
       {
-        Set * lSet = aAllSetsByID[ aSetID ];
-                
-        for (set<SetID>::iterator lIt = lSet->mSetIDs.begin(); lIt != lSet->mSetIDs.end(); ++lIt)
-        { 
-          aAllSetsByID[*lIt] = this; // re-point all the old pointers.
-          mSetIDs.insert( *lIt );
+        ListOfSetBins.insert( aParent->HashToSetBin( aHash ) );
+        ListOfSet2Bins.insert( aParent->HashToSetBin2( aHash ) );
+      }
+      
+      SetID join( SetID & aSetID, map<SetID, Set*> & aSets, SetID * aSetIDs, set<SetID> ** aSetIDs2, HashIntoType aNumberOfUniqueKmers)
+      {
+        Set * lSet = aSets[ aSetID ];
+        
+        for ( set<HashIntoType>::iterator lSetBin = lSet->ListOfSetBins.begin(); lSetBin != lSet->ListOfSetBins.end(); ++lSetBin )
+        {
+          aSetIDs[ *lSetBin ] = mSetID;
+          ListOfSetBins.insert( *lSetBin );
+        }
+        
+        for ( set<HashIntoType>::iterator lSet2Bin = lSet->ListOfSet2Bins.begin(); lSet2Bin != lSet->ListOfSet2Bins.end(); ++lSet2Bin )
+        {
+          aSetIDs2[ *lSet2Bin ]->erase( lSet->mSetID );
+          aSetIDs2[ *lSet2Bin ]->insert( mSetID );
+          ListOfSet2Bins.insert( *lSet2Bin );
         }
         
         delete lSet; // this should work.
         
-        if ( mSetIDs.size() > collapse_threshold )
-        {
-          last_span_time = difftime( time(NULL), global_span_start );
-          
-          cout << "LAST SPAN TOOK " << last_span_time << " seconds" << endl;
-          
-          time_t start, end;
-          start = time(NULL);
-          
-          cout << "COLLAPSING " << mSetIDs.size() << endl;
-          SetID lCollapsedID = *(mSetIDs.begin());
-          
-          int lCollapsed = 0;
-          int lEntries = 0;
-          
-          for (HashIntoType i = 0; i < aNumberOfUniqueKmers; ++i)
-            //for (map<HashIntoType, SetID>::iterator lIt = aAllSetIDsByBin.begin(); lIt != aAllSetIDsByBin.end(); ++lIt)
-          { 
-            if ( aAllSetIDsByBin[ i ] > 0 )
-            {
-              if ( aAllSetIDsByBin[ i ] != lCollapsedID 
-                  && mSetIDs.find( aAllSetIDsByBin[ i ] ) != mSetIDs.end() )
-                //if ( lIt->second != lCollapsedID && mSetIDs.find( lIt->second ) != mSetIDs.end() )
-              {
-                
-                aAllSetIDsByBin[ i ] = lCollapsedID;
-                //lIt->second = lCollapsedID;
-                lCollapsed++;                
-              }
-              lEntries++;
-            
-              assert( aAllSetsByID[ aAllSetIDsByBin[ i ] ] > 0 );
-              //assert ( aAllSetsByID[ lIt->second ] > 0 );
-              
-            }
-            
-          }
-          
-          set<SetID>::iterator lIt2 = mSetIDs.begin();
-          lIt2++;
-          
-          for (; lIt2 != mSetIDs.end(); ++lIt2)
-          {
-            aAllSetsByID.erase( *lIt2 ); // remove the extra entry in the map for this set.
-          }
-          
-          mSetIDs.erase( mSetIDs.begin(), mSetIDs.end() ); // erase the whole list
-          mSetIDs.insert( lCollapsedID );
-          
-          end = time(NULL);
-          
-          last_collapse_time = difftime(end, start);
-          
-          cout << "COLLAPSING " << lCollapsed << " out of " << lEntries <<  " ENTRIES TOOK " << last_collapse_time << " seconds" << std::endl;          
-          
-          global_span_start = time(NULL); // reset this puppy.
-                    
-          if ( last_span_time > 10 && last_span_time > (last_collapse_time * 2) && collapse_threshold > basement )
-          {
-            last_span_time_before_switch = last_span_time;
-            last_span_time = 0;
-            last_collapse_time = 0;
-            collapse_threshold /= 2;
-            cout << "SHRINKING COLLAPSE THRESHOLD TO: " << collapse_threshold << endl;
-          }
-          else if ( last_span_time < last_collapse_time ) 
-          {
-            if ( last_span_time > 5 && ((last_span_time * 2) + last_collapse_time ) < last_span_time_before_switch )
-              cout << "MIGHT WANT TO RECONSIDER EXPANDING THIS ONE." << endl;
-            else
-            {
-              last_span_time_before_switch = last_span_time;
-              last_span_time = 0;
-              last_collapse_time = 0;
-              collapse_threshold *= 2;
-              cout << "EXPANDING COLLAPSE THRESHOLD TO: " << collapse_threshold << endl;
-            }
-          }
-          
-          
-          return lCollapsedID;
-          
-        }
-        else
-          return aSetID;
+        return mSetID;
       }
     };
     
@@ -159,12 +87,16 @@ namespace bleu {
     HashIntoType _table2size;
 
     cBitArray * _hash_table;    
-    cBitArray * _hash_table_2;    
+    unsigned int * _hash2_bit_counts_lookup; // the number of bits set in the hash table, by every 10k entries
 
+    cBitArray * _hash_table_2;    
     unsigned int * _hash_bit_counts_lookup; // the number of bits set in the hash table, by every 10k entries
 
     SetID * _set_IDs;
     HashIntoType _total_unique_hash_count;
+
+    set<SetID> ** _set_IDs_2;
+    HashIntoType _total_unique_hash2_count;
 
     map<SetID, Set*> _sets;
     set<Set *> mUniqueSets;
@@ -184,10 +116,18 @@ namespace bleu {
             
       _hash_bit_counts_lookup = new unsigned int[(_tablesize / KMER_BIT_COUNT_PARTITION)+1];
       memset(_hash_bit_counts_lookup, 0, ((_tablesize / KMER_BIT_COUNT_PARTITION)+1) * sizeof(unsigned int));
+      
+      _hash2_bit_counts_lookup = new unsigned int[(_table2size / KMER_BIT_COUNT_PARTITION)+1];
+      memset(_hash2_bit_counts_lookup, 0, ((_table2size / KMER_BIT_COUNT_PARTITION)+1) * sizeof(unsigned int));
+
 
       _set_IDs = NULL; // THIS WILL GET SET LATER
+      _set_IDs_2 = NULL; // THIS WILL GET SET LATER
+
       _total_unique_hash_count = 0; // THIS WILL GET SET LATER  
-      
+      _total_unique_hash2_count = 0; // THIS WILL GET SET LATER  
+
+      // housekeeping
       _counts = NULL;   
     }
     
@@ -231,11 +171,16 @@ namespace bleu {
     void prepare_set_arrays()
     {
       _total_unique_hash_count = _hash_table->CountBits();
+      _total_unique_hash2_count = _hash_table_2->CountBits();
       
       _set_IDs = new SetID[_total_unique_hash_count];  
       memset(_set_IDs, 0, _total_unique_hash_count * sizeof(SetID));
       
+      _set_IDs_2 = new set<SetID>*[ _total_unique_hash2_count];
+      memset(_set_IDs_2, 0, _total_unique_hash2_count * sizeof(set<SetID>*));
+      
       unsigned long long lLookupTableSize = (_tablesize / KMER_BIT_COUNT_PARTITION)+1;
+      unsigned long long lLookupTable2Size = (_table2size / KMER_BIT_COUNT_PARTITION)+1;
       
       for (unsigned long long i = 0; i < lLookupTableSize; ++i)
       {      
@@ -254,6 +199,25 @@ namespace bleu {
           _hash_bit_counts_lookup[i] += _hash_bit_counts_lookup[i-1];
         }
       }
+      
+      for (unsigned long long i = 0; i < lLookupTable2Size; ++i)
+      {      
+        unsigned long long lSectionStartIndex = i * KMER_BIT_COUNT_PARTITION;
+        unsigned long long lSectionStopIndex = ((i + 1) * KMER_BIT_COUNT_PARTITION) - 1;
+        if ( lSectionStopIndex >= _table2size )
+          lSectionStopIndex = _table2size - 1;
+        
+        // temporarily store the single section count.
+        //unsigned int lDeleteMe = _hash_table->CountBits(lSectionStartIndex, lSectionStopIndex);
+        _hash2_bit_counts_lookup[i] = _hash_table_2->CountBits(lSectionStartIndex, lSectionStopIndex);
+        
+        if ( i > 0 ) // apply the summation
+        {
+          //unsigned int lDeleteMe2 = lDeleteMe + _hash_bit_counts_lookup[ i - 1 ];
+          _hash2_bit_counts_lookup[i] += _hash2_bit_counts_lookup[i-1];
+        }
+      }      
+      
       cout << "DONE PREP" << endl;
     }
     
@@ -381,7 +345,7 @@ namespace bleu {
                                 HashIntoType lower_bound = 0,
                                 HashIntoType upper_bound = 0)
     {
-      set<HashIntoType> lListOfSetBins;
+      
       
       const char * sp = s.c_str();
       const unsigned int length = s.length();
@@ -391,81 +355,105 @@ namespace bleu {
       
       // generate the hash for the first kmer in the read (fair amount of work)
       HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-      HashIntoType lHashBin = hash % _tablesize;
-      HashIntoType lHash2Bin = hash % _table2size;
-      
-      HashIntoType lSetBin = HashBinToSetBin(lHashBin);
-      
-      lListOfSetBins.insert( lSetBin );
-      
-      SetID set_ID = _set_IDs[ lSetBin ]; // init the set_pointer-number to no set.
-      
-      assert ( set_ID <= _last_set );
-      
-      bool lNewSet = false;
-      
-      if ( set_ID == 0 // we're new
-        || _hash_table_2->Get( lHash2Bin ) == false // or, we're not a real match.
-        )
-      { // there wasn't a set already, provisionally create a new one.
-        set_ID = init_new_set();
-        lNewSet = true;
-        _set_IDs[ lSetBin ] = set_ID;
-      }
-      
-      if ( _hash_table_2->Get(lHash2Bin) == false )
-        cout << "FP1" << endl;
-        
-      n_consumed++;
-      
-      assert ( set_ID <= _last_set );
-            
-      // now, do the rest of the kmers in this read (add one nt at a time)
-      for (unsigned int i = _ksize; i < length; i++) {
-        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
-        lHashBin = next_hash % _tablesize;
-        lHash2Bin = next_hash % _table2size;
-        lSetBin = HashBinToSetBin(lHashBin);
-        
-        SetID lBleh = _set_IDs[ lSetBin ];
-        
-        //assert (lBleh <= _last_set );
-        
-        if ( _set_IDs[ lSetBin ] > 0 
-          && _hash_table_2->Get( lHash2Bin ) == true // we have a match in hash2 as well, so truer match
-          && _set_IDs[ lSetBin ] != set_ID ) // there was one here, and it's not us.
-        {
-          if ( lNewSet ) // we're just provisional anyway.
-          {
-            delete_provisional_set(set_ID);
-            for ( set<HashIntoType>::iterator lIt = lListOfSetBins.begin(); lIt != lListOfSetBins.end(); ++lIt )
-            {              
-              _set_IDs[ *lIt ] = _set_IDs[ lSetBin ]; // repoint the previous kmers in the provisional set
-            }
-            set_ID = _set_IDs[ lSetBin ];
-            lNewSet = false; // now we're with the band.
-          }
-          else // a bridge is actually required here.
-          {
-            set_ID = bridge_sets( _set_IDs[ lSetBin ], set_ID );
-          }
-        }
-        else if ( _hash_table_2->Get( lHash2Bin ) == false )
-        {
-          cout << "FP" << endl;
-        }
-        else if ( _set_IDs[ lSetBin ] == 0 ) // we don't have a set assigned. 
-        {
-          _set_IDs[ lSetBin ] = set_ID;
-        }
-        
-        lListOfSetBins.insert( lSetBin );
 
-        n_consumed++;
+      // for the first hash
+      SetID lSetID = 0; // set to initial no set.
+      Set * lWorkingSet = NULL;
+      
+      if ( HashToSetID( hash ) > 0 && NotFalsePositive( hash ) ) // if there's a match, and it's not a false positive
+      {
+        lSetID = HashToSetID( hash ); // use that set going forward
+        lWorkingSet = _sets[ lSetID ];
+        // no need to apply SetID. It's already there.
+        lWorkingSet->addHash( hash, this );
       }
+      else // create a new set for us to hold on to 
+      {
+        lSetID = init_new_set(); // otherwise, create a new set, and use that going forward.
+        lWorkingSet = _sets[ lSetID ];
+        if ( HashToSetID( hash ) == 0 ) // we're blank, so we're all good
+        {           
+          ApplySetID( hash, lSetID );
+          lWorkingSet->addHash( hash, this );
+        }
+      }
+      
+      ++n_consumed;
+      
+      // for the rest of the string
+      // now, do the rest of the kmers in this read (add one nt at a time)      
+      for (unsigned int i = _ksize; i < length; i++) 
+      {
+        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] ); 
+        
+        if ( HashToSetID( next_hash ) > 0 && NotFalsePositive( next_hash ) ) // there's a match, and it's not a FP
+        {          
+          SetID lEncounteredSetID = HashToSetID(next_hash);          
+          if ( lSetID != lEncounteredSetID ) // it's not us!
+          {             
+            // no need to add to the old set's bins, because this hash is already in the encountered one.
+            lSetID = bridge_sets(lEncounteredSetID, lSetID);            
+            lWorkingSet = _sets[ lSetID ]; // this was probably invalidated.
+          } 
+          // if it's us, we can safely skip it (we've been seen before)          
+        }
+        else if ( HashToSetID( next_hash ) == 0 ) // empty set here.
+        {
+          ApplySetID( next_hash, lSetID );
+          lWorkingSet->addHash( next_hash, this );
+        }
+                  
+        assert (lSetID > 0 );
+
+        ++n_consumed;
+        
+        assert( HashToSetID(next_hash) > 0 );
+
+      }      
       
       return n_consumed;
     }
+    
+    void ApplySetID( HashIntoType aHash, SetID aSetID )
+    {
+      _set_IDs[ HashToSetBin(aHash) ] = aSetID;
+      
+      if ( _set_IDs_2[ HashToSetBin2(aHash) ] == NULL )
+        _set_IDs_2[ HashToSetBin2(aHash) ] = new set<SetID>();
+      else {
+        cout << "OR" << endl;
+      }
+      
+      _set_IDs_2[ HashToSetBin2(aHash) ]->insert( aSetID );
+    }
+    
+    bool NotFalsePositive( HashIntoType aHash )
+    {
+      SetID lSetID1 = HashToSetID( aHash );
+      
+      if ( lSetID1 == 0 && _set_IDs_2[ HashToSetBin2(aHash) ] == NULL )
+        return true;
+      
+      if ( _set_IDs_2[ HashToSetBin2(aHash) ] != NULL && _set_IDs_2[ HashToSetBin2(aHash) ]->find( lSetID1 ) != _set_IDs_2[ HashToSetBin2(aHash) ]->end() )
+        return true;
+      
+      return false;                    
+    }
+    
+    SetID HashToSetID( HashIntoType aHash )
+    {
+      return _set_IDs[ HashToSetBin(aHash) ];
+    }
+                           
+    HashIntoType HashToSetBin( HashIntoType aHash )
+    {
+      return HashBinToSetBin( aHash % _tablesize );
+    } 
+    
+    HashIntoType HashToSetBin2( HashIntoType aHash )
+    {
+      return HashBinToSetBin2( aHash % _table2size );
+    }     
         
     HashIntoType HashBinToSetBin( HashIntoType aBin )
     {
@@ -486,16 +474,34 @@ namespace bleu {
       lSetBin -= 1; // to make it an array index rather than a count.
       
       assert( lSetBin < _total_unique_hash_count );
-      
-      SetID lDeleteMe = _set_IDs[ lSetBin ];
-      
-      //for (unsigned long long i = 0; i < _total_unique_hash_count; ++i)
-      //{
-      //  SetID lDeleteMe3 = _set_IDs[ i ];
-      //  assert( _set_IDs[ i ] <= _last_set );
-      //}
-      
       assert ( _set_IDs[ lSetBin ] <= _last_set );
+      
+      return lSetBin;
+    }
+    
+    HashIntoType HashBinToSetBin2( HashIntoType aBin )
+    {
+      unsigned long long lBinSectionIndex = (aBin / KMER_BIT_COUNT_PARTITION); // the index of the section before the one we're in
+      assert( lBinSectionIndex <= (_table2size / KMER_BIT_COUNT_PARTITION));
+      
+      HashIntoType lJustThisSectionCount = _hash_table_2->CountBits( lBinSectionIndex * KMER_BIT_COUNT_PARTITION, aBin );
+      HashIntoType lSetBin = lJustThisSectionCount;
+      
+      HashIntoType lDeleteMeToo = 0;
+      
+      if ( lBinSectionIndex > 0 )
+      {
+        lDeleteMeToo = _hash2_bit_counts_lookup[ lBinSectionIndex - 1 ];
+        lSetBin += _hash2_bit_counts_lookup[ lBinSectionIndex - 1 ];
+      }
+      
+      lSetBin -= 1; // to make it an array index rather than a count.
+      
+      assert( lSetBin < _total_unique_hash2_count );
+      
+//      SetID lDeleteMe = _set_IDs_2[ lSetBin ];
+      
+//      assert ( _set_IDs_2[ lSetBin ] <= _last_set );
       
       return lSetBin;
     }
@@ -520,19 +526,13 @@ namespace bleu {
     {       
       // the bin already has a set ID, which points to a different Set, we should bridge.
       
-        Set * lOriginatingSet = _sets[ aCurrentlyUsingSetID ];        
-        Set * lEncounteredSet = _sets[ aEncounteredSetID ];
-        
-        if ( lOriginatingSet != lEncounteredSet ) // bridge them.
-        {
-          return lEncounteredSet->join( aCurrentlyUsingSetID, _sets, _set_IDs, _total_unique_hash_count );
-        }
-        else // they weren't different after all.
-        {
-          return aCurrentlyUsingSetID;    
-        }
+      Set * lOriginatingSet = _sets[ aCurrentlyUsingSetID ];        
+      Set * lEncounteredSet = _sets[ aEncounteredSetID ];
       
+      assert( lOriginatingSet != lEncounteredSet ); // set numbers should uniquely point to sets. (we'll collapse this list soon)
+       
       
+      return lEncounteredSet->join( aCurrentlyUsingSetID, _sets, _set_IDs, _set_IDs_2, _total_unique_hash_count );      
     }
     
     HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
@@ -588,16 +588,12 @@ namespace bleu {
           
           // generate the hash for the first kmer in the read (fair amount of work)
           HashIntoType hash = _hash(first_kmer.c_str(), _ksize, forward_hash, reverse_hash);
-          HashIntoType bin = hash % _tablesize;
+
+          SetID lSetID = HashToSetID( hash );
           
-          HashIntoType lSetBin = HashBinToSetBin( bin );    
-          Set * lDeleteMe = _sets[ _set_IDs[ lSetBin ] ];
+          lReadCounts[ lSetID ]++;
           
-          SetID lActualFinalSetID = _sets[ _set_IDs[ lSetBin ] ]->getCurrentPrimarySetID();
-          
-          lReadCounts[ lActualFinalSetID ]++;
-          
-          outfile << ">" << read.name << "\t" << lActualFinalSetID
+          outfile << ">" << read.name << "\t" << lSetID
           << " " << "\n" 
           << seq << "\n";
           
