@@ -7,12 +7,12 @@
 #include <iostream>
 #include <time.h>
 
-time_t bleu::global_span_start;
-time_t bleu::last_span_time;
-time_t bleu::last_span_time_before_switch;
-time_t bleu::last_collapse_time;
-unsigned int bleu::collapse_threshold;
-short bleu::basement;
+//time_t bleu::global_span_start;
+//time_t bleu::last_span_time;
+//time_t bleu::last_span_time_before_switch;
+//time_t bleu::last_collapse_time;
+//unsigned int bleu::collapse_threshold;
+//short bleu::basement;
 
 int main(int argc, char *argv[])
 {
