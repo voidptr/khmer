@@ -18,6 +18,7 @@
 #define CALLBACK_PERIOD 10000
 #define KMER_BIT_COUNT_PARTITION 10000
 
+#define HASHES 8
 
 namespace bleu {
   
@@ -41,6 +42,8 @@ namespace bleu {
     private:
       vector<Set**> BackReferences;
       BleuFilter * Parent;
+      
+    public: 
       Set ** Self;
       
     public:
@@ -75,51 +78,42 @@ namespace bleu {
           BackReferences.push_back( aSet->BackReferences[i] );
         }
         
-        
-        
-
-        
-//        for ( vector<Set*>::iterator lReference = aSet->BackReferences.begin(); lReference != aSet->BackReferences.end(); ++lReference )
-//        {
-//          Set * lRef = *lReference;
-//          lRef = this;
-////          (*lReference) = this;
-//          BackReferences.push_back( *lReference );
-//        }       
-        
         delete aSet; // this should work.
       }
-      
-      void Add( HashIntoType aHash )
-      {
-        
-        Parent->_sets[ Parent->HashBinToSetsBin( Parent->HashToHashBin( aHash ) ) ] = Self;
-      }
+     
+
     };
     
   protected:    
-    SetID _last_set;
+    cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
+    unsigned int * _hash_bit_counts_lookup[HASHES]; // the number of bits set in the hash table, by every 10k entries
 
-    cBitArray * _hash_table;    
-    unsigned int * _hash_bit_counts_lookup; // the number of bits set in the hash table, by every 10k entries
-
-    Set *** _sets; // array of doublepointer set
-    HashIntoType _total_unique_hash_count;
+    Set *** _sets[HASHES]; // two-dimensional array of doublepointer set (really? seriously?)
+    HashIntoType _total_unique_hash_count[HASHES];
+    
+    HashIntoType _tablesizes[HASHES];
     
   public:
     BleuFilter(WordLength ksize, HashIntoType tablesize)
-    : Hashtable(ksize, get_first_prime_below( tablesize ))
-    { 
-      _last_set = 0; // zero == none in use. any number > 0 is a set. _last_set indicates the last set that was allocated. It will always be the largest set number.
-            
-      _hash_table = new cBitArray( _tablesize );
-      _hash_table->Clear();      
+    : Hashtable(ksize, get_first_prime_below( tablesize / HASHES ))
+    {       
+      _tablesizes[0] = _tablesize;
+      for ( int i = 1; i < HASHES; ++i )      
+      {
+        _tablesizes[i] = get_first_prime_below(_tablesizes[i-1]); 
+      }
       
-      _hash_bit_counts_lookup = new unsigned int[(_tablesize / KMER_BIT_COUNT_PARTITION)+1];
-      memset(_hash_bit_counts_lookup, 0, ((_tablesize / KMER_BIT_COUNT_PARTITION)+1) * sizeof(unsigned int));
-
-      _sets = NULL; // THIS WILL GET SET LATER
-      _total_unique_hash_count = 0; // THIS WILL GET SET LATER  
+      for ( int j = 0; j < HASHES; ++j )      
+      {
+        _hash_table[j] = new cBitArray( _tablesizes[j] );
+        _hash_table[j]->Clear();      
+                    
+        _hash_bit_counts_lookup[j] = new unsigned int[(_tablesizes[j] / KMER_BIT_COUNT_PARTITION)+1];
+        memset(_hash_bit_counts_lookup[j], 0, ((_tablesizes[j] / KMER_BIT_COUNT_PARTITION)+1) * sizeof(unsigned int));
+                    
+        _sets[j] = NULL; // THIS WILL GET SET LATER
+        _total_unique_hash_count[j] = 0; // THIS WILL GET SET LATER
+      }
 
       // housekeeping
       _counts = NULL;   
@@ -139,18 +133,25 @@ namespace bleu {
       
       // generate the hash for the first kmer in the read (fair amount of work)
       HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-      HashIntoType lHashBin = hash % _tablesize;
-     
-      _hash_table->Set(lHashBin, true);
+      
+      for (int i = 0; i < HASHES; ++i )
+      {
+        HashIntoType lHashBin = hash % _tablesizes[i];
+        _hash_table[i]->Set(lHashBin, true);
+      }
+           
       
       n_consumed++;
       
       // now, do the rest of the kmers in this read (add one nt at a time)
       for (unsigned int i = _ksize; i < length; i++) {
         HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
-        lHashBin = next_hash % _tablesize;
-       
-        _hash_table->Set(lHashBin, true);
+        
+        for (int i = 0; i < HASHES; ++i )
+        {
+          HashIntoType lHashBin = next_hash % _tablesizes[i];
+          _hash_table[i]->Set(lHashBin, true);
+        }
         
         n_consumed++;
       }
@@ -160,37 +161,42 @@ namespace bleu {
     
     void prepare_set_arrays()
     {
-      _total_unique_hash_count = _hash_table->CountBits();
       
-      _sets = new Set**[_total_unique_hash_count];  
-      memset(_sets, 0, _total_unique_hash_count * sizeof(Set**));
-            
-      unsigned long long lLookupTableSize = (_tablesize / KMER_BIT_COUNT_PARTITION)+1;
-            
-      for (unsigned long long i = 0; i < lLookupTableSize; ++i)
-      {      
-        unsigned long long lSectionStartIndex = i * KMER_BIT_COUNT_PARTITION;
-        unsigned long long lSectionStopIndex = ((i + 1) * KMER_BIT_COUNT_PARTITION) - 1;
-        if ( lSectionStopIndex >= _tablesize )
-          lSectionStopIndex = _tablesize - 1;
-      
-        // temporarily store the single section count.
-        //unsigned int lDeleteMe = _hash_table->CountBits(lSectionStartIndex, lSectionStopIndex);
-        _hash_bit_counts_lookup[i] = _hash_table->CountBits(lSectionStartIndex, lSectionStopIndex);
+      for (int i = 0; i < HASHES; ++i )
+      {
+        _total_unique_hash_count[i] = _hash_table[i]->CountBits();
         
-        if ( i > 0 ) // apply the summation
-        {
-          //unsigned int lDeleteMe2 = lDeleteMe + _hash_bit_counts_lookup[ i - 1 ];
-          _hash_bit_counts_lookup[i] += _hash_bit_counts_lookup[i-1];
-        }
-      }   
+        _sets[i] = new Set**[_total_unique_hash_count[i]];  
+        memset(_sets[i], 0, _total_unique_hash_count[i] * sizeof(Set**));
+        
+        
+        unsigned long long lLookupTableSize = (_tablesizes[i] / KMER_BIT_COUNT_PARTITION)+1;
+        
+        for (unsigned long long j = 0; j < lLookupTableSize; ++j)
+        {      
+          unsigned long long lSectionStartIndex = j * KMER_BIT_COUNT_PARTITION;
+          unsigned long long lSectionStopIndex = ((j + 1) * KMER_BIT_COUNT_PARTITION) - 1;
+          if ( lSectionStopIndex >= _tablesizes[i] )
+            lSectionStopIndex = _tablesizes[i] - 1;
+          
+          // temporarily store the single section count. (this section may be problematic, since ..lookup[i]'s value is a pointer, so what does [j] do?
+          _hash_bit_counts_lookup[i][j] = _hash_table[i]->CountBits(lSectionStartIndex, lSectionStopIndex);
+          
+          if ( i > 0 ) // apply the summation
+          {
+            _hash_bit_counts_lookup[i][j] += _hash_bit_counts_lookup[i][j-1];
+          }
+        }  
+  
+      }
+      
+            
+      
+            
+       
       
       cout << "DONE PREP" << endl;
     }
-    
-    //
-    // generate_sets: consume a FASTA file of reads, again, to generate the sets.
-    //
     
     void generate_sets(const std::string &filename,
                        unsigned int &total_reads,
@@ -322,142 +328,150 @@ namespace bleu {
       
       // generate the hash for the first kmer in the read (fair amount of work)
       HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-
-      HashIntoType lHashBinDeleteMe = HashToHashBin( hash );
-      HashIntoType lSetsBinDeleteMe = HashBinToSetsBin( lHashBinDeleteMe );
-      Set * lSetDeleteMe = SetsBinToSet( lSetsBinDeleteMe );
       
       // for the first hash
-      Set * lWorkingSet = SetsBinToSet( HashBinToSetsBin( HashToHashBin( hash ) ) );
-
-      if ( lWorkingSet != NULL ) // if there's a match //, and it's not a false positive
-      {
-//        cout << " HIT:  " << hash 
-//          << " -> " << HashToHashBin( hash ) 
-//          << " -> " << HashBinToSetsBin( HashToHashBin( hash ) ) 
-//          << " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( hash ) ) )
-//          << endl;
-        // no need to apply SetID. It's already there.
-      }
-      else // create a new set for us to hold on to 
-      {
-//        cout << " MISS: " << hash 
-//          << " -> " << HashToHashBin( hash ) 
-//          << " -> " << HashBinToSetsBin( HashToHashBin( hash ) ) 
-//          << " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( hash ) ) );
-        
-        lWorkingSet = init_new_set();// otherwise, create a new set, and use that going forward.
-        lWorkingSet->Add( hash );
-        
-//        cout << " >>> " << lWorkingSet << endl;
-      }
+      
+      Set * lWorkingSet = SelectOrCreateProperSet( hash );
       
       ++n_consumed;
       
       // for the rest of the string
       // now, do the rest of the kmers in this read (add one nt at a time)      
-      //int q = 1;
       for (unsigned int i = _ksize; i < length; i++) 
       {
-        //cout << s.substr(q, 32) << " -- ";
-        //++q;                 
-        
         HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] ); 
         
-        Set * lEncounteredSet = SetsBinToSet( HashBinToSetsBin( HashToHashBin( next_hash ) ) );
+        lWorkingSet = AssignOrBridgeToProperSet( next_hash, lWorkingSet );
         
-        if ( lEncounteredSet != NULL ) // there's a match, and it's not a FP
-        {          
-          if ( lWorkingSet != lEncounteredSet ) // it's not us!
-          { 
-            //cout << " BRIDGE" << endl;
-            // no need to add to the old set's bins, because this hash is already in the encountered one.
-            lWorkingSet = bridge_sets( lEncounteredSet, lWorkingSet );            
-          } 
- //         else
-//            cout << " US: " << next_hash 
-//            << " -> " << HashToHashBin( next_hash ) 
-//            << " -> " << HashBinToSetsBin( HashToHashBin( next_hash ) ) 
-//            << " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( next_hash ) ) )
-//            << endl;
-          // if it's us, we can safely skip it (we've been seen before)          
-        }
-        else // empty set here.
-        {
-          lWorkingSet->Add( next_hash );
-          //cout << " JOIN WORKING " << next_hash 
-          //<< " -> " << HashToHashBin( next_hash ) 
-          //<< " -> " << HashBinToSetsBin( HashToHashBin( next_hash ) ) 
-          //<< " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( next_hash ) ) )
-          //<< endl;
-          
-        }
         ++n_consumed;
       }      
       
       return n_consumed;
     }
     
-//    bool NotFalsePositive( HashIntoType aHash )
-//    {
-//      SetID lSetID1 = HashToSetID( aHash );
-//      
-//      HashIntoType lSetBin2 = HashToSetBin2(aHash);
-//      
-//      if ( lSetID1 == 0 && _set_IDs_2[ lSetBin2 ] == NULL )
-//        return true;
-//      
-//      if ( _set_IDs_2[ lSetBin2 ] != NULL && 
-//          _set_IDs_2[ lSetBin2 ]->find( lSetID1 ) != _set_IDs_2[ lSetBin2 ]->end() )
-//        return true;
-//      
-//      Set * lSet1 = _sets[ lSetID1 ];
-//      
-//      if ( _set_IDs_2[ lSetBin2 ] != NULL )
-//      {
-//        for ( set<SetID>::iterator lMatch = _set_IDs_2[ lSetBin2 ]->begin();
-//            lMatch != _set_IDs_2[ lSetBin2 ]->end();
-//            ++lMatch )
-//        {
-//          if ( lSet1 == _sets[ *lMatch ] )
-//            return true;
-//        }
-//      }
-//      
-//      return false;                    
-//    }
-    
-    HashIntoType HashToHashBin ( HashIntoType aHash )
+    Set * SelectOrCreateProperSet( HashIntoType aHash )
     {
-      return (aHash % _tablesize);
+      Set * lProspectiveSets[HASHES];
+      HashIntoType lProspectiveSetBins[HASHES];
+      for (int i = 0; i < HASHES; ++i)
+      {
+        lProspectiveSetBins[i] = HashBinToSetsBin( HashToHashBin( aHash, i ), i );
+        lProspectiveSets[i] = SetsBinToSet( lProspectiveSetBins[i], i );
+      }
+      
+      Set * lSet = NULL;
+      for (int i = 0; i < HASHES; ++i)
+      {
+        if ( lProspectiveSets[i] == NULL ) // we found an empty slot! Woohoo!
+        {
+          if ( lSet == NULL ) // put a new set there.
+            lSet = init_new_set();
+          
+          _sets[i][ lProspectiveSetBins[i] ] = lSet->Self;
+        }
+      }
+      if ( lSet != NULL )
+        return lSet;
+      
+      // So, none of them were empty. Perform pairwise comparisons of the hashes to see which agree.
+      map<Set *, int> lRepresented;
+      for (int i = 0; i < HASHES; ++i)
+      {
+        lRepresented[ lProspectiveSets[i] ]++;
+      }
+      
+      Set * lMostRepresented = NULL; // because maps are sorted, this will be the set with the lowest pointer, and the highest count.
+      for ( map<Set*, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet )
+      {
+        if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] )
+          lMostRepresented = lSet->first;
+      }
+      
+      int lMaxCount = lRepresented[ lMostRepresented ];
+      
+      if ( lRepresented[ lMostRepresented ] > 1 ) // woohoo, good enough.
+        ;//cout << "FOUND AN ACTUAL MATCH: " << lMaxCount << endl;
+      else 
+        cout << "GOOD ENOUGH. FINE. JOINING A FP SET." << endl;
+
+      
+      return lMostRepresented;
+    }
+    
+    Set * AssignOrBridgeToProperSet( HashIntoType aHash, Set * aWorkingSet )
+    {
+      Set * lProspectiveSets[HASHES];
+      HashIntoType lProspectiveSetBins[HASHES];
+      for (int i = 0; i < HASHES; ++i)
+      {
+        lProspectiveSetBins[i] = HashBinToSetsBin( HashToHashBin( aHash, i ), i );
+        lProspectiveSets[i] = SetsBinToSet( lProspectiveSetBins[i], i );
+      }
+      
+      Set * lSet = NULL;
+      for (int i = 0; i < HASHES; ++i)
+      {
+        if ( lProspectiveSets[i] == NULL ) // we found an empty slot, so we can't possibly be like the others that might be around! Woohoo!
+        {
+          if ( lSet == NULL ) // put a new set there.
+            lSet = aWorkingSet;          
+          _sets[i][ lProspectiveSetBins[i] ] = lSet->Self;
+        }
+      }
+      if ( lSet != NULL )
+        return lSet;
+      
+      // so, none of them were empty. were any of them us?
+      map<Set *, int> lRepresented;
+      
+      lRepresented.insert( map<Set*, int>::value_type(aWorkingSet, 1) );
+      
+      for (int i = 0; i < HASHES; ++i)
+      {
+        lRepresented[ lProspectiveSets[i] ]++;
+      }
+      Set * lMostRepresented = NULL; // because maps are sorted, this will be the set with the lowest pointer, and the highest count.
+      for ( map<Set*, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet )
+      {
+        if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] )
+          lMostRepresented = lSet->first;
+      }
+      
+      int lMaxCount = lRepresented[ lMostRepresented ];
+      
+      if ( lRepresented[ lMostRepresented ] > 1 ) // woohoo, good enough.
+        ;//cout << "FOUND AN ACTUAL MATCH: " << lMaxCount << endl;
+      else 
+        cout << "GOOD ENOUGH. FINE. JOINING A FP SET." << endl;
+      
+      if ( lMostRepresented != aWorkingSet )
+        return bridge_sets( lMostRepresented, aWorkingSet);
+      else
+        return aWorkingSet;
+    } 
+    HashIntoType HashToHashBin ( HashIntoType aHash, int i )
+    {
+      return (aHash % _tablesizes[i]);
     }
    
-    HashIntoType HashBinToSetsBin( HashIntoType aBin )
+    HashIntoType HashBinToSetsBin( HashIntoType aBin, int i )
     {
       unsigned long long lBinSectionIndex = (aBin / KMER_BIT_COUNT_PARTITION); // the index of the section before the one we're in
-      assert( lBinSectionIndex <= (_tablesize / KMER_BIT_COUNT_PARTITION));
+      assert( lBinSectionIndex <= (_tablesizes[i] / KMER_BIT_COUNT_PARTITION));
       
-      //cout << "lBinSectionIndex = " << lBinSectionIndex << endl;
-      
-      HashIntoType lSetsBin = _hash_table->CountBits( lBinSectionIndex * KMER_BIT_COUNT_PARTITION, aBin );      
-      
-      //cout << "lSetsBin (count) = " << lSetsBin << endl;
+      HashIntoType lSetsBin = _hash_table[i]->CountBits( lBinSectionIndex * KMER_BIT_COUNT_PARTITION, aBin );      
       
       if ( lBinSectionIndex > 0 )      
-        lSetsBin += _hash_bit_counts_lookup[ lBinSectionIndex - 1 ];
+        lSetsBin += _hash_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
             
       lSetsBin -= 1; // to make it an array index rather than a count.
-      
-       //cout << "lSetsBin (index) = " << lSetsBin << endl;
-      
-      assert( lSetsBin < _total_unique_hash_count );
       
       return lSetsBin;
     }
     
-    Set * SetsBinToSet( HashIntoType aSetsBin )
+    Set * SetsBinToSet( HashIntoType aSetsBin, int i )
     {
-      Set** lSetDoublePointer = _sets[ aSetsBin ];
+      Set** lSetDoublePointer = _sets[i][ aSetsBin ];
       
       if ( lSetDoublePointer == NULL )
         return NULL;
@@ -550,11 +564,15 @@ namespace bleu {
           // generate the hash for the first kmer in the read (fair amount of work)
           HashIntoType hash = _hash(first_kmer.c_str(), _ksize, forward_hash, reverse_hash);
 
-          Set * lSet = SetsBinToSet( HashBinToSetsBin(HashToHashBin(hash)));
+          /// TODO FIX PER WHATEVER THE ABOVE ALGO IS SUPPOSED TO BE.
+          //assert (0);
+          Set * lSet = SelectOrCreateProperSet( hash );
+          //Set * lSet = SetsBinToSet( HashBinToSetsBin(HashToHashBin(hash)));
           
           lReadCounts[ lSet ]++;
           
-          outfile << ">" << read.name << "\t" << lSet
+          outfile << ">" << read.name << "\t" 
+          //<< lSet FIX ME
           << " " << "\n" 
           << seq << "\n";
           
