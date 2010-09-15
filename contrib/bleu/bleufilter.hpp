@@ -39,25 +39,25 @@ namespace bleu {
     class Set
     {
     private:
-      vector<Set*> BackReferences;
+      vector<Set**> BackReferences;
       BleuFilter * Parent;
       Set ** Self;
       
     public:
       Set( BleuFilter * aParent )      
       {        
-        Parent = aParent;
-        BackReferences.push_back( this );
         Self = new Set*();
         *Self = this;
+
+        Parent = aParent;
+        BackReferences.push_back( Self );
       }
       
       ~Set()
       {
-        for ( vector<Set*>::iterator lReference = BackReferences.begin(); lReference != BackReferences.end(); ++lReference )
+        for ( vector<Set**>::iterator lReference = BackReferences.begin(); lReference != BackReferences.end(); ++lReference )
         {
-          assert ( *lReference != this );
-          (*lReference) = this;
+          assert ( **lReference != this );
         }  
       }
       
@@ -68,11 +68,24 @@ namespace bleu {
       
       void consume( Set * aSet )
       { 
-        for ( vector<Set*>::iterator lReference = aSet->BackReferences.begin(); lReference != aSet->BackReferences.end(); ++lReference )
+        
+        for ( int i = 0; i < aSet->BackReferences.size(); ++i )
         {
-          (*lReference) = this;
-          BackReferences.push_back( *lReference );
-        }       
+          *(aSet->BackReferences[i]) = this;
+          BackReferences.push_back( aSet->BackReferences[i] );
+        }
+        
+        
+        
+
+        
+//        for ( vector<Set*>::iterator lReference = aSet->BackReferences.begin(); lReference != aSet->BackReferences.end(); ++lReference )
+//        {
+//          Set * lRef = *lReference;
+//          lRef = this;
+////          (*lReference) = this;
+//          BackReferences.push_back( *lReference );
+//        }       
         
         delete aSet; // this should work.
       }
@@ -299,7 +312,7 @@ namespace bleu {
                                 HashIntoType lower_bound = 0,
                                 HashIntoType upper_bound = 0)
     {
-      
+      //cout << endl << s << " " << s.length() << endl;
       
       const char * sp = s.c_str();
       const unsigned int length = s.length();
@@ -319,20 +332,36 @@ namespace bleu {
 
       if ( lWorkingSet != NULL ) // if there's a match //, and it's not a false positive
       {
+//        cout << " HIT:  " << hash 
+//          << " -> " << HashToHashBin( hash ) 
+//          << " -> " << HashBinToSetsBin( HashToHashBin( hash ) ) 
+//          << " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( hash ) ) )
+//          << endl;
         // no need to apply SetID. It's already there.
       }
       else // create a new set for us to hold on to 
       {
+//        cout << " MISS: " << hash 
+//          << " -> " << HashToHashBin( hash ) 
+//          << " -> " << HashBinToSetsBin( HashToHashBin( hash ) ) 
+//          << " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( hash ) ) );
+        
         lWorkingSet = init_new_set();// otherwise, create a new set, and use that going forward.
         lWorkingSet->Add( hash );
+        
+//        cout << " >>> " << lWorkingSet << endl;
       }
       
       ++n_consumed;
       
       // for the rest of the string
       // now, do the rest of the kmers in this read (add one nt at a time)      
+      //int q = 1;
       for (unsigned int i = _ksize; i < length; i++) 
       {
+        //cout << s.substr(q, 32) << " -- ";
+        //++q;                 
+        
         HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] ); 
         
         Set * lEncounteredSet = SetsBinToSet( HashBinToSetsBin( HashToHashBin( next_hash ) ) );
@@ -340,15 +369,28 @@ namespace bleu {
         if ( lEncounteredSet != NULL ) // there's a match, and it's not a FP
         {          
           if ( lWorkingSet != lEncounteredSet ) // it's not us!
-          {             
+          { 
+            //cout << " BRIDGE" << endl;
             // no need to add to the old set's bins, because this hash is already in the encountered one.
             lWorkingSet = bridge_sets( lEncounteredSet, lWorkingSet );            
           } 
+ //         else
+//            cout << " US: " << next_hash 
+//            << " -> " << HashToHashBin( next_hash ) 
+//            << " -> " << HashBinToSetsBin( HashToHashBin( next_hash ) ) 
+//            << " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( next_hash ) ) )
+//            << endl;
           // if it's us, we can safely skip it (we've been seen before)          
         }
         else // empty set here.
         {
           lWorkingSet->Add( next_hash );
+          //cout << " JOIN WORKING " << next_hash 
+          //<< " -> " << HashToHashBin( next_hash ) 
+          //<< " -> " << HashBinToSetsBin( HashToHashBin( next_hash ) ) 
+          //<< " -> " << SetsBinToSet( HashBinToSetsBin( HashToHashBin( next_hash ) ) )
+          //<< endl;
+          
         }
         ++n_consumed;
       }      
@@ -395,11 +437,18 @@ namespace bleu {
       unsigned long long lBinSectionIndex = (aBin / KMER_BIT_COUNT_PARTITION); // the index of the section before the one we're in
       assert( lBinSectionIndex <= (_tablesize / KMER_BIT_COUNT_PARTITION));
       
+      //cout << "lBinSectionIndex = " << lBinSectionIndex << endl;
+      
       HashIntoType lSetsBin = _hash_table->CountBits( lBinSectionIndex * KMER_BIT_COUNT_PARTITION, aBin );      
+      
+      //cout << "lSetsBin (count) = " << lSetsBin << endl;
+      
       if ( lBinSectionIndex > 0 )      
         lSetsBin += _hash_bit_counts_lookup[ lBinSectionIndex - 1 ];
             
       lSetsBin -= 1; // to make it an array index rather than a count.
+      
+       //cout << "lSetsBin (index) = " << lSetsBin << endl;
       
       assert( lSetsBin < _total_unique_hash_count );
       
@@ -432,14 +481,17 @@ namespace bleu {
       }
       else
       {
-        return aEncounteredSet;
         aEncounteredSet->consume( aOriginatingSet );
+        return aEncounteredSet;
       }
     }
     
     HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
     {
-      char lTwoBit = twobit_repr( aNextNucleotide );
+      //cout << " -sF- " << aOldForwardHash << " " << _revhash(aOldForwardHash, 32) << endl;
+      //cout << " -sR- " << aOldReverseHash << " " << _revhash(aOldReverseHash, 32) << endl;
+      
+      HashIntoType lTwoBit = twobit_repr( aNextNucleotide );
       
       aOldForwardHash = aOldForwardHash << 2; // left-shift the previous hash over
       aOldForwardHash |= lTwoBit; // 'or' in the current nucleotide
@@ -448,6 +500,11 @@ namespace bleu {
       // now handle reverse complement
       aOldReverseHash = aOldReverseHash >> 2;
       aOldReverseHash |= (compl_twobit(lTwoBit) << (_ksize*2 - 2));
+      
+      //cout << " -eF- " << aOldForwardHash << " " << _revhash(aOldForwardHash, 32) << endl;
+      //cout << " -eR- " << aOldReverseHash << " " << _revhash(aOldReverseHash, 32) << endl;      
+      
+      //cout << endl;
       
       // pick the better bin of the forward or reverse hashes
       return uniqify_rc(aOldForwardHash, aOldReverseHash);
@@ -526,6 +583,8 @@ namespace bleu {
       
       cout << setw(6) << "unique set count: "<< lReadCounts.size() << endl;
       cout << endl;
+      
+      cout << "Hash Entries: " << _total_unique_hash_count << endl;
       
       delete parser; parser = NULL;
       

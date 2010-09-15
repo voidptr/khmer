@@ -43,7 +43,7 @@ HashIntoType khmer::_hash(const char * kmer, const WordLength k,
   
   _h = h;
   _r = r;
-
+  
   return uniqify_rc(h, r);
 }
 

@@ -121,7 +121,8 @@ unsigned long long cRawBitArray::CountBits(const unsigned long long start_bit, c
       temp = temp >> start_pos;
       //cout << " TO " << temp << endl;
     }
-    else if ( i == stop_field ) {      
+    
+    if ( i == stop_field ) {      
       //cout << "SHIFTING LEFT" << temp << " BY " << (sizeof(unsigned int) * 8) - 1 - stop_pos;
       temp = temp << (sizeof(unsigned int) * 8) - 1 - stop_pos;
       //cout << " TO " << temp << endl;
