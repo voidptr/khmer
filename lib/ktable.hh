@@ -11,25 +11,28 @@
 #include "khmer.hh"
 
 // test validity
-#define is_valid_dna(ch) ((toupper(ch)) == 'A' || (toupper(ch)) == 'C' || \
-			  (toupper(ch)) == 'G' || (toupper(ch)) == 'T')
+#define is_valid_dna(ch) ( ch == 'A' || ch == 'a' || \
+                           ch == 'C' || ch == 'c' || \
+                           ch == 'G' || ch == 'g' || \
+                           ch == 'T' || ch == 't' )
 
 // bit representation of A/T/C/G.
 #define twobit_repr(ch) ((toupper(ch)) == 'A' ? 0LL : \
-                         (toupper(ch)) == 'T' ? 1LL : \
-                         (toupper(ch)) == 'C' ? 2LL : 3LL)
+                         (toupper(ch)) == 'C' ? 1LL : \
+                         (toupper(ch)) == 'G' ? 2LL : 3LL)
 
 #define revtwobit_repr(n) ((n) == 0 ? 'A' : \
-                           (n) == 1 ? 'T' : \
-                           (n) == 2 ? 'C' : 'G')
+                           (n) == 1 ? 'C' : \
+                           (n) == 2 ? 'G' : 'T')
 
-#define twobit_comp(ch) ((toupper(ch)) == 'A' ? 1LL : \
+#define compl_twobit(n) (~n)
+
+#define twobit_comp(ch) ((toupper(ch)) == 'A' ? 3LL : \
                          (toupper(ch)) == 'T' ? 0LL : \
-                         (toupper(ch)) == 'C' ? 3LL : 2LL)
+                         (toupper(ch)) == 'C' ? 2LL : 1LL)
 
 // choose wisely between forward and rev comp.
 #define uniqify_rc(f, r) ((f) < (r) ? (f) : (r))
-
 
 namespace khmer {
   // two-way hash functions.

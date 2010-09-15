@@ -23,21 +23,31 @@ HashIntoType khmer::_hash(const char * kmer, const WordLength k,
   HashIntoType h = 0, r = 0;
 
   h |= twobit_repr(kmer[0]);
-  r |= twobit_comp(kmer[k-1]);
-
-  for (WordLength i = 1, j = k - 2; i < k; i++, j--) {
+  for (WordLength i = 1; i < k; i++) {
     h = h << 2;
-    r = r << 2;
-
     h |= twobit_repr(kmer[i]);
-    r |= twobit_comp(kmer[j]);
   }
-
+  
+  r = ~h; // bit complement
+  
+  // swap consecutive pairs
+  r = ((r >> 2)  & 0x3333333333333333) | ((r & 0x3333333333333333) << 2);
+  // swap nibbles 
+  r = ((r >> 4)  & 0x0F0F0F0F0F0F0F0F) | ((r & 0x0F0F0F0F0F0F0F0F) << 4);
+  // swap bytes
+  r = ((r >> 8)  & 0x00FF00FF00FF00FF) | ((r & 0x00FF00FF00FF00FF) << 8);
+  // swap 2-byte words
+  r = ((r >> 16) & 0x0000FFFF0000FFFF) | ((r & 0x0000FFFF0000FFFF) << 16);
+  // swap 2-word pairs
+  r = ( r >> 32                      ) | ( r                       << 32);
+  
   _h = h;
   _r = r;
 
   return uniqify_rc(h, r);
 }
+
+
 
 // _hash: return the maximum of the forward and reverse hash.
 

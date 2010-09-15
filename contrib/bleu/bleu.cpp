@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
   bf.prepare_set_arrays();
   bf.generate_sets(argv[1], total_reads, n_consumed);
 
-  bf.output_sets();
+//  bf.output_sets();
   
   bf.output_partitioned_file(argv[1], argv[4]);  
   end = time(NULL);
@@ -56,3 +56,6 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+
+
+
