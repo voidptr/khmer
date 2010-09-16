@@ -469,7 +469,7 @@ void Hashtable::consume_fasta(const std::string &filename,
     // reset the sequence info, increment read number
     total_reads++;
     
-    if (total_reads % 100 == 0)
+    if (total_reads % 100000 == 0)
       cout << total_reads << endl;
 
     // run callback, if specified

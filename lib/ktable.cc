@@ -31,13 +31,13 @@ HashIntoType khmer::_hash(const char * kmer, const WordLength k,
   r = ~h; // bit complement
   
   // swap consecutive pairs
-  r = ((r >> 2)  & 0x3333333333333333) | ((r & 0x3333333333333333) << 2);
+  r = ((r >> 2)  & 0x3333333333333333ULL) | ((r & 0x3333333333333333ULL) << 2);
   // swap nibbles 
-  r = ((r >> 4)  & 0x0F0F0F0F0F0F0F0F) | ((r & 0x0F0F0F0F0F0F0F0F) << 4);
+  r = ((r >> 4)  & 0x0F0F0F0F0F0F0F0FULL) | ((r & 0x0F0F0F0F0F0F0F0FULL) << 4);
   // swap bytes
-  r = ((r >> 8)  & 0x00FF00FF00FF00FF) | ((r & 0x00FF00FF00FF00FF) << 8);
+  r = ((r >> 8)  & 0x00FF00FF00FF00FFULL) | ((r & 0x00FF00FF00FF00FFULL) << 8);
   // swap 2-byte words
-  r = ((r >> 16) & 0x0000FFFF0000FFFF) | ((r & 0x0000FFFF0000FFFF) << 16);
+  r = ((r >> 16) & 0x0000FFFF0000FFFFULL) | ((r & 0x0000FFFF0000FFFFULL) << 16);
   // swap 2-word pairs
   r = ( r >> 32                      ) | ( r                       << 32);
   

@@ -92,12 +92,23 @@ namespace bleu {
     HashIntoType _total_unique_hash_count[HASHES];
     
     HashIntoType _tablesizes[HASHES];
+    HashIntoType _modulomask;
     
   public:
     BleuFilter(WordLength ksize, HashIntoType tablesize)
     : Hashtable(ksize, get_first_prime_below( tablesize / HASHES ))
     {       
       _tablesizes[0] = _tablesize;
+      
+      _modulomask = 0;
+      HashIntoType lLargestTableSize = _tablesize;      
+      while ( lLargestTableSize > 0 )        
+      {
+        lLargestTableSize = lLargestTableSize >> 1;
+        _modulomask = _modulomask << 1;
+        _modulomask |= 1;
+      }
+      
       for ( int i = 1; i < HASHES; ++i )      
       {
         _tablesizes[i] = get_first_prime_below(_tablesizes[i-1]); 
@@ -137,9 +148,11 @@ namespace bleu {
       for (int i = 0; i < HASHES; ++i )
       {
         HashIntoType lHashBin = hash % _tablesizes[i];
+        
         _hash_table[i]->Set(lHashBin, true);
       }
-           
+      
+     
       
       n_consumed++;
       
@@ -159,12 +172,30 @@ namespace bleu {
       return n_consumed;
     }
     
+    void forecast_memory_consumption()
+    {
+      
+      for (int i = 0; i < HASHES; ++i )
+      {
+        _total_unique_hash_count[i] = _hash_table[i]->CountBits();
+        
+        cout << i << ": " << _total_unique_hash_count[i] << " Set pointers " << endl;
+        cout << "  " << _total_unique_hash_count[i] * sizeof(Set**) << " bytes, " << (_total_unique_hash_count[i] * sizeof(Set**)) / 1048576 << "MB" << endl;
+        cout << "  " << _total_unique_hash_count[i] << " of " << _tablesizes[i] << " slots populated. Hash Occupancy: " << ((double)_total_unique_hash_count[i] / (double)_tablesizes[i] )*100 << "%" << endl;
+        
+      }
+    }
+    
     void prepare_set_arrays()
     {
       
       for (int i = 0; i < HASHES; ++i )
       {
         _total_unique_hash_count[i] = _hash_table[i]->CountBits();
+        
+        cout << "ALLOCATING: " << _total_unique_hash_count[i] << " Set pointers " << endl;
+        cout << "  " << _total_unique_hash_count[i] * sizeof(Set**) << " bytes, " << (_total_unique_hash_count[i] * sizeof(Set**)) / 1048576 << "MB" << endl;
+        cout << "  " << _total_unique_hash_count[i] << " of " << _tablesizes[i] << " slots populated. Hash Occupancy: " << ((double)_total_unique_hash_count[i] / (double)_tablesizes[i] )*100 << "%" << endl;
         
         _sets[i] = new Set**[_total_unique_hash_count[i]];  
         memset(_sets[i], 0, _total_unique_hash_count[i] * sizeof(Set**));
@@ -452,6 +483,57 @@ namespace bleu {
     HashIntoType HashToHashBin ( HashIntoType aHash, int i )
     {
       return (aHash % _tablesizes[i]);
+    }
+    
+    HashIntoType Modulo( HashIntoType aValue, HashIntoType aConstant, HashIntoType aMask = 0 )
+    {
+      if ( aValue < aConstant )
+        return aValue;
+      
+      if ( aMask == 0 )
+        aMask = _modulomask;
+
+      cout << "aValue:             ";
+      OutputAsBits(aValue);
+      cout << " " << aValue << endl;
+      
+      cout << "aConstant:          ";
+      OutputAsBits(aConstant);
+      cout << " " << aConstant << endl;
+      
+      cout << "aMask:              ";
+      OutputAsBits(aMask);
+      cout << " " << aMask << endl;
+            
+      aValue = aValue & aMask;
+        
+      cout << "aValue & aMask:     ";
+      OutputAsBits(aValue);
+      cout << " " << aValue << endl;
+      
+      if ( aValue < aConstant )
+        return aValue;
+      
+      aValue = aValue ^ aConstant;
+      
+      cout << "aValue ^ aConstant: ";
+      OutputAsBits(aValue);
+      cout << " " << aValue << endl;
+      
+      cout << endl;
+      
+      return aValue;
+    }
+    
+    HashIntoType OutputAsBits( HashIntoType aValue )
+    {
+      HashIntoType aMask = 1ULL << 63;
+      for ( int i = 0; i < 64; ++i )
+      {
+        HashIntoType aMasked = aValue & aMask;
+        cout << (aMasked >> 63);
+        aValue = aValue << 1;
+      }
     }
    
     HashIntoType HashBinToSetsBin( HashIntoType aBin, int i )
