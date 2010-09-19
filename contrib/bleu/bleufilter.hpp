@@ -88,27 +88,19 @@ namespace bleu {
     cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
     unsigned int * _hash_bit_counts_lookup[HASHES]; // the number of bits set in the hash table, by every 10k entries
 
-    Set *** _sets[HASHES]; // two-dimensional array of doublepointer set (really? seriously?)
+    Set *** _sets; // two-dimensional array of doublepointer set (really? seriously?)
+    
+    unsigned char * _combinatorial_sets[HASHES];
     HashIntoType _total_unique_hash_count[HASHES];
+    HashIntoType _max_total_unique_hash_count;
     
     HashIntoType _tablesizes[HASHES];
-    HashIntoType _modulomask;
     
   public:
     BleuFilter(WordLength ksize, HashIntoType tablesize)
     : Hashtable(ksize, get_first_prime_below( tablesize / HASHES ))
     {       
-      _tablesizes[0] = _tablesize;
-      
-      _modulomask = 0;
-      HashIntoType lLargestTableSize = _tablesize;      
-      while ( lLargestTableSize > 0 )        
-      {
-        lLargestTableSize = lLargestTableSize >> 1;
-        _modulomask = _modulomask << 1;
-        _modulomask |= 1;
-      }
-      
+      _tablesizes[0] = _tablesize;      
       for ( int i = 1; i < HASHES; ++i )      
       {
         _tablesizes[i] = get_first_prime_below(_tablesizes[i-1]); 
@@ -121,10 +113,15 @@ namespace bleu {
                     
         _hash_bit_counts_lookup[j] = new unsigned int[(_tablesizes[j] / KMER_BIT_COUNT_PARTITION)+1];
         memset(_hash_bit_counts_lookup[j], 0, ((_tablesizes[j] / KMER_BIT_COUNT_PARTITION)+1) * sizeof(unsigned int));
-                    
-        _sets[j] = NULL; // THIS WILL GET SET LATER
+              
+        _combinatorial_sets[j] = NULL; // THIS WILL GET SET LATER
+        
         _total_unique_hash_count[j] = 0; // THIS WILL GET SET LATER
       }
+      
+      _sets = NULL; // THIS WILL GET SET LATER
+      _max_total_unique_hash_count = 0; // THIS WILL GET SET LATER
+      
 
       // housekeeping
       _counts = NULL;   
@@ -150,9 +147,7 @@ namespace bleu {
         HashIntoType lHashBin = hash % _tablesizes[i];
         
         _hash_table[i]->Set(lHashBin, true);
-      }
-      
-     
+      }          
       
       n_consumed++;
       
@@ -174,16 +169,17 @@ namespace bleu {
     
     void forecast_memory_consumption()
     {
-      
-      for (int i = 0; i < HASHES; ++i )
-      {
-        _total_unique_hash_count[i] = _hash_table[i]->CountBits();
-        
-        cout << i << ": " << _total_unique_hash_count[i] << " Set pointers " << endl;
-        cout << "  " << _total_unique_hash_count[i] * sizeof(Set**) << " bytes, " << (_total_unique_hash_count[i] * sizeof(Set**)) / 1048576 << "MB" << endl;
-        cout << "  " << _total_unique_hash_count[i] << " of " << _tablesizes[i] << " slots populated. Hash Occupancy: " << ((double)_total_unique_hash_count[i] / (double)_tablesizes[i] )*100 << "%" << endl;
-        
-      }
+      cout << " I DON'T DO ANYTHING YET " << endl;
+//      
+//      for (int i = 0; i < HASHES; ++i )
+//      {
+//        _total_unique_hash_count[i] = _hash_table[i]->CountBits();
+//        
+//        cout << i << ": " << _total_unique_hash_count[i] << " Set pointers " << endl;
+//        cout << "  " << _total_unique_hash_count[i] * sizeof(Set**) << " bytes, " << (_total_unique_hash_count[i] * sizeof(Set**)) / 1048576 << "MB" << endl;
+//        cout << "  " << _total_unique_hash_count[i] << " of " << _tablesizes[i] << " slots populated. Hash Occupancy: " << ((double)_total_unique_hash_count[i] / (double)_tablesizes[i] )*100 << "%" << endl;
+//        
+//      }
     }
     
     void prepare_set_arrays()
@@ -193,13 +189,11 @@ namespace bleu {
       {
         _total_unique_hash_count[i] = _hash_table[i]->CountBits();
         
-        cout << "ALLOCATING: " << _total_unique_hash_count[i] << " Set pointers " << endl;
-        cout << "  " << _total_unique_hash_count[i] * sizeof(Set**) << " bytes, " << (_total_unique_hash_count[i] * sizeof(Set**)) / 1048576 << "MB" << endl;
-        cout << "  " << _total_unique_hash_count[i] << " of " << _tablesizes[i] << " slots populated. Hash Occupancy: " << ((double)_total_unique_hash_count[i] / (double)_tablesizes[i] )*100 << "%" << endl;
+        if (_total_unique_hash_count[i] > _max_total_unique_hash_count )
+          _max_total_unique_hash_count = _total_unique_hash_count[i];
         
-        _sets[i] = new Set**[_total_unique_hash_count[i]];  
-        memset(_sets[i], 0, _total_unique_hash_count[i] * sizeof(Set**));
-        
+        _combinatorial_sets[i] = new unsigned char[_total_unique_hash_count[i]];  
+        memset(_combinatorial_sets[i], 0, _total_unique_hash_count[i] * sizeof(unsigned char));        
         
         unsigned long long lLookupTableSize = (_tablesizes[i] / KMER_BIT_COUNT_PARTITION)+1;
         
@@ -218,14 +212,11 @@ namespace bleu {
             _hash_bit_counts_lookup[i][j] += _hash_bit_counts_lookup[i][j-1];
           }
         }  
-  
       }
       
+      _sets = new Set**[_max_total_unique_hash_count];  
+      memset(_sets, 0, _max_total_unique_hash_count * sizeof(Set**));     
             
-      
-            
-       
-      
       cout << "DONE PREP" << endl;
     }
     
@@ -360,20 +351,16 @@ namespace bleu {
       // generate the hash for the first kmer in the read (fair amount of work)
       HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
       
-      // for the first hash
-      
-      Set * lWorkingSet = SelectOrCreateProperSet( hash );
-      
+      // for the first hash      
+      Set * lWorkingSet = SelectOrCreateProperSet( hash );      
       ++n_consumed;
       
       // for the rest of the string
       // now, do the rest of the kmers in this read (add one nt at a time)      
       for (unsigned int i = _ksize; i < length; i++) 
       {
-        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] ); 
-        
-        lWorkingSet = AssignOrBridgeToProperSet( next_hash, lWorkingSet );
-        
+        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );         
+        lWorkingSet = AssignOrBridgeToProperSet( next_hash, lWorkingSet );        
         ++n_consumed;
       }      
       
@@ -382,149 +369,205 @@ namespace bleu {
     
     Set * SelectOrCreateProperSet( HashIntoType aHash )
     {
-      Set * lProspectiveSets[HASHES];
       HashIntoType lProspectiveSetBins[HASHES];
       for (int i = 0; i < HASHES; ++i)
       {
         lProspectiveSetBins[i] = HashBinToSetsBin( HashToHashBin( aHash, i ), i );
-        lProspectiveSets[i] = SetsBinToSet( lProspectiveSetBins[i], i );
       }
       
       Set * lSet = NULL;
+      
+      unsigned int lEmptyDigits = 0;
+      
+      unsigned long long lCombinatorialSlotValue = 0;
+      unsigned char lSlotValues[8];
+      
       for (int i = 0; i < HASHES; ++i)
       {
-        if ( lProspectiveSets[i] == NULL ) // we found an empty slot! Woohoo!
+        lSlotValues[i] = _combinatorial_sets[i][ lProspectiveSetBins[i] ];
+        if ( lSlotValues[i] == 0 ) // we found an empty slot! Woohoo!        
         {
-          if ( lSet == NULL ) // put a new set there.
-            lSet = init_new_set();
-          
-          _sets[i][ lProspectiveSetBins[i] ] = lSet->Self;
+          lEmptyDigits |= (1 << i);        
+        }
+        else
+        {          
+          lCombinatorialSlotValue |= ( lSlotValues[i] << (i * 8) );
         }
       }
-      if ( lSet != NULL )
+      
+      if ( lEmptyDigits > 0 ) // we found an empty number slot, so, we need to find an empty set slot, and assign ourselves a set there.
+      {       
+        cout << "EMPTY SET NUMBER - READ START, NEW SET" << endl;
+        unsigned long long lSetBin = FindEmptySetBin(lEmptyDigits, lSlotValues, 7, lProspectiveSetBins); 
+        
+        // assign the set bin the slot number you want.
+        for ( int i = 0; i < 8; ++i )
+        {
+          if ( ((lEmptyDigits >> i) & 1 ) > 0 )
+            _combinatorial_sets[i][ lProspectiveSetBins[i] ] = lSlotValues[i];
+        }
+        
+        lSet = init_new_set();
+        AssignSetToSetBin( lSetBin, lSet );
         return lSet;
-      
-      // So, none of them were empty. Perform pairwise comparisons of the hashes to see which agree.
-      map<Set *, int> lRepresented;
-      for (int i = 0; i < HASHES; ++i)
+                
+      }      
+      else // we have a slot value, but is there a set pointer stored there? If not, we're a new set, so assign ourselves a set there.
       {
-        lRepresented[ lProspectiveSets[i] ]++;
+        cout << "JOINING EXISTING?";
+        unsigned long long lSetBin = lCombinatorialSlotValue % _max_total_unique_hash_count;
+        
+        lSet = SetBinToSet(lSetBin);
+        
+        if ( lSet == NULL )
+        {
+          cout << " NOPE, CREATING NEW";
+          lSet = init_new_set();
+          AssignSetToSetBin( lSetBin, lSet );
+        }        
+        cout << endl;
+        return lSet;
       }
       
-      Set * lMostRepresented = NULL; // because maps are sorted, this will be the set with the lowest pointer, and the highest count.
-      for ( map<Set*, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet )
-      {
-        if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] )
-          lMostRepresented = lSet->first;
+    }
+    unsigned long long FindEmptySetBin( unsigned int aEmptyDigits, unsigned char lValues[HASHES], int aDigit, HashIntoType lProspectiveSetBins[HASHES] )
+    {
+      if ( (aEmptyDigits & (1 << aDigit)) > 0 )
+      { 
+        unsigned int lRandomStart = (rand() + 1) & 255;
+        if ( lRandomStart == 0 )
+          lRandomStart = 1;
+        
+        for (unsigned int i = 0; i < 256; ++i) // Looping around the digit, from a random starting place.
+        {
+          lValues[aDigit] = i + lRandomStart & 255;
+          if ( lValues[ aDigit ] == 255 )
+            ++i;
+          
+          unsigned long long lVal = 0;
+          
+          if ( aDigit > 0 )
+            lVal = FindEmptySetBin( aEmptyDigits, lValues, aDigit-1, lProspectiveSetBins );
+          else
+            lVal = TestAddress( lValues );           
+          
+          if ( lVal > 0 )
+            return lVal;
+        }
       }
-      
-      int lMaxCount = lRepresented[ lMostRepresented ];
-      
-      if ( lRepresented[ lMostRepresented ] > 1 ) // woohoo, good enough.
-        ;//cout << "FOUND AN ACTUAL MATCH: " << lMaxCount << endl;
-      else 
-        cout << "GOOD ENOUGH. FINE. JOINING A FP SET." << endl;
-
-      
-      return lMostRepresented;
+      else
+      {
+        lValues[aDigit] = _combinatorial_sets[aDigit][ lProspectiveSetBins[aDigit] ];
+        
+        unsigned long long lVal = 0;
+        if ( aDigit > 0 )
+          lVal = FindEmptySetBin( aEmptyDigits, lValues, aDigit-1, lProspectiveSetBins );
+        else
+          lVal = TestAddress( lValues );                     
+        
+        if ( lVal > 0 )
+          return lVal;
+      }        
     }
     
-    Set * AssignOrBridgeToProperSet( HashIntoType aHash, Set * aWorkingSet )
-    {
-      Set * lProspectiveSets[HASHES];
-      HashIntoType lProspectiveSetBins[HASHES];
-      for (int i = 0; i < HASHES; ++i)
+    unsigned long long TestAddress( unsigned char lValues[HASHES] )
+    {    
+      unsigned long long lSlot = 0;
+      for ( int i = 0; i < HASHES; ++i )
       {
-        lProspectiveSetBins[i] = HashBinToSetsBin( HashToHashBin( aHash, i ), i );
-        lProspectiveSets[i] = SetsBinToSet( lProspectiveSetBins[i], i );
+        lSlot = lSlot << 8; 
+        lSlot |= lValues[i];
       }
       
-      Set * lSet = NULL;
-      for (int i = 0; i < HASHES; ++i)
+      unsigned long long lSetBin = CombinatoricAddressToSetBin( lSlot ); 
+      Set * lSet = SetBinToSet(lSetBin);      
+      
+      if ( lSet == NULL )
       {
-        if ( lProspectiveSets[i] == NULL ) // we found an empty slot, so we can't possibly be like the others that might be around! Woohoo!
-        {
-          if ( lSet == NULL ) // put a new set there.
-            lSet = aWorkingSet;          
-          _sets[i][ lProspectiveSetBins[i] ] = lSet->Self;
-        }
+        return lSetBin;
       }
-      if ( lSet != NULL )
-        return lSet;
-      
-      // so, none of them were empty. were any of them us?
-      map<Set *, int> lRepresented;
-      
-      lRepresented.insert( map<Set*, int>::value_type(aWorkingSet, 1) );
-      
-      for (int i = 0; i < HASHES; ++i)
-      {
-        lRepresented[ lProspectiveSets[i] ]++;
-      }
-      Set * lMostRepresented = NULL; // because maps are sorted, this will be the set with the lowest pointer, and the highest count.
-      for ( map<Set*, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet )
-      {
-        if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] )
-          lMostRepresented = lSet->first;
-      }
-      
-      int lMaxCount = lRepresented[ lMostRepresented ];
-      
-      if ( lRepresented[ lMostRepresented ] > 1 ) // woohoo, good enough.
-        ;//cout << "FOUND AN ACTUAL MATCH: " << lMaxCount << endl;
-      else 
-        cout << "GOOD ENOUGH. FINE. JOINING A FP SET." << endl;
-      
-      if ( lMostRepresented != aWorkingSet )
-        return bridge_sets( lMostRepresented, aWorkingSet);
       else
-        return aWorkingSet;
-    } 
+        return 0;
+    }
+      
     HashIntoType HashToHashBin ( HashIntoType aHash, int i )
     {
       return (aHash % _tablesizes[i]);
     }
     
-    HashIntoType Modulo( HashIntoType aValue, HashIntoType aConstant, HashIntoType aMask = 0 )
+    unsigned long long CombinatoricAddressToSetBin( unsigned long long aAddress )
     {
-      if ( aValue < aConstant )
-        return aValue;
-      
-      if ( aMask == 0 )
-        aMask = _modulomask;
-
-      cout << "aValue:             ";
-      OutputAsBits(aValue);
-      cout << " " << aValue << endl;
-      
-      cout << "aConstant:          ";
-      OutputAsBits(aConstant);
-      cout << " " << aConstant << endl;
-      
-      cout << "aMask:              ";
-      OutputAsBits(aMask);
-      cout << " " << aMask << endl;
-            
-      aValue = aValue & aMask;
-        
-      cout << "aValue & aMask:     ";
-      OutputAsBits(aValue);
-      cout << " " << aValue << endl;
-      
-      if ( aValue < aConstant )
-        return aValue;
-      
-      aValue = aValue ^ aConstant;
-      
-      cout << "aValue ^ aConstant: ";
-      OutputAsBits(aValue);
-      cout << " " << aValue << endl;
-      
-      cout << endl;
-      
-      return aValue;
+      aAddress % _max_total_unique_hash_count;
     }
     
+    Set * AssignOrBridgeToProperSet( HashIntoType aHash, Set * aWorkingSet )
+    {
+      HashIntoType lProspectiveSetBins[HASHES];
+      for (int i = 0; i < HASHES; ++i)
+      {
+        lProspectiveSetBins[i] = HashBinToSetsBin( HashToHashBin( aHash, i ), i );
+      }
+      
+      Set * lSet = NULL;
+      
+      unsigned int lEmptyDigits = 0;
+      
+      unsigned long long lCombinatorialSlotValue = 0;
+      unsigned char lSlotValues[8];
+      
+      for (int i = 0; i < HASHES; ++i)
+      {
+        lSlotValues[i] = _combinatorial_sets[i][ lProspectiveSetBins[i] ];
+        if ( lSlotValues[i] == 0 ) // we found an empty slot! Woohoo!        
+        {
+          lEmptyDigits |= (1 << i);        
+        }
+        else
+        {          
+          lCombinatorialSlotValue |= ( lSlotValues[i] << (i * 8) );
+        }
+      }
+      
+      if ( lEmptyDigits > 0 ) // we found an empty number slot, so, we need to find an empty set slot, and assign ourselves a set there.
+      {         
+        cout << "EMPTY SLOT NUMBER - USE WORKING SET" << endl;
+        unsigned long long lSetBin = FindEmptySetBin(lEmptyDigits, lSlotValues, 7, lProspectiveSetBins); 
+        
+        // assign the set bin the slot number you want.
+        for ( int i = 0; i < 8; ++i )
+        {
+          if ( ((lEmptyDigits >> i) & 1 ) > 0 )
+            _combinatorial_sets[i][ lProspectiveSetBins[i] ] = lSlotValues[i];
+        }
+        
+        lSet = aWorkingSet; // we've got a set, so we'll use that, rather than creating a new one.
+        AssignSetToSetBin( lSetBin, lSet );        
+        return lSet;
+      }
+      else // we have a slot value, but is there a set pointer stored there? If not, we're a new set, so assign ourselves a set there.
+      {
+        cout << "POSSIBLE ADDRESS";
+        unsigned long long lSetBin = lCombinatorialSlotValue % _max_total_unique_hash_count;
+        
+        lSet = SetBinToSet(lSetBin);
+        
+        if ( lSet == NULL ) // no pointer stored there, apply ours.
+        {
+          cout << " NOPE - TAKE OVER" << endl;
+          lSet = aWorkingSet;
+          AssignSetToSetBin( lSetBin, lSet );
+          return lSet;
+        } 
+        else if ( lSet != aWorkingSet ) // there's already a set here! (NO IDEA HOW LIKELY THIS IS TO HAPPEN RANDOMLY, probably pretty unlikely)
+        {
+          cout << " BRIDGE!!!!" << endl;
+          return bridge_sets(lSet, aWorkingSet);
+        }
+        else
+          return aWorkingSet;
+      }
+    } 
+   
     HashIntoType OutputAsBits( HashIntoType aValue )
     {
       HashIntoType aMask = 1ULL << 63;
@@ -551,9 +594,12 @@ namespace bleu {
       return lSetsBin;
     }
     
-    Set * SetsBinToSet( HashIntoType aSetsBin, int i )
+    Set * SetBinToSet( HashIntoType aSetBin )
     {
-      Set** lSetDoublePointer = _sets[i][ aSetsBin ];
+      
+      Set** lSetDoublePointer = _sets[ aSetBin ];
+      
+      cout << "Bin: " << aSetBin << " Pointer: " << lSetDoublePointer << endl;
       
       if ( lSetDoublePointer == NULL )
         return NULL;
@@ -565,9 +611,17 @@ namespace bleu {
     {
       return new Set( this );            
     }
+            
+    void AssignSetToSetBin( HashIntoType aSetBin, Set * aSet )
+    {
+      _sets[ aSetBin ] = aSet->Self;
+      cout << "Bin: " << aSetBin << " Pointer: " << aSet->Self << " Set: " << aSet << endl;
+
+    }
     
     Set * bridge_sets( Set * aEncounteredSet, Set * aOriginatingSet )
     { 
+      
       assert ( aOriginatingSet != aEncounteredSet );
 
       if ( aOriginatingSet->size() > aEncounteredSet->size() )
