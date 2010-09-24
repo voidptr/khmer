@@ -93,6 +93,8 @@ class cRawBitArray {
 private:
   unsigned int * bit_fields;
   
+  static const unsigned int position_masks[32];
+  
   // Disallow default copy constructor and operator=
   // (we need to know the number of bits we're working with!)
   cRawBitArray(const cRawBitArray & ) { assert(false); }
@@ -103,7 +105,10 @@ private:
   inline unsigned long long GetField(const unsigned long long index) const { return index >> 5; }
   inline int GetFieldPos(const unsigned long long index) const { return index & 31; }
 public:
-  cRawBitArray() : bit_fields(NULL) { ; }
+  cRawBitArray() : bit_fields(NULL) 
+  { 
+    ;
+  }
   ~cRawBitArray() {
     if (bit_fields != NULL) {
       delete [] bit_fields;
@@ -150,19 +155,20 @@ public:
   bool GetBit(const unsigned long long index) const{
     const unsigned long long field_id = GetField(index);
     const int pos_id = GetFieldPos(index);
-    return (bit_fields[field_id] & (1 << pos_id)) != 0;
+    //return (bit_fields[field_id] & (1 << pos_id)) != 0;
+    return (bit_fields[field_id] & (position_masks[pos_id])) != 0;
   }
 
   void SetBit(const unsigned long long index, const bool value) {
     const unsigned long long field_id = GetField(index);
     const int pos_id = GetFieldPos(index);
-    const int pos_mask = 1 << pos_id;
+    const unsigned int pos_mask = position_masks[pos_id];
 
-    if (value == false) {
-      bit_fields[field_id] &= ~pos_mask;
-    } else {
+    if ( value )
       bit_fields[field_id] |= pos_mask;
-    }
+    else
+      bit_fields[field_id] &= ~pos_mask;
+    
   }
 
   bool IsEqual(const cRawBitArray & in_array, unsigned long long num_bits) const;

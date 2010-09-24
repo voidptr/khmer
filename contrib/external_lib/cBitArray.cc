@@ -1,5 +1,17 @@
 #include "cBitArray.h"
 
+const unsigned int cRawBitArray::position_masks[32] = 
+{
+  1, 2, 4, 8, 
+  16, 32, 64, 128, 
+  256, 512, 1024, 2048, 
+  4096, 8192, 16384, 32768,
+  65536, 131072, 262144, 524288, 
+  1048576, 2097152, 4194304, 8388608,
+  16777216, 33554432, 67108864, 134217728, 
+  268435456, 536870912, 1073741824, 2147483648
+};
+
 void cRawBitArray::Copy(const cRawBitArray & in_array, const unsigned long long num_bits)
 {
   const unsigned long long num_fields = GetNumFields(num_bits);
@@ -87,7 +99,7 @@ void cRawBitArray::ResizeClear(const unsigned long long new_bits)
 unsigned long long cRawBitArray::CountBits(const unsigned long long num_bits) const
 {
   const unsigned long long num_fields = GetNumFields(num_bits);
-  int bit_count = 0;
+  unsigned long long bit_count = 0;
   
   for (unsigned long long i = 0; i < num_fields; i++) {
     unsigned int temp = bit_fields[i];
@@ -104,7 +116,7 @@ unsigned long long cRawBitArray::CountBits(const unsigned long long num_bits) co
 unsigned long long cRawBitArray::CountBits(const unsigned long long start_bit, const unsigned long long stop_bit ) const
 {
   //const int num_fields = GetNumFields(stop_bit - start_bit);
-  int bit_count = 0;
+  unsigned long long bit_count = 0;
   
   unsigned long long start_field = GetField( start_bit );
   unsigned long long stop_field = GetField( stop_bit );
@@ -142,7 +154,7 @@ unsigned long long cRawBitArray::CountBits(const unsigned long long start_bit, c
 unsigned long long cRawBitArray::CountBits2(const unsigned long long num_bits) const
 {
   const unsigned long long num_fields = GetNumFields(num_bits);
-  int bit_count = 0;
+  unsigned long long bit_count = 0;
   
   for (unsigned long long i = 0; i < num_fields; i++) {
     const int v = bit_fields[i];
