@@ -11,7 +11,7 @@ clean:
 	# reset C++ source build
 	cd ../bleu && make clean
 
-bleu.so: ../blue/bleu bleu.cpp
+bleu.so: bleu.cpp
 	python setup.py build_ext -i
 
 bleu.cpp: bleu.pyx

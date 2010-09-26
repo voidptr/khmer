@@ -406,6 +406,7 @@ bool Hashtable::check_read(const std::string &read)
 void Hashtable::consume_fasta(const std::string &filename,
 			      unsigned int &total_reads,
 			      unsigned long long &n_consumed,
+            ConsumeStringFN consume_string_fn,
 			      HashIntoType lower_bound,
 			      HashIntoType upper_bound,
 			      ReadMaskTable ** orig_readmask,

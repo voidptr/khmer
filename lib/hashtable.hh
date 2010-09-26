@@ -20,9 +20,14 @@ namespace khmer {
   typedef std::set<PartitionID *> PartitionPtrSet;
   typedef std::map<PartitionID, PartitionPtrSet*> ReversePartitionMap;
   typedef std::queue<HashIntoType> NodeQueue;
-
+  
+  
   class Hashtable {
-  protected:
+  public:
+    typedef unsigned int (Hashtable::*ConsumeStringFN)(const std::string &filename,
+                                                       HashIntoType upper_bound,
+                                                       HashIntoType lower_bound);
+  protected:    
     const WordLength _ksize;
     const HashIntoType _tablesize;
     HashIntoType bitmask;
@@ -159,10 +164,11 @@ namespace khmer {
     void consume_fasta(const std::string &filename,
 		       unsigned int &total_reads,
 		       unsigned long long &n_consumed,
+           ConsumeStringFN consume_string_fn,
 		       HashIntoType lower_bound = 0,
 		       HashIntoType upper_bound = 0,
 		       ReadMaskTable ** readmask = NULL,
-		       bool update_readmask = true,
+           bool update_readmask = true,
 		       CallbackFn callback = NULL,
 		       void * callback_data = NULL);
 

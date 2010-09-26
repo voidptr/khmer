@@ -33,6 +33,7 @@
 		C6859E8B029090EE04C91782 /* bleu.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = bleu.1; sourceTree = "<group>"; };
 		D850F4A6124CFD07003E38AA /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../pyrex/Makefile; sourceTree = SOURCE_ROOT; };
 		D850F4A7124CFD2A003E38AA /* bleu.pyx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = bleu.pyx; path = ../../pyrex/bleu.pyx; sourceTree = SOURCE_ROOT; xcLanguageSpecificationIdentifier = xcode.lang.python; };
+		D850F4CE124D0DC8003E38AA /* setup.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = setup.py; path = ../../pyrex/setup.py; sourceTree = SOURCE_ROOT; };
 		D89424C81238021800DCC84E /* cBitArray.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cBitArray.cc; path = ../../external_lib/cBitArray.cc; sourceTree = SOURCE_ROOT; };
 		D89424C91238021800DCC84E /* cBitArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cBitArray.h; path = ../../external_lib/cBitArray.h; sourceTree = SOURCE_ROOT; };
 		D89424CA1238021800DCC84E /* tArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tArray.h; path = ../../external_lib/tArray.h; sourceTree = SOURCE_ROOT; };
@@ -70,6 +71,7 @@
 				1AB674ADFE9D54B511CA2CBB /* Products */,
 				D850F4A6124CFD07003E38AA /* Makefile */,
 				D850F4A7124CFD2A003E38AA /* bleu.pyx */,
+				D850F4CE124D0DC8003E38AA /* setup.py */,
 			);
 			name = bleu;
 			sourceTree = "<group>";

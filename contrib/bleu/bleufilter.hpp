@@ -20,12 +20,24 @@
 
 #define HASHES 8
 
+#define next_nucleotide_bit(ch) (         ch   == ' ' ? 0 : \
+                                 (toupper(ch)) == 'A' ? 1 : \
+                                 (toupper(ch)) == 'C' ? 2 : \
+                                 (toupper(ch)) == 'G' ? 4 : 8)
+
+#define prev_nucleotide_bit(ch) (         ch   == ' ' ? 0 : \
+                                 (toupper(ch)) == 'A' ? 16 : \
+                                 (toupper(ch)) == 'C' ? 32 : \
+                                 (toupper(ch)) == 'G' ? 64 : 128 )
+
+
 namespace bleu {
   
   using namespace khmer;
   using namespace std;
   
-  typedef unsigned int SetID;
+  typedef unsigned short SetID;
+  typedef unsigned long long MaxSize;
   
   class BleuFilter
   : public Hashtable
@@ -89,20 +101,27 @@ namespace bleu {
 
     };
     
+  public:
+    typedef unsigned int (BleuFilter::*ConsumeStringFN)(const std::string &filename,
+                                                       HashIntoType upper_bound,
+                                                       HashIntoType lower_bound);
+
+    
   protected:    
     // sizes set during constructor
     cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
-    HashIntoType _tablesizes[HASHES]; // the sizes of the hash tables
-    HashIntoType * _hash_table_bit_counts_lookup[HASHES]; // the number of bits set in the hash table, by every 10k entries
+    unsigned long long _tablesizes[HASHES]; // the sizes of the hash tables
+    unsigned long long * _hash_table_bit_counts_lookup[HASHES]; // the number of bits set in the hash table, by every 10k entries
     unsigned int _last_set_offset;
 
     // sizes set during prep 1 (based on processing of _hash_table)
-    HashIntoType _hash_table_total_bit_counts[HASHES];
+    unsigned long long _hash_table_total_bit_counts[HASHES];
+    unsigned char * _valid_permutations[HASHES];
     cBitArray * _has_set[HASHES];
-    HashIntoType * _has_set_bit_counts_lookup[HASHES]; // the sum of the turned on bits, by every 10k entries
+    unsigned long long * _has_set_bit_counts_lookup[HASHES]; // the sum of the turned on bits, by every 10k entries
 
     // sizes set during prep 2 (based on processing of _has_set)
-    HashIntoType _has_set_total_bit_counts[HASHES];
+    unsigned long long _has_set_total_bit_counts[HASHES];
     unsigned int * _set_offsets[HASHES]; // based on the totals
     
     // contents set during (based on the processing of the reads)  
@@ -112,7 +131,7 @@ namespace bleu {
     unsigned long long _smallest_set_count;
     
   public:
-    BleuFilter(WordLength ksize, HashIntoType tablesize)
+    BleuFilter(WordLength ksize, unsigned long long tablesize)
     : Hashtable(ksize, get_first_prime_below( tablesize / HASHES ))
     {       
       _last_set_offset = 0; // init to zero
@@ -130,11 +149,12 @@ namespace bleu {
         _hash_table[j] = new cBitArray( _tablesizes[j] );
         _hash_table[j]->Clear();      
                     
-        _hash_table_bit_counts_lookup[j] = new HashIntoType[(_tablesizes[j] / BIT_COUNT_PARTITION)+1];
-        memset(_hash_table_bit_counts_lookup[j], 0, ((_tablesizes[j] / BIT_COUNT_PARTITION)+1) * sizeof(HashIntoType));
+        _hash_table_bit_counts_lookup[j] = new unsigned long long[(_tablesizes[j] / BIT_COUNT_PARTITION)+1];
+        memset(_hash_table_bit_counts_lookup[j], 0, ((_tablesizes[j] / BIT_COUNT_PARTITION)+1) * sizeof(unsigned long long));
                   
         // set phase 2 & 3 stuff nulls THESE WILL GET SET LATER DURING PREP1 and 2.            
         _hash_table_total_bit_counts[j] = 0;
+        _valid_permutations[j] = NULL;
         _has_set[j] = NULL;
         _has_set_bit_counts_lookup[j] = NULL;
         _has_set_total_bit_counts[j] = 0;
@@ -179,10 +199,27 @@ namespace bleu {
         _has_set[i] = new cBitArray( _hash_table_total_bit_counts[i] );
         _has_set[i]->Clear();
         
-        _has_set_bit_counts_lookup[i] = new HashIntoType[(_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION)+1];
-        memset(_has_set_bit_counts_lookup[i], 0, (_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION)+1 * sizeof(HashIntoType));
+        _has_set_bit_counts_lookup[i] = new unsigned long long[(_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION)+1];
+        memset(_has_set_bit_counts_lookup[i], 0, (_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION)+1 * sizeof(unsigned long long));
       }
 
+    }
+    
+    void allocate_valid_permutation_table()
+    {
+      for (int i = 0; i < HASHES; ++i)
+      {
+        _valid_permutations[i] = new unsigned char[ _hash_table_total_bit_counts[i] ];
+        memset(_valid_permutations[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned char));
+      }      
+    }
+    
+    void deallocate_valid_permutation_table()
+    {
+      for (int i = 0; i < HASHES; ++i)
+      {
+        delete _valid_permutations[i];
+      }
     }
     
     void populate_has_set_bit_count_lookups()
@@ -230,7 +267,7 @@ namespace bleu {
         
     // consume_string: run through every k-mer in the given string, & hash it.
     // overriding the Hashtable version to support my new thang.
-    unsigned int consume_string(const std::string &s,
+    unsigned int consume_string_for_hash_table(const std::string &s,
                                 HashIntoType lower_bound = 0,
                                 HashIntoType upper_bound = 0)
     {
@@ -245,7 +282,7 @@ namespace bleu {
       
       for (int i = 0; i < HASHES; ++i )
       {
-        HashIntoType lHashBin = HashToHashBin(hash, i);        
+        unsigned long long lHashBin = HashToHashBin(hash, i);        
         _hash_table[i]->Set(lHashBin, true);
       }
       
@@ -253,12 +290,75 @@ namespace bleu {
       
       // now, do the rest of the kmers in this read (add one nt at a time)
       for (unsigned int i = _ksize; i < length; i++) {
-        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
+        hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
         
         for (int i = 0; i < HASHES; ++i )
         {
-          HashIntoType lHashBin = HashToHashBin(next_hash, i);// next_hash % _tablesizes[i];
+          unsigned long long lHashBin = HashToHashBin(hash, i);// next_hash % _tablesizes[i];
           _hash_table[i]->Set(lHashBin, true);
+        }
+        
+        n_consumed++;
+      }
+      
+      return n_consumed;
+    }
+    
+    
+    // consume_string: run through every k-mer in the given string, & hash it.
+    // overriding the Hashtable version to support my new thang.
+    unsigned int consume_string_for_permutation_analysis(const std::string &s,
+                                               HashIntoType lower_bound = 0,
+                                               HashIntoType upper_bound = 0)
+    {
+      const char * sp = s.c_str();
+      const unsigned int length = s.length();
+      unsigned int n_consumed = 0;
+      
+      unsigned char nucleotide_extensions = 0;
+      
+      HashIntoType forward_hash = 0, reverse_hash = 0;
+      
+      // generate the hash for the first kmer in the read (fair amount of work)
+      HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+        
+      HashIntoType next_hash = 0;
+      char lNextNucleotide = ' ';
+      if ( length > _ksize )
+      {
+        next_hash = _move_hash_foward(forward_hash, reverse_hash, sp[_ksize])
+        
+        nucleotide_extensions = (1 << (next_hash & 3));
+      }          
+      
+      for (int i = 0; i < HASHES; ++i )
+      {
+        unsigned long long lPermutationBin = HashBinToHasSetBin( HashToHashBin(hash, i), i );        
+        _valid_permutations[i][ lPermutationBin ] |= nucleotide_extensions;
+      }
+      
+      n_consumed++;
+      
+      // now, do the rest of the kmers in this read (add one nt at a time)
+      for (unsigned int j = _ksize; j < length; j++) {
+        
+        // capture the previous hash (there is definitely one)
+        nucleotide_extensions = (1 << (hash & 0xC000000000000000) + 4);
+        
+        // move over to the current one.
+        hash = next_hash;
+        
+        // if there is a next nucleotide, apply it.
+        if ( j < length - 1 )         
+        {
+          next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[j + 1] );        
+          nucleotide_extensions |= (1 << (next_hash & 3));          
+        }
+        
+        for (int i = 0; i < HASHES; ++i )
+        {
+          unsigned long long lPermutationBin = HashBinToHasSetBin( HashToHashBin(hash, i), i );        
+          _valid_permutations[i][ lPermutationBin ] |= nucleotide_extensions;
         }
         
         n_consumed++;
@@ -293,9 +393,7 @@ namespace bleu {
             
       for ( int i = 0; i < HASHES; ++i )
       {
-
         ApplyPermutedHasSetBins( hash, lPermutations, i);
-
       }      
       
       
@@ -333,7 +431,7 @@ namespace bleu {
       
       HashIntoType lNewForwardHashRight;
       HashIntoType lNewReverseHashRight;
-      for (HashIntoType lTwoBit = 0; lTwoBit < 4; ++lTwoBit)
+      for (NucleotideType lTwoBit = 0; lTwoBit < 4; ++lTwoBit)
       {         
         if ( lNextNucleotide != ' ' && twobit_repr(lNextNucleotide) == lTwoBit ) // don't include this one
           continue;
@@ -354,7 +452,7 @@ namespace bleu {
       
       HashIntoType lNewForwardHashLeft;
       HashIntoType lNewReverseHashLeft;
-      for (HashIntoType lTwoBit2 = 0; lTwoBit2 < 4; ++lTwoBit2)
+      for (NucleotideType lTwoBit2 = 0; lTwoBit2 < 4; ++lTwoBit2)
       { 
         if ( lPrevNucleotide != ' ' && lTwoBit2 == twobit_repr( lPrevNucleotide ) ) // don't include this one
           continue;
@@ -377,17 +475,17 @@ namespace bleu {
 
       for ( set<HashIntoType>::iterator lIt = aPermutations.begin(); lIt != aPermutations.end(); ++lIt )
       {          
-        HashIntoType lPermutedHashBin = HashToHashBin( *lIt, i );        
+        unsigned long long lPermutedHashBin = HashToHashBin( *lIt, i );        
         if ( _hash_table[i]->Get( lPermutedHashBin ) == true )
         {
-          HashIntoType lPermutedHasSetBin = HashBinToHasSetBin(lPermutedHashBin, i);
+          unsigned long long lPermutedHasSetBin = HashBinToHasSetBin(lPermutedHashBin, i);
           _has_set[i]->Set( lPermutedHasSetBin, true ); 
           lDegree++;                
         }
       }
       if ( lDegree > 0 )
       {
-        HashIntoType lOriginalHasSetBin = HashBinToHasSetBin( HashToHashBin( aHash, i), i );
+        unsigned long long lOriginalHasSetBin = HashBinToHasSetBin( HashToHashBin( aHash, i), i );
         _has_set[i]->Set( lOriginalHasSetBin, true ); 
       }      
     }
@@ -448,9 +546,9 @@ namespace bleu {
       bool lAtLeastOneSet = false;
       for (int i = 0; i < HASHES; ++i)
       {
-        HashIntoType lHashBin = HashToHashBin( aHash, i );
+        unsigned long long lHashBin = HashToHashBin( aHash, i );
         
-        HashIntoType lHasSetBin = HashBinToHasSetBin( lHashBin, i );
+        unsigned long long lHasSetBin = HashBinToHasSetBin( lHashBin, i );
         lHashHasSet[i] = _has_set[i]->Get( lHasSetBin );
         if ( lHashHasSet[i] )
         {
@@ -514,7 +612,7 @@ namespace bleu {
       for (int i = 0; i < HASHES; ++i)
       {
         
-        HashIntoType lHasSetBin = HashBinToHasSetBin( HashToHashBin( aHash, i ), i );
+        unsigned long long lHasSetBin = HashBinToHasSetBin( HashToHashBin( aHash, i ), i );
         lHashHasSet[i] = _has_set[i]->Get( lHasSetBin );
         if ( lHashHasSet[i] )
         {
@@ -574,23 +672,23 @@ namespace bleu {
     } 
     
     
-    void OutputAsBits( HashIntoType aValue )
+    void OutputAsBits( unsigned long long aValue )
     {
-      HashIntoType aMask = 1ULL << 63;
+      unsigned long long aMask = 1ULL << 63;
       for ( int i = 0; i < 64; ++i )
       {
-        HashIntoType aMasked = aValue & aMask;
+        unsigned long long aMasked = aValue & aMask;
         cout << (aMasked >> 63);
         aValue = aValue << 1;
       }
     }
     
-    HashIntoType HashToHashBin ( HashIntoType aHash, int i )
+    unsigned long long HashToHashBin ( HashIntoType aHash, int i )
     {
       return (aHash % _tablesizes[i]);
     }
 
-    HashIntoType HashBinToHasSetBin( HashIntoType aBin, int i )
+    unsigned long long HashBinToHasSetBin( unsigned long long aBin, int i )
     {      
       assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
       
@@ -599,7 +697,7 @@ namespace bleu {
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION)); 
       
-      HashIntoType lHasSetBin = _hash_table[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
+      unsigned long long lHasSetBin = _hash_table[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
             
       if ( lBinSectionIndex > 0 )      
         lHasSetBin += _hash_table_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
@@ -611,13 +709,13 @@ namespace bleu {
       return lHasSetBin;
     }    
 
-    HashIntoType HasSetBinToSetOffsetBin( HashIntoType aBin, int i )
+    unsigned long long HasSetBinToSetOffsetBin( unsigned long long aBin, int i )
     {
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       unsigned long long lMaxBinSectionIndex = (_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION); // _hash_table_total_bit_counts == size of has_set table
       assert( lBinSectionIndex <= lMaxBinSectionIndex );
       
-      HashIntoType lSetOffsetBin = _has_set[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );      
+      unsigned long long lSetOffsetBin = _has_set[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );      
       
       if ( lBinSectionIndex > 0 )      
         lSetOffsetBin += _has_set_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
@@ -629,7 +727,7 @@ namespace bleu {
       return lSetOffsetBin;
     }
     
-    unsigned int SetOffsetBinToSetOffset( HashIntoType aSetOffsetBin, int i )
+    unsigned int SetOffsetBinToSetOffset( unsigned long long aSetOffsetBin, int i )
     {
       return _set_offsets[i][ aSetOffsetBin ];
     }
@@ -701,7 +799,7 @@ namespace bleu {
       //cout << "BF" << _revhash(aOldForwardHash, 32) << endl;
 //      cout << "BR" << _revhash(aOldReverseHash, 32) << endl;
       
-      HashIntoType lTwoBit = twobit_repr( aNextNucleotide );
+      NucleotideType lTwoBit = twobit_repr( aNextNucleotide );
       
       aOldForwardHash = aOldForwardHash << 2; // left-shift the previous hash over
       aOldForwardHash |= lTwoBit; // 'or' in the current nucleotide
@@ -779,7 +877,7 @@ namespace bleu {
           lReadCounts[ lWorkingSet ]++;
           
           outfile << ">" << read.name << "\t" 
-          << lWorkingSet 
+          << lWorkingSet->SetOffset 
           << " " << "\n" 
           << seq << "\n";
           
@@ -871,9 +969,10 @@ namespace bleu {
     }
 
     // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
-    void generate_sets(const std::string &filename,
+    void consume_reads(const std::string &filename,
                        unsigned int &total_reads,
                        unsigned long long &n_consumed,
+                       ConsumeStringFN consume_string_fn,
                        HashIntoType lower_bound = 0,
                        HashIntoType upper_bound = 0,
                        ReadMaskTable ** orig_readmask = NULL,
@@ -917,8 +1016,9 @@ namespace bleu {
           unsigned int this_n_consumed;
           bool is_valid;
           
-          this_n_consumed = check_and_process_read_for_set(currSeq,
+          this_n_consumed = check_and_process_read(currSeq,
                                                    is_valid,
+                                                   consume_string_fn,
                                                    lower_bound,
                                                    upper_bound);
           
@@ -972,8 +1072,9 @@ namespace bleu {
     // check_and_process_read: checks for non-ACGT characters before consuming
     //
     
-    unsigned int check_and_process_read_for_set(const std::string &read,
+    unsigned int check_and_process_read(const std::string &read,
                                                    bool &is_valid,
+                                                   ConsumeStringFN consume_string_fn,
                                                    HashIntoType lower_bound,
                                                    HashIntoType upper_bound)
     {
@@ -981,123 +1082,8 @@ namespace bleu {
       
       if (!is_valid) { return 0; }
       
-      return consume_string_for_set(read, lower_bound, upper_bound);
+      return (this->*consume_string_fn)(read, lower_bound, upper_bound);
     }
-    
-    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
-    void characterize_reads(const std::string &filename,
-                       unsigned int &total_reads,
-                       unsigned long long &n_consumed,
-                       HashIntoType lower_bound = 0,
-                       HashIntoType upper_bound = 0,
-                       ReadMaskTable ** orig_readmask = NULL,
-                       bool update_readmask = true,
-                       CallbackFn callback = NULL,
-                       void * callback_data = NULL)
-    {
-      total_reads = 0;
-      n_consumed = 0;
-      
-      IParser* parser = IParser::get_parser(filename.c_str());
-      Read read;
-      
-      string currName = "";
-      string currSeq = "";
-      
-      //
-      // readmask stuff: were we given one? do we want to update it?
-      // 
-      
-      ReadMaskTable * readmask = NULL;
-      std::list<unsigned int> masklist;
-      
-      if (orig_readmask && *orig_readmask) {
-        readmask = *orig_readmask;
-      }
-      
-      //
-      // iterate through the FASTA file & consume the reads.
-      //
-      
-      while(!parser->is_complete())  {
-        read = parser->get_next_read();
-        currSeq = read.seq;
-        currName = read.name; 
-        
-        // do we want to process it?
-        if (!readmask || readmask->get(total_reads)) {
-          
-          // yep! process.
-          unsigned int this_n_consumed;
-          bool is_valid;
-                    
-          this_n_consumed = check_and_process_read_for_characterization(currSeq,
-                                                   is_valid,
-                                                   lower_bound,
-                                                   upper_bound);
-          
-          // was this an invalid sequence -> mark as bad?
-          if (!is_valid && update_readmask) {
-            if (readmask) {
-              readmask->set(total_reads, false);
-            } else {
-              masklist.push_back(total_reads);
-            }
-          } else {		// nope -- count it!
-            n_consumed += this_n_consumed;
-          }
-        }
-        
-        // reset the sequence info, increment read number
-        total_reads++;
-        
-        if (total_reads % 10000 == 0)
-          cout << total_reads << endl;
-        
-        // run callback, if specified
-        if (total_reads % CALLBACK_PERIOD == 0 && callback) {
-          try {
-            callback("consume_fasta", callback_data, total_reads, n_consumed);
-          } catch (...) {
-            throw;
-          }
-        }
-      }
-      
-      
-      //
-      // We've either updated the readmask in place, OR we need to create a
-      // new one.
-      //
-      
-      if (orig_readmask && update_readmask && readmask == NULL) {
-        // allocate, fill in from masklist
-        readmask = new ReadMaskTable(total_reads);
-        
-        list<unsigned int>::const_iterator it;
-        for(it = masklist.begin(); it != masklist.end(); ++it) {
-          readmask->set(*it, false);
-        }
-        *orig_readmask = readmask;
-      }
-    }
-    
-    //
-    // check_and_process_read: checks for non-ACGT characters before consuming
-    //
-    
-    unsigned int check_and_process_read_for_characterization(const std::string &read,
-                                                   bool &is_valid,
-                                                   HashIntoType lower_bound,
-                                                   HashIntoType upper_bound)
-    {
-      is_valid = check_read(read);
-      
-      if (!is_valid) { return 0; }
-      
-      return consume_string_for_characterization(read, lower_bound, upper_bound);
-    }
-    
   };
 }
 
