@@ -25,7 +25,7 @@
                            (n) == 1 ? 'C' : \
                            (n) == 2 ? 'G' : 'T')
 
-#define compl_twobit(n) (~n & 3)
+#define compl_twobit(n) ((~n & 3))
 
 #define twobit_comp(ch) ((toupper(ch)) == 'A' ? 3LL : \
                          (toupper(ch)) == 'T' ? 0LL : \

@@ -109,19 +109,15 @@ namespace bleu {
     
   protected:    
     // sizes set during constructor
+    cBitArray * _hash_table_preliminary[HASHES]; // two-dimensional hash-table
     cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
+
     unsigned long long _tablesizes[HASHES]; // the sizes of the hash tables
     unsigned long long * _hash_table_bit_counts_lookup[HASHES]; // the number of bits set in the hash table, by every 10k entries
     unsigned int _last_set_offset;
 
     // sizes set during prep 1 (based on processing of _hash_table)
     unsigned long long _hash_table_total_bit_counts[HASHES];
-    unsigned char * _valid_permutations[HASHES];
-    cBitArray * _has_set[HASHES];
-    unsigned long long * _has_set_bit_counts_lookup[HASHES]; // the sum of the turned on bits, by every 10k entries
-
-    // sizes set during prep 2 (based on processing of _has_set)
-    unsigned long long _has_set_total_bit_counts[HASHES];
     unsigned int * _set_offsets[HASHES]; // based on the totals
     
     // contents set during (based on the processing of the reads)  
@@ -146,19 +142,18 @@ namespace bleu {
       
       for ( int j = 0; j < HASHES; ++j )      
       {
+        _hash_table_preliminary[j] = new cBitArray( _tablesizes[j] );
+        _hash_table_preliminary[j]->Clear();      
+        
         _hash_table[j] = new cBitArray( _tablesizes[j] );
-        _hash_table[j]->Clear();      
+        _hash_table[j]->Clear(); 
                     
         _hash_table_bit_counts_lookup[j] = new unsigned long long[(_tablesizes[j] / BIT_COUNT_PARTITION)+1];
         memset(_hash_table_bit_counts_lookup[j], 0, ((_tablesizes[j] / BIT_COUNT_PARTITION)+1) * sizeof(unsigned long long));
                   
-        // set phase 2 & 3 stuff nulls THESE WILL GET SET LATER DURING PREP1 and 2.            
+        // THESE WILL GET SET LATER.            
         _hash_table_total_bit_counts[j] = 0;
-        _valid_permutations[j] = NULL;
-        _has_set[j] = NULL;
-        _has_set_bit_counts_lookup[j] = NULL;
-        _has_set_total_bit_counts[j] = 0;
-        _set_offsets[j] = NULL;
+        _set_offsets[j] = NULL; // a table the size of the number of bits in the hash table.
       }
 
       // housekeeping
@@ -192,76 +187,20 @@ namespace bleu {
       }
     }
     
-    void allocate_has_set_table()
+    void deallocate_hash_table_preliminary()
     {
       for (int i = 0; i < HASHES; ++i)
       {
-        _has_set[i] = new cBitArray( _hash_table_total_bit_counts[i] );
-        _has_set[i]->Clear();
-        
-        _has_set_bit_counts_lookup[i] = new unsigned long long[(_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION)+1];
-        memset(_has_set_bit_counts_lookup[i], 0, (_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION)+1 * sizeof(unsigned long long));
-      }
-
-    }
-    
-    void allocate_valid_permutation_table()
-    {
-      for (int i = 0; i < HASHES; ++i)
-      {
-        _valid_permutations[i] = new unsigned char[ _hash_table_total_bit_counts[i] ];
-        memset(_valid_permutations[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned char));
+        delete _hash_table_preliminary[i];
       }      
-    }
-    
-    void deallocate_valid_permutation_table()
-    {
-      for (int i = 0; i < HASHES; ++i)
-      {
-        delete _valid_permutations[i];
-      }
-    }
-    
-    void populate_has_set_bit_count_lookups()
-    {
-      cout << "populate_has_set_bit_count_lookups" << endl;
-      
-      for (int i = 0; i < HASHES; ++i )
-      {
-        _has_set_total_bit_counts[i] = _has_set[i]->CountBits();
-        
-        unsigned long long lLookupTableSize = (_has_set_total_bit_counts[i] / BIT_COUNT_PARTITION)+1;
-        for (unsigned long long j = 0; j < lLookupTableSize; ++j)
-        {      
-          unsigned long long lSectionStartIndex = j * BIT_COUNT_PARTITION;
-          unsigned long long lSectionStopIndex = ((j + 1) * BIT_COUNT_PARTITION) - 1;
-          
-          if ( lSectionStopIndex >= _has_set_total_bit_counts[i] )
-          {
-            if ( _has_set_total_bit_counts[i] > 0 )
-              lSectionStopIndex = _has_set_total_bit_counts[i] - 1;
-            else
-              lSectionStopIndex = _has_set_total_bit_counts[i];            
-          }
-                      
-          // temporarily store the single section count. (this section may be problematic, since ..lookup[i]'s value is a pointer, so what does [j] do?
-          _has_set_bit_counts_lookup[i][j] = _has_set[i]->CountBits(lSectionStartIndex, lSectionStopIndex);
-          
-          if ( j > 0 ) // apply the summation
-          {
-            _has_set_bit_counts_lookup[i][j] += _has_set_bit_counts_lookup[i][j-1];
-          }
-        }
-        cout << i << ": " << _has_set_total_bit_counts[i] << " -- " << ((double)_has_set_total_bit_counts[i] / (double)_hash_table_total_bit_counts[i]) * 100 << "% occupancy" << endl;
-      }
     }
     
     void allocate_set_offset_table()
     {
       for (int i = 0; i < HASHES; ++i)
       {
-        _set_offsets[i] = new unsigned int[ _has_set_total_bit_counts[i] ];
-        memset(_set_offsets[i], 0, _has_set_total_bit_counts[i] * sizeof(unsigned int));
+        _set_offsets[i] = new unsigned int[ _hash_table_total_bit_counts[i] ];
+        memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned int));
       }
     }
         
@@ -280,10 +219,19 @@ namespace bleu {
       // generate the hash for the first kmer in the read (fair amount of work)
       HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
       
+      bool lHasASet = false;
       for (int i = 0; i < HASHES; ++i )
       {
-        unsigned long long lHashBin = HashToHashBin(hash, i);        
-        _hash_table[i]->Set(lHashBin, true);
+        unsigned long long lHashBin = HashToHashBin(hash, i); 
+        
+        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
+        {
+          _hash_table[i]->Set(lHashBin, true);
+        }
+        else
+        {
+          _hash_table_preliminary[i]->Set(lHashBin, true);
+        }
       }
       
       n_consumed++;
@@ -292,202 +240,23 @@ namespace bleu {
       for (unsigned int i = _ksize; i < length; i++) {
         hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );        
         
-        for (int i = 0; i < HASHES; ++i )
+        for (int j = 0; j < HASHES; ++j )
         {
-          unsigned long long lHashBin = HashToHashBin(hash, i);// next_hash % _tablesizes[i];
-          _hash_table[i]->Set(lHashBin, true);
+          unsigned long long lHashBin = HashToHashBin(hash, j);// next_hash % _tablesizes[i];
+          if ( _hash_table_preliminary[j]->Get(lHashBin) == true )
+          {
+            _hash_table[j]->Set(lHashBin, true);
+          }
+          else
+          {
+            _hash_table_preliminary[j]->Set(lHashBin, true);
+          }
         }
         
         n_consumed++;
       }
       
       return n_consumed;
-    }
-    
-    
-    // consume_string: run through every k-mer in the given string, & hash it.
-    // overriding the Hashtable version to support my new thang.
-    unsigned int consume_string_for_permutation_analysis(const std::string &s,
-                                               HashIntoType lower_bound = 0,
-                                               HashIntoType upper_bound = 0)
-    {
-      const char * sp = s.c_str();
-      const unsigned int length = s.length();
-      unsigned int n_consumed = 0;
-      
-      unsigned char nucleotide_extensions = 0;
-      
-      HashIntoType forward_hash = 0, reverse_hash = 0;
-      
-      // generate the hash for the first kmer in the read (fair amount of work)
-      HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-        
-      HashIntoType next_hash = 0;
-      char lNextNucleotide = ' ';
-      if ( length > _ksize )
-      {
-        next_hash = _move_hash_foward(forward_hash, reverse_hash, sp[_ksize])
-        
-        nucleotide_extensions = (1 << (next_hash & 3));
-      }          
-      
-      for (int i = 0; i < HASHES; ++i )
-      {
-        unsigned long long lPermutationBin = HashBinToHasSetBin( HashToHashBin(hash, i), i );        
-        _valid_permutations[i][ lPermutationBin ] |= nucleotide_extensions;
-      }
-      
-      n_consumed++;
-      
-      // now, do the rest of the kmers in this read (add one nt at a time)
-      for (unsigned int j = _ksize; j < length; j++) {
-        
-        // capture the previous hash (there is definitely one)
-        nucleotide_extensions = (1 << (hash & 0xC000000000000000) + 4);
-        
-        // move over to the current one.
-        hash = next_hash;
-        
-        // if there is a next nucleotide, apply it.
-        if ( j < length - 1 )         
-        {
-          next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[j + 1] );        
-          nucleotide_extensions |= (1 << (next_hash & 3));          
-        }
-        
-        for (int i = 0; i < HASHES; ++i )
-        {
-          unsigned long long lPermutationBin = HashBinToHasSetBin( HashToHashBin(hash, i), i );        
-          _valid_permutations[i][ lPermutationBin ] |= nucleotide_extensions;
-        }
-        
-        n_consumed++;
-      }
-      
-      return n_consumed;
-    }
-      
-    // consume_string: run through every k-mer in the given string, & hash it.
-    // overriding the Hashtable version to support my new thang.
-    unsigned int consume_string_for_characterization(const std::string &s,
-                                HashIntoType lower_bound = 0,
-                                HashIntoType upper_bound = 0)
-    {
-      const char * sp = s.c_str();
-      const unsigned int length = s.length();
-      
-      unsigned int n_consumed = 0;
-      
-      HashIntoType forward_hash = 0, reverse_hash = 0;
-      
-      // generate the hash for the first kmer in the read (fair amount of work)
-      HashIntoType hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-
-      set<HashIntoType> lPermutations;
-      char lPrevNucleotide = ' ';
-      char lNextNucleotide = ' ';
-      if ( length > _ksize )
-        lNextNucleotide = sp[_ksize];
-      
-      Permute( forward_hash, reverse_hash, lPermutations, lPrevNucleotide, lNextNucleotide );
-            
-      for ( int i = 0; i < HASHES; ++i )
-      {
-        ApplyPermutedHasSetBins( hash, lPermutations, i);
-      }      
-      
-      
-      n_consumed++;
-      
-      // now, do the rest of the kmers in this read, except for the last one (add one nt at a time)
-      for (unsigned int j = _ksize; j < length; ++j) {
-        lPrevNucleotide = sp[j - _ksize];
-        if ( j < length - 1 )
-          lNextNucleotide = sp[j + 1];
-        else
-          lNextNucleotide = ' ';
-            
-        hash = _move_hash_foward( forward_hash, reverse_hash, sp[j] );        
-        
-        Permute( forward_hash, reverse_hash, lPermutations, lPrevNucleotide, lNextNucleotide );
-        
-        for (int i = 0; i < HASHES; ++i )
-        { 
-          ApplyPermutedHasSetBins( hash, lPermutations, i);
-        }
-        n_consumed++;
-      }
-      
-      return n_consumed;
-    }
-    
-    void Permute(HashIntoType aForwardHash, HashIntoType aReverseHash, set<HashIntoType> & lPermutations, char lPrevNucleotide, char lNextNucleotide)
-    {      
-      lPermutations.clear();
-      
-      // produce the permutations for the outgoing next kmers
-      HashIntoType lOldForwardHashRight = aForwardHash << 2;        
-      HashIntoType lOldReverseHashRight = aReverseHash >> 2;
-      
-      HashIntoType lNewForwardHashRight;
-      HashIntoType lNewReverseHashRight;
-      for (NucleotideType lTwoBit = 0; lTwoBit < 4; ++lTwoBit)
-      {         
-        if ( lNextNucleotide != ' ' && twobit_repr(lNextNucleotide) == lTwoBit ) // don't include this one
-          continue;
-        
-        lNewForwardHashRight = lOldForwardHashRight;
-        lNewForwardHashRight |= lTwoBit; // 'or' in the current nucleotide
-        lNewForwardHashRight &= bitmask; // mask off the 2 bits we shifted over.
-        
-        // now handle reverse complement
-        lNewReverseHashRight = lOldReverseHashRight;
-        lNewReverseHashRight |= (compl_twobit(lTwoBit) << (_ksize*2 - 2));
-        
-        lPermutations.insert( uniqify_rc(lNewForwardHashRight, lNewReverseHashRight) );        
-      }
-      
-      HashIntoType lOldForwardHashLeft = aForwardHash >> 2;
-      HashIntoType lOldReverseHashLeft = aReverseHash << 2;
-      
-      HashIntoType lNewForwardHashLeft;
-      HashIntoType lNewReverseHashLeft;
-      for (NucleotideType lTwoBit2 = 0; lTwoBit2 < 4; ++lTwoBit2)
-      { 
-        if ( lPrevNucleotide != ' ' && lTwoBit2 == twobit_repr( lPrevNucleotide ) ) // don't include this one
-          continue;
-        
-        lNewForwardHashLeft = lOldForwardHashLeft;
-        lNewForwardHashLeft |= ( lTwoBit2 << (_ksize*2 - 2)); // 'or' in the current nucleotide
-                
-        // now handle reverse complement
-        lNewReverseHashLeft = lOldReverseHashLeft;
-        lNewReverseHashLeft |= compl_twobit(lTwoBit2); 
-        lNewReverseHashLeft &= bitmask; // mask off the 2 bits we shifted over. 
-
-        lPermutations.insert(  uniqify_rc(lNewForwardHashLeft, lNewReverseHashLeft) );
-      }      
-    }
-       
-    void ApplyPermutedHasSetBins( HashIntoType aHash, set<HashIntoType> & aPermutations, int i )
-    {
-      int lDegree = 0;
-
-      for ( set<HashIntoType>::iterator lIt = aPermutations.begin(); lIt != aPermutations.end(); ++lIt )
-      {          
-        unsigned long long lPermutedHashBin = HashToHashBin( *lIt, i );        
-        if ( _hash_table[i]->Get( lPermutedHashBin ) == true )
-        {
-          unsigned long long lPermutedHasSetBin = HashBinToHasSetBin(lPermutedHashBin, i);
-          _has_set[i]->Set( lPermutedHasSetBin, true ); 
-          lDegree++;                
-        }
-      }
-      if ( lDegree > 0 )
-      {
-        unsigned long long lOriginalHasSetBin = HashBinToHasSetBin( HashToHashBin( aHash, i), i );
-        _has_set[i]->Set( lOriginalHasSetBin, true ); 
-      }      
     }
     
     
@@ -518,12 +287,12 @@ namespace bleu {
       // now, do the rest of the kmers in this read (add one nt at a time)      
       for (unsigned int i = _ksize; i < length; i++) 
       {
-        HashIntoType next_hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] ); 
+        hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] ); 
         
         if (lWorkingSet == NULL)
-          lWorkingSet = SelectOrCreateProperSet(next_hash);
+          lWorkingSet = SelectOrCreateProperSet(hash);
         else
-          lWorkingSet = AssignOrBridgeToProperSet( next_hash, lWorkingSet );
+          lWorkingSet = AssignOrBridgeToProperSet( hash, lWorkingSet );
         
         if ( lWorkingSet != NULL )
           lWorkingSet->Count++;
@@ -536,99 +305,118 @@ namespace bleu {
     
     Set * SelectOrCreateProperSet( HashIntoType aHash )
     { 
-      Set * lProspectiveSets[HASHES];
-        memset(lProspectiveSets, 0, HASHES * sizeof(Set*));
-      unsigned int lProspectiveSetOffsetBins[HASHES];
-        memset(lProspectiveSetOffsetBins, 0, HASHES * sizeof(unsigned int));
-      bool lHashHasSet[HASHES];
-        memset(lHashHasSet, 0, HASHES * sizeof(bool));
+      unsigned long long lProspectiveHashBins[HASHES];
+      memset(lProspectiveHashBins, 0, HASHES * sizeof( unsigned long long ));
       
-      bool lAtLeastOneSet = false;
+      bool lHasASet = false;
       for (int i = 0; i < HASHES; ++i)
       {
         unsigned long long lHashBin = HashToHashBin( aHash, i );
         
-        unsigned long long lHasSetBin = HashBinToHasSetBin( lHashBin, i );
-        lHashHasSet[i] = _has_set[i]->Get( lHasSetBin );
-        if ( lHashHasSet[i] )
+        if ( i == 0 ) // the first one gets the ball rolling
+          lHasASet = _hash_table[i]->Get( lHashBin );
+        else if ( _hash_table[i]->Get( lHashBin ) != lHasASet ) // we don't have agreement, so the others must have been false positives for has set.
         {
-          lAtLeastOneSet = true;
-          lProspectiveSetOffsetBins[i] = HasSetBinToSetOffsetBin( lHasSetBin, i );
-          lProspectiveSets[i] = SetOffsetToSet( SetOffsetBinToSetOffset( lProspectiveSetOffsetBins[i], i ) );
+          //cout << ",";
+          return NULL;
         }
-      }  
-      
-      if ( !lAtLeastOneSet )
+          
+        
+        lProspectiveHashBins[i] = lHashBin;
+      }
+      if ( lHasASet == false )
         return NULL;
+
+      // ok, we're still here, so we might have a set. Let's go get it.
+      unsigned long long lProspectiveSetOffsetBins[HASHES];
+      memset(lProspectiveSetOffsetBins, 0, HASHES * sizeof( unsigned long long ));
+      Set * lProspectiveSets[HASHES];
+      memset(lProspectiveSets, 0, HASHES * sizeof(Set*));
+      for ( int i = 0; i < HASHES; ++i )
+      {
+        lProspectiveSetOffsetBins[i] = HashBinToSetOffsetBin( lProspectiveHashBins[i], i );
+        lProspectiveSets[i] = SetOffsetToSet( SetOffsetBinToSetOffset( lProspectiveSetOffsetBins[i], i) );
+      }
       
       Set * lSet = NULL;      
       for (int i = 0; i < HASHES; ++i)
       {
-        if ( lHashHasSet[i] && lProspectiveSets[i] == NULL ) // we found an empty slot! Woohoo!
+        if ( lProspectiveSets[i] == NULL ) // we found an empty slot! Woohoo!
         {
           if ( lSet == NULL ) // put a new set there. if there's no room for a set, well...
             lSet = init_new_set();        
           
-          _set_offsets[i][ lProspectiveSetOffsetBins[i] ] = lSet->SetOffset; // set them all
-          
+          _set_offsets[i][ lProspectiveSetOffsetBins[i] ] = lSet->SetOffset; // set them all          
         }
       }      
       
-      if ( lSet != NULL )
+      if ( lSet != NULL ) // we just created a new set, so we'll go with that.
       {
         _sets[ lSet->SetOffset ] = lSet->Self; // this may be unnecessary (if init gave us an existing set to join), but why not.
         return lSet;
       }
+      
               
       // So, none of them were empty. Perform pairwise comparisons of the hashes to see which agree.
       map<Set *, int> lRepresented;
       for (int i = 0; i < HASHES; ++i)
       {
-        if ( lHashHasSet[i] )
-          lRepresented[ lProspectiveSets[i] ]++;
+        lRepresented[ lProspectiveSets[i] ]++;
       }      
       Set * lMostRepresented = NULL; // because maps are sorted, this will be the set with the lowest pointer, and the highest count.
       for ( map<Set*, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet )
       {
         if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] )
           lMostRepresented = lSet->first;
-      }      
+      }     
       
+      if ( lRepresented[lMostRepresented] < 8 )
+        cout << lRepresented[lMostRepresented];
+
 
       return lMostRepresented;
     }
     
     Set * AssignOrBridgeToProperSet( HashIntoType aHash, Set * aWorkingSet )
     { 
-      Set * lProspectiveSets[HASHES];
-        memset(lProspectiveSets, 0, HASHES * sizeof(Set*));
-      unsigned int lProspectiveSetOffsetBins[HASHES];
-        memset(lProspectiveSetOffsetBins, 0, HASHES * sizeof(unsigned int));
-      bool lHashHasSet[HASHES];
-        memset(lHashHasSet, 0, HASHES * sizeof(bool));
+      unsigned long long lProspectiveHashBins[HASHES];
+      memset(lProspectiveHashBins, 0, HASHES * sizeof( unsigned long long ));
       
-      bool lAtLeastOneSet = false;
-      
+      bool lHasASet = false;
       for (int i = 0; i < HASHES; ++i)
       {
+        unsigned long long lHashBin = HashToHashBin( aHash, i );
         
-        unsigned long long lHasSetBin = HashBinToHasSetBin( HashToHashBin( aHash, i ), i );
-        lHashHasSet[i] = _has_set[i]->Get( lHasSetBin );
-        if ( lHashHasSet[i] )
+        if ( i == 0 ) // the first one gets the ball rolling
+          lHasASet = _hash_table[i]->Get( lHashBin );
+        else if ( _hash_table[i]->Get( lHashBin ) != lHasASet ) // we don't have agreement, so the others must have been false positives for having a set.
         {
-          lAtLeastOneSet = true;
-          lProspectiveSetOffsetBins[i] = HasSetBinToSetOffsetBin( lHasSetBin, i );
-          lProspectiveSets[i] = SetOffsetToSet( SetOffsetBinToSetOffset( lProspectiveSetOffsetBins[i], i ) );
+          //cout << ".";        
+          return NULL;
         }
+        
+        lProspectiveHashBins[i] = lHashBin;
       }
-      
-      if ( !lAtLeastOneSet )
+      if ( lHasASet == false )
         return NULL;
+      
+      // ok, we're still here, so we might have a set. Let's go do it.
+      
+      unsigned long long lProspectiveSetOffsetBins[HASHES];
+      memset(lProspectiveSetOffsetBins, 0, HASHES * sizeof( unsigned long long ));
+      
+      Set * lProspectiveSets[HASHES];
+      memset(lProspectiveSets, 0, HASHES * sizeof(Set*));
+      for ( int i = 0; i < HASHES; ++i )
+      {
+        lProspectiveSetOffsetBins[i] = HashBinToSetOffsetBin( lProspectiveHashBins[i], i );
+        lProspectiveSets[i] = SetOffsetToSet( SetOffsetBinToSetOffset( lProspectiveSetOffsetBins[i], i) );
+      }
       
       Set * lSet = NULL;      
       for (int i = 0; i < HASHES; ++i)
       {
-        if ( lHashHasSet[i] && lProspectiveSets[i] == NULL ) // we found an empty slot! Woohoo!
+        if ( lProspectiveSets[i] == NULL ) // we found an empty slot! Woohoo!
         {
           if ( lSet == NULL ) // put a new set there. if there's no room for a set, well...
             lSet = aWorkingSet;      
@@ -642,15 +430,13 @@ namespace bleu {
         _sets[ lSet->SetOffset ] = lSet->Self; // this may be unnecessary (if init gave us an existing set to join), but why not.
         return lSet;
       }     
-
       
       // so, none of them were empty. were any of them us?
       map<Set *, int> lRepresented;      
       lRepresented.insert( map<Set*, int>::value_type(aWorkingSet, 1) );      
       for (int i = 0; i < HASHES; ++i)
-      {
-        if ( lHashHasSet[i] )
-          lRepresented[ lProspectiveSets[i] ]++;
+      {        
+        lRepresented[ lProspectiveSets[i] ]++;
       }
       Set * lMostRepresented = NULL; // because maps are sorted, this will be the set with the lowest pointer, and the highest count.
       for ( map<Set*, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet )
@@ -658,12 +444,9 @@ namespace bleu {
         if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] )
           lMostRepresented = lSet->first;
       }
-      
-//     
-//      if ( lRepresented[ lMostRepresented ] > 1 ) // woohoo, good enough.
-//        ;//cout << "FOUND AN ACTUAL MATCH: " << lMaxCount << endl;
-//      else 
-//        cout << "GOOD ENOUGH. FINE. JOINING A FP SET." << endl;
+     
+      if ( lRepresented[lMostRepresented] < 9 )
+        cout << lRepresented[lMostRepresented];
       
       if ( lMostRepresented != aWorkingSet )
         return bridge_sets( lMostRepresented, aWorkingSet);
@@ -672,23 +455,23 @@ namespace bleu {
     } 
     
     
-    void OutputAsBits( unsigned long long aValue )
-    {
-      unsigned long long aMask = 1ULL << 63;
-      for ( int i = 0; i < 64; ++i )
-      {
-        unsigned long long aMasked = aValue & aMask;
-        cout << (aMasked >> 63);
-        aValue = aValue << 1;
-      }
-    }
+//    void OutputAsBits( unsigned long long aValue )
+//    {
+//      unsigned long long aMask = 1ULL << 63;
+//      for ( int i = 0; i < 64; ++i )
+//      {
+//        unsigned long long aMasked = aValue & aMask;
+//        cout << (aMasked >> 63);
+//        aValue = aValue << 1;
+//      }
+//    }
     
     unsigned long long HashToHashBin ( HashIntoType aHash, int i )
     {
       return (aHash % _tablesizes[i]);
     }
 
-    unsigned long long HashBinToHasSetBin( unsigned long long aBin, int i )
+    unsigned long long HashBinToSetOffsetBin( unsigned long long aBin, int i )
     {      
       assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
       
@@ -697,35 +480,17 @@ namespace bleu {
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION)); 
       
-      unsigned long long lHasSetBin = _hash_table[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
+      unsigned long long lSetOffsetBin = _hash_table[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
             
       if ( lBinSectionIndex > 0 )      
-        lHasSetBin += _hash_table_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
+        lSetOffsetBin += _hash_table_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
       
-      assert( lHasSetBin > 0 );
-      
-      lHasSetBin -= 1; // to make it an array index rather than a count.
-      
-      return lHasSetBin;
-    }    
-
-    unsigned long long HasSetBinToSetOffsetBin( unsigned long long aBin, int i )
-    {
-      unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
-      unsigned long long lMaxBinSectionIndex = (_hash_table_total_bit_counts[i] / BIT_COUNT_PARTITION); // _hash_table_total_bit_counts == size of has_set table
-      assert( lBinSectionIndex <= lMaxBinSectionIndex );
-      
-      unsigned long long lSetOffsetBin = _has_set[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );      
-      
-      if ( lBinSectionIndex > 0 )      
-        lSetOffsetBin += _has_set_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
-            
-      assert ( lSetOffsetBin > 0 );
+      assert( lSetOffsetBin > 0 );
       
       lSetOffsetBin -= 1; // to make it an array index rather than a count.
       
       return lSetOffsetBin;
-    }
+    }    
     
     unsigned int SetOffsetBinToSetOffset( unsigned long long aSetOffsetBin, int i )
     {
@@ -796,10 +561,7 @@ namespace bleu {
     
     HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
     {
-      //cout << "BF" << _revhash(aOldForwardHash, 32) << endl;
-//      cout << "BR" << _revhash(aOldReverseHash, 32) << endl;
-      
-      NucleotideType lTwoBit = twobit_repr( aNextNucleotide );
+      unsigned long long lTwoBit = twobit_repr( aNextNucleotide );
       
       aOldForwardHash = aOldForwardHash << 2; // left-shift the previous hash over
       aOldForwardHash |= lTwoBit; // 'or' in the current nucleotide
@@ -808,9 +570,6 @@ namespace bleu {
       // now handle reverse complement
       aOldReverseHash = aOldReverseHash >> 2;
       aOldReverseHash |= (compl_twobit(lTwoBit) << (_ksize*2 - 2));
-      
-//      cout << "AF" << _revhash(aOldForwardHash, 32) << endl;
-//      cout << "AR" << _revhash(aOldReverseHash, 32) << endl;
       
       // pick the better bin of the forward or reverse hashes
       return uniqify_rc(aOldForwardHash, aOldReverseHash);
@@ -833,7 +592,7 @@ namespace bleu {
       //std::string first_kmer;
       //HashIntoType forward_hash = 0, reverse_hash = 0;
       
-      map<Set*, unsigned int> lReadCounts;
+      map<unsigned int, unsigned int> lReadCounts;
       
       while(!parser->is_complete()) {
         read = parser->get_next_read();
@@ -872,12 +631,18 @@ namespace bleu {
               else
                 break;
             }
-          }          
+          }
+          
+          unsigned int lSetID = 0;
+          if ( lWorkingSet != NULL )
+            lSetID =  lWorkingSet->SetOffset;
             
-          lReadCounts[ lWorkingSet ]++;
+          lReadCounts[ lSetID ]++;
+          
+
           
           outfile << ">" << read.name << "\t" 
-          << lWorkingSet->SetOffset 
+          << lSetID 
           << " " << "\n" 
           << seq << "\n";
           
@@ -898,7 +663,7 @@ namespace bleu {
         }
       }
       
-      for ( map<Set *, unsigned int>::iterator lIt = lReadCounts.begin(); lIt != lReadCounts.end(); ++lIt )
+      for ( map<unsigned int, unsigned int>::iterator lIt = lReadCounts.begin(); lIt != lReadCounts.end(); ++lIt )
       {
         cout << setw(10) << lIt->first;
         cout << setw(10) << lIt->second << endl;        
