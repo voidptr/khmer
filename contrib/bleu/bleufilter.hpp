@@ -20,17 +20,6 @@
 
 #define HASHES 8
 
-#define next_nucleotide_bit(ch) (         ch   == ' ' ? 0 : \
-                                 (toupper(ch)) == 'A' ? 1 : \
-                                 (toupper(ch)) == 'C' ? 2 : \
-                                 (toupper(ch)) == 'G' ? 4 : 8)
-
-#define prev_nucleotide_bit(ch) (         ch   == ' ' ? 0 : \
-                                 (toupper(ch)) == 'A' ? 16 : \
-                                 (toupper(ch)) == 'C' ? 32 : \
-                                 (toupper(ch)) == 'G' ? 64 : 128 )
-
-
 namespace bleu {
   
   using namespace khmer;
@@ -118,8 +107,9 @@ namespace bleu {
 
     // sizes set during prep 1 (based on processing of _hash_table)
     unsigned long long _hash_table_total_bit_counts[HASHES];
-    unsigned int * _set_offsets[HASHES]; // based on the totals
-    
+    //unsigned int * _set_offsets[HASHES]; // based on the totals
+    unsigned short * _set_offsets[HASHES]; 
+
     // contents set during (based on the processing of the reads)  
     vector<Set**> _sets; // array of pointers sets (really? seriously?)
     
@@ -139,7 +129,9 @@ namespace bleu {
       {
         _tablesizes[i] = get_first_prime_below(_tablesizes[i-1]); 
       }
-      
+     
+      cout << "XXX" << sizeof(unsigned short) << endl;
+ 
       for ( int j = 0; j < HASHES; ++j )      
       {
         _hash_table_preliminary[j] = new cBitArray( _tablesizes[j] );
@@ -197,10 +189,11 @@ namespace bleu {
     
     void allocate_set_offset_table()
     {
+      cout << "sizeof short" << sizeof(unsigned short) << endl;
       for (int i = 0; i < HASHES; ++i)
       {
-        _set_offsets[i] = new unsigned int[ _hash_table_total_bit_counts[i] ];
-        memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned int));
+        _set_offsets[i] = new unsigned short[ _hash_table_total_bit_counts[i] ];
+        memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned short));
       }
     }
         
@@ -508,16 +501,16 @@ namespace bleu {
     Set * init_new_set()
     {
       Set * lSet = NULL;//
-//      if ( _last_set_offset > 65534 ) 
-//      {
-//        lSet = GetSmallestExistingSet();
-//      } 
-//      else
-//      {
+      if ( _last_set_offset > 65534 ) 
+      {
+        lSet = GetSmallestExistingSet();
+      } 
+      else
+      {
         lSet = new Set( this, ++_last_set_offset ); 
         _unique_sets.insert( lSet );
         _sets.push_back( lSet->Self );      
-//      }
+      }
       
       return lSet;
     }

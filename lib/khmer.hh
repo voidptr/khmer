@@ -2,7 +2,7 @@
 
 #define MAX_COUNT 255
 
-#include "cBitArray.h"
+//#include "cBitArray.h"
 
 #include "hashtable.hh"
 
@@ -12,9 +12,9 @@ namespace khmer {
 
   // largest number we're going to hash into. (8 bytes/64 bits/32 nt)
   typedef unsigned long long HashIntoType;
-  typedef cBitArrayBytes HashIntoType_Big;
-  
-  // the base type to represent an individual nucleotide. 
+  //typedef cBitArrayBytes HashIntoType_Big;
+
+  // the base type to represent an individual nucleotide.
   // Since we can't use a pair of bits, this is as close as it gets.
   typedef unsigned char NucleotideType;
 
