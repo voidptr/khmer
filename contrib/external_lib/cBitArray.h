@@ -633,13 +633,13 @@ private:
 public:
   cBitArray() : array_size(0) { ; }
   cBitArray(unsigned long long in_size) : bit_array(in_size), array_size(in_size) { ; }
-  cBitArray(const cBitArray & in_array)
-    : bit_array(in_array.bit_array, in_array.array_size)
-    , array_size(in_array.array_size) { ; }
-  cBitArray(const cRawBitArray & in_array, int in_size)
-    : bit_array(in_array, in_size)
-    , array_size(in_size) { ; }
-
+  cBitArray(const cBitArray & in_array) : bit_array(in_array.bit_array, in_array.array_size), array_size(in_array.array_size) { ; }
+  cBitArray(const cRawBitArray & in_array, int in_size) : bit_array(in_array, in_size), array_size(in_size) { ; }
+  ~cBitArray()
+  {
+    ;
+  }
+  
   cBitArray & operator=(const cBitArray & in_array) {
     bit_array.Copy(in_array.bit_array, in_array.array_size);
     array_size = in_array.array_size;
