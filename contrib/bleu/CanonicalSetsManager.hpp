@@ -272,6 +272,7 @@ namespace bleu {
           if ( k != lSet->GetPrimaryOffset() )
           {
             delete _sets[k];
+            _sets[k] = NULL;
             _released_set_offsets.push_back( k ); // it's null! hey!
           }
           else // we'll only hit each set once this way.
@@ -361,7 +362,7 @@ namespace bleu {
       else
       {
         lSet = new CanonicalSet( lAddress );
-        _sorted_sets.push_back( lSet->Self );
+        //_sorted_sets.push_back( lSet->Self );
         _sets[ lAddress ] = lSet->Self;
       }
       
@@ -375,6 +376,8 @@ namespace bleu {
         *(aJoiner->BackReferences[i]) = aJoinee;
         aJoinee->BackReferences.push_back( aJoiner->BackReferences[i] );
       }
+      
+      aJoinee->Increment( aJoiner->GetKmerCount() );
       
       delete aJoiner;
     }
@@ -414,11 +417,11 @@ namespace bleu {
       }
       else
       {
-        canonicalize(); // clean shit out.
-        
-        if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
-          return get_a_released_offset(); 
-        else 
+//        canonicalize(); // clean shit out.
+//        
+//        if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
+//          return get_a_released_offset(); 
+//        else 
           return 0; // we're fucked. gotta start joining sets
       }
     }

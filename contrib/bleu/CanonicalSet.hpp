@@ -38,7 +38,7 @@ namespace bleu {
   private:
     
     SetOffset PrimarySetOffset;
-    unsigned char KmerCount;
+    unsigned long long KmerCount;
     
   public:
     vector<SetPointer> BackReferences;
@@ -65,9 +65,14 @@ namespace bleu {
       return PrimarySetOffset;
     }
     
-    void Increment()
+    void Increment( unsigned long long aCount = 1 )
     {
-      KmerCount++;
+      KmerCount+=aCount;
+    }
+    
+    unsigned long long GetKmerCount()
+    {
+      return KmerCount;
     }
     
     struct CompSet {
