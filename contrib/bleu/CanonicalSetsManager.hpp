@@ -11,6 +11,7 @@
 #include "../../lib/parsers.hh"
 #include "../external_lib/cBitArray.h"
 #include "CanonicalSet.hpp"
+#include <algorithm>
 
 #define BIT_COUNT_PARTITION 1000
 
