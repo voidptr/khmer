@@ -52,8 +52,6 @@ namespace bleu {
     // contents set during (based on the processing of the reads)  
     vector<SetPointer> _sets; // array of sets
     
-    map<unsigned long long, list<SetHandle*> > _binned_sets; // our sets, sorted by size, in heap form
-    unsigned long long _smallest_set_count;
     
     // caching system so I don't have to re-modulo. Dunno if this is faster than modulo or not. will test.
     pair<HashIntoType, HashBin> _hash_bin_cache[HASHES][CACHESIZE];
@@ -65,11 +63,13 @@ namespace bleu {
     
     vector<SetOffset> _released_set_offsets;
     
+    //map<unsigned long long, list<SetHandle*> > _binned_sets; // our sets, sorted by size, in heap form
+    vector<SetPointer> _sorted_sets;
+    
   public:
     CanonicalSetsManager( unsigned long long aMaxMemory )
     {
       _last_set_offset = 0; // init to zero
-      _smallest_set_count = 0;
       
       _tablesizes[0] = get_first_prime_below( aMaxMemory / HASHES );
       for ( int i = 1; i < HASHES; ++i )      
@@ -162,9 +162,6 @@ namespace bleu {
       for ( int i = 0; i < HASHES; ++i )
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
-        
-//        cout << _set_offsets[i][ lBin ] << endl;
-        
         if ( _set_offsets[i][ lBin ] == 0 )
           return false;
       }
@@ -259,7 +256,6 @@ namespace bleu {
           if ( _set_offsets[i][j] != 0 ) // there's something in here
           {
             _set_offsets[i][j] = SetOffsetToSet( _set_offsets[i][j] )->GetPrimaryOffset();
-//            SetHandle lSet = SetOffsetToSet( _set_offsets[i][j] );
           }
         }
       }
@@ -275,17 +271,11 @@ namespace bleu {
           if ( k != lSet->GetPrimaryOffset() )
           {
             delete _sets[k];
-//            _sets[ k ] = NULL;
             _released_set_offsets.push_back( k ); // it's null! hey!
           }
           else // we'll only hit each set once this way.
           {
-//            for ( int l = 1; l < lSet->BackReferences.size(); ++l ) // release the back references.
-//            {
-//              delete lSet->BackReferences[l];
-//            }            
             lSet->BackReferences.clear();
-            
             lSet->BackReferences.push_back( lSet->Self ); // readd the canonical one.
           }
         }
@@ -300,14 +290,15 @@ namespace bleu {
     
     // add a hash to an existing set
     void add_to_set( SetHandle aSet, HashIntoType aHash )
-    {
-      
+    {      
       for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );    
         _set_offsets[i][ lBin ] = aSet->GetPrimaryOffset();        
         assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
       }
+      
+      aSet->Increment();
     }
     
     //
@@ -367,20 +358,13 @@ namespace bleu {
       if ( lAddress == 0 )
         lSet = get_least_crowded_set(); // fuck fuck fuck
       else
+      {
         lSet = new CanonicalSet( lAddress );
-      
-      _sets[ lAddress ] = lSet->Self;
+        _sorted_sets.push_back( lSet->Self );
+        _sets[ lAddress ] = lSet->Self;
+      }
       
       return lSet;
-//      SetHandle lRootSet = get_least_crowded_set();
-//      
-//      if ( lRootSet == NULL )// || !lRootSet->AmElgibleForFostering() )      
-//        lRootSet = create_allocated_address_set(); 
-//      
-////      SetHandle lSet = new CanonicalSet();        
-////      join( lRootSet, lSet );
-      
-//      return lRootSet;
     }  
     
     void join ( SetHandle aJoinee, SetHandle aJoiner )
@@ -389,38 +373,34 @@ namespace bleu {
       {
         *(aJoiner->BackReferences[i]) = aJoinee;
         aJoinee->BackReferences.push_back( aJoiner->BackReferences[i] );
-        
-//        *aJoiner->Self = *aJoinee->Self;
       }
       
       delete aJoiner;
-      
-//      assert(0);
-      
     }
-    
-//    void output_bins()
-//    {
-//      for ( map<unsigned long long, list<SetHandle*> >::iterator lIt = _binned_sets.begin(); lIt != _binned_sets.end(); ++lIt )
-//      {
-//        int lll = lIt->first;
-//        int size = lIt->second.size();
-//        cout << "(" << lll << " " << size << ")";
-//      }
-//      cout << endl;
-//    }
-//    
+ 
     SetHandle get_least_crowded_set()
     { 
-//      cout << "get x: ";
-//      output_bins();
+      if (_sorted_sets.empty() )
+        re_sort_sets();
       
-      assert(0);
+      SetHandle lSmallestSet = *(_sorted_sets.back());
+      _sorted_sets.pop_back();
       
-      if ( _binned_sets.begin() == _binned_sets.end() )
-        return NULL;
+      return lSmallestSet;
+    }
+    
+    void re_sort_sets()
+    {
+      canonicalize(); // slim things out first.
       
-      return *((_binned_sets.begin())->second.front());
+      _sorted_sets.clear();
+      for (int i = 0; i < SETS_SIZE; ++i )
+      {
+        if ( _sets[i] != NULL )
+          _sorted_sets.push_back( _sets[i] );
+      }
+      
+      sort( _sorted_sets.begin(), _sorted_sets.end(), CanonicalSet::CompSet() );
     }
 
     SetOffset get_free_address()

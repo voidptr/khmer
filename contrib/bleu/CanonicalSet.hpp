@@ -25,12 +25,8 @@
 
 namespace bleu {
   
-  typedef unsigned short SetID;    
-  
   using namespace khmer;
   using namespace std;
-  
-//  class CanonicalSetManager;
   
   class CanonicalSet
   {
@@ -41,10 +37,8 @@ namespace bleu {
     friend class CanonicalSetManager;    
   private:
     
-//    unsigned long long KmerCount;
-//    unsigned long long TotalKmerCount;
-    
     SetOffset PrimarySetOffset;
+    unsigned char KmerCount;
     
   public:
     vector<SetPointer> BackReferences;
@@ -62,34 +56,32 @@ namespace bleu {
       *Self = this;
       
       BackReferences.push_back( Self );
+      
+      KmerCount = 0;
     }
-
     
     SetOffset GetPrimaryOffset() const // the main one to go to
     {
       return PrimarySetOffset;
     }
     
-//    ~CanonicalSet()
-//    {
-//      *Self = NULL;
-//      Self = NULL;
-//    }
+    void Increment()
+    {
+      KmerCount++;
+    }
     
-
-//    struct CompSet {
-//      bool operator()(SetHandle * aS1, SetHandle * aS2)
-//      {
-//        if ( (aS1 == NULL || *aS1 == NULL ) && ( aS2 == NULL || *aS2 == NULL ) )          
-//          return false;          
-//        else if ( (aS1 == NULL || *aS1 == NULL ) )
-//          return true;
-//        else if ( ( aS2 == NULL || *aS2 == NULL ) )
-//          return false;
-//        else            
-//          return (*aS1)->GetTotalKmerCount() > (*aS2)->GetTotalKmerCount(); 
-//      }
-//    };
-    
+    struct CompSet {
+      bool operator()(SetPointer aS1, SetPointer aS2)
+      {
+        if ( (aS1 == NULL || *aS1 == NULL ) && ( aS2 == NULL || *aS2 == NULL ) )          
+          return false;          
+        else if ( (aS1 == NULL || *aS1 == NULL ) )
+          return true;
+        else if ( ( aS2 == NULL || *aS2 == NULL ) )
+          return false;
+        else            
+          return (*aS1)->KmerCount > (*aS2)->KmerCount; 
+      }
+    };
   };
 }
