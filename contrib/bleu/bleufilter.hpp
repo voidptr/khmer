@@ -133,11 +133,12 @@ namespace bleu {
             SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
             if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
             {
-              if ( lExistingSet == NULL )
-              {
-                _Sets_Manager->has_existing_set( hash ); 
-                _Sets_Manager->get_existing_set( hash );
-              }
+              assert ( lExistingSet != NULL );
+//              if ( lExistingSet == NULL )
+//              {
+//                _Sets_Manager->has_existing_set( hash ); 
+//                _Sets_Manager->get_existing_set( hash );
+//              }
               lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
               
             }
@@ -199,6 +200,7 @@ namespace bleu {
       //HashIntoType forward_hash = 0, reverse_hash = 0;
       
       map<unsigned int, unsigned int> lReadCounts;
+      map<unsigned int, unsigned int> lFosteredCounts;
       
       while(!parser->is_complete()) {
         read = parser->get_next_read();
@@ -212,7 +214,8 @@ namespace bleu {
           const unsigned int length = seq.length();
           
           
-          SetHandle lWorkingSet = NULL;
+          SetHandle lSet = NULL;
+          SetHandle lBucket = NULL;
           
           HashIntoType hash = 0;
           HashIntoType forward_hash = 0, reverse_hash = 0;          
@@ -229,17 +232,23 @@ namespace bleu {
             
             if ( _Sets_Manager->can_have_set( hash ) )
             {
-              lWorkingSet = _Sets_Manager->get_existing_set( hash );
+              lSet = _Sets_Manager->get_existing_set( hash );
+              lBucket = _Sets_Manager->get_existing_bucket( hash );
               break;
             }
                           
           }   
           
           unsigned int lSetID = 0;
-          if ( lWorkingSet != NULL )
-            lSetID = lWorkingSet->GetPrimaryOffset(); // foster children get to inherit
+          if ( lBucket != NULL )
+            lSetID = lBucket->GetPrimaryOffset(); // foster children get to inherit
             
           lReadCounts[ lSetID ]++;
+          
+          if ( lSet != lBucket )
+          {
+            lFosteredCounts[ lSetID ]++;
+          }
           
           outfile << ">" << read.name << "\t" 
           << lSetID 
@@ -266,7 +275,12 @@ namespace bleu {
       for ( map<unsigned int, unsigned int>::iterator lIt = lReadCounts.begin(); lIt != lReadCounts.end(); ++lIt )
       {
         cout << setw(10) << lIt->first;
-        cout << setw(10) << lIt->second << endl;        
+        cout << setw(10) << lIt->second;
+        
+        if ( lFosteredCounts.find( lIt->first ) != lFosteredCounts.end() )
+          cout << setw(10) << lFosteredCounts.find( lIt->first )->second;
+        
+        cout << endl;
       }
       
       cout << setw(6) << "unique set count: "<< lReadCounts.size() << endl;
