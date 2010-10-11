@@ -70,6 +70,7 @@ namespace bleu {
   public:
     CanonicalSetsManager( unsigned long long aMaxMemory )
     {
+      cout << "begin CanonicalSetsManager constructor "<< endl;
       _last_set_offset = 0; // init to zero
       
       _tablesizes[0] = get_first_prime_below( aMaxMemory / HASHES );
@@ -101,6 +102,7 @@ namespace bleu {
       }
       
       _sets.resize(SETS_SIZE, NULL);
+      cout << "end CanonicalSetsManager constructor "<< endl;
     }
     //
     // first pass through the reads -- determine if reads are interesting 
@@ -110,6 +112,7 @@ namespace bleu {
     // mark a kmer/hash as "interesting" if it appears more than once.
     void seen_hash( HashIntoType aHash )
     {
+      cout << "begin seen_hash "<< endl;
       for (int i = 0; i < HASHES; ++i )
       {
         unsigned long long lHashBin = HashToHashBinCached(aHash, i); 
@@ -119,6 +122,8 @@ namespace bleu {
         else
           _hash_table_preliminary[i]->Set(lHashBin, true);
       }
+      
+      cout << "end seen_hash "<< endl;
     }
     
     //
@@ -128,6 +133,7 @@ namespace bleu {
     // check whether a kmer can have a set. (I keep wanting to type can_has_set) Damned lolcats.
     bool can_have_set( HashIntoType aHash )
     {
+      cout << "begin can_have_set "<< endl;
       bool lCanHaveASet = false;
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -138,12 +144,15 @@ namespace bleu {
         else if ( _hash_table[i]->Get(lHashBin) != lCanHaveASet ) // we have a disagreement.
           return false;
       }
+
+      cout << "end can_have_set "<< endl;
       
       return lCanHaveASet;
     }    
     // find a set for this hash. if there isn't one, create it.
     SetHandle get_set( HashIntoType aHash )
     { 
+      cout << "begin get_set "<< endl;
       SetHandle lHandle = NULL;
       
       if ( has_existing_set( aHash ) )
@@ -153,25 +162,27 @@ namespace bleu {
         lHandle = create_set();
         add_to_set(lHandle, aHash);
       }
-      
+      cout << "end get_set "<< endl;
       
       return lHandle;
     }
     // check whether a kmer has already been assigned a set.
     bool has_existing_set( HashIntoType aHash )
     {
+      cout << "begin has_existing_set "<< endl;
       for ( int i = 0; i < HASHES; ++i )
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
         if ( _set_offsets[i][ lBin ] == 0 )
           return false;
       }
-      
+      cout << "end has_existing_set "<< endl;
       return true;
     }
     // find a set for this hash that already exists.
     SetHandle get_existing_set( HashIntoType aHash )
-    {      
+    {    
+      cout << "begin get_existing_set "<< endl;
       map<SetHandle, int> lRepresented;
       
       for ( int i = 0; i < HASHES; ++i )
@@ -188,6 +199,8 @@ namespace bleu {
         }
         
         lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] )->FindResponsibleSet( aHash ) ]++;
+        
+        cout << "get_existing_set "<< endl;
       }
       
       // figure out what the consensus set was
@@ -198,12 +211,15 @@ namespace bleu {
           lMostRepresented = lSet->first;
       }     
       
+      cout << "get existing set "<< endl;
+      
       return lMostRepresented;      
     }
     
     // find a bucket for this hash that already exists. Identical to get_existing_set, but without the drill-down
     SetHandle get_existing_bucket( HashIntoType aHash )
     {      
+      cout << "begin get_existing_bucket "<< endl;
       map<SetHandle, int> lRepresented;
       
       for ( int i = 0; i < HASHES; ++i )
@@ -228,11 +244,13 @@ namespace bleu {
         if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] ) // because maps are sorted, this will end up being the set with the lowest pointer, and the highest count.
           lMostRepresented = lSet->first;
       }     
-      
+      cout << "end get_existing_bucket "<< endl;      
       return lMostRepresented;      
     }
     bool sets_are_disconnected( SetHandle aSet1, SetHandle aSet2 )
     {
+      cout << "begin sets_are_disconnected "<< endl;      
+      cout << "end sets_are_disconnected "<< endl;
       if ( aSet1 == aSet2 )
         return false; // they're already in the same set.
       else
@@ -241,6 +259,7 @@ namespace bleu {
     // put together two sets.
     SetHandle bridge_sets( SetHandle aEncounteredSet, SetHandle aOriginatingSet )
     {
+      cout << "begin bridge_sets "<< endl;
       if ( !( aOriginatingSet != aEncounteredSet) )// we really really shouldn't be the same set.
       {
         cout << "bridge set - originating set == encoutnered set" << endl;
@@ -285,10 +304,12 @@ namespace bleu {
         lDominatingSet = aEncounteredSet;
       }
           
+      cout << "end bridge_sets "<< endl;
       return lDominatingSet;
     }
     void canonicalize()
     {
+      cout << "begin canonicalize "<< endl;
       // go through all the set offsets and point them to their canonical locations.
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -350,6 +371,8 @@ namespace bleu {
       }
       
       cout << "released " << _released_set_offsets.size() << " sets." << endl;
+      
+      cout << "end canonicalize"<< endl;
     }
     
 #define MAX_FOSTERS_ADD 2
@@ -357,6 +380,8 @@ namespace bleu {
     
     void reclaim_and_rebalance()
     {
+      cout << "begin reclaim_and_rebalance "<< endl;
+      
       // now, go through and foster up the tiny sets, and release their set offsets.
       vector<SetOffset> lPotentialFosters;
       vector<SetOffset> lPotentialParents;
@@ -468,11 +493,14 @@ namespace bleu {
       cout << "Fostered " << lFosterChildCount - lPotentialFosters.size() << " sets to " << lFosterParentCount - lPotentialParents.size() << "-ish parents" << endl;
 
       canonicalize();
+      
+      cout << "end reclaim_and_rebalance "<< endl;
     }
     
     void rehome_too_big_sets()
     {
-
+      cout << "begin rehome_too_big_sets "<< endl;
+      
       if ( _released_set_offsets.size() > 0 ) // no point in doing anything if we have no space to go to.
       {
         // now, go through and release those fosters that have gotten too big
@@ -557,10 +585,14 @@ namespace bleu {
         }
         cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() << " parent too crowded sets " << endl;        
       }
+      
+      cout << "end rehome_too_big_sets "<< endl;
     }
     
     void promote_set( SetHandle aSet )
     {
+      cout << "begin promote_set "<< endl;
+      
       SetOffset lAddress = get_free_address();
       
       if (!( lAddress > 0 ))// this should work      
@@ -601,11 +633,15 @@ namespace bleu {
         aSet->OutputInfo();
         assert ( 0 );
       }
+      
+      cout << "end promote_set "<< endl;
     }
     
     // add a hash to an existing set
     void add_to_set( SetHandle aSet, HashIntoType aHash )
-    {      
+    {   
+      cout << "begin add_to_set "<< endl;
+      
       for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );    
@@ -641,6 +677,7 @@ namespace bleu {
         aSet->OutputInfo();
         assert(0);
       }
+      cout << "end add_to_set "<< endl;
     }
     
     //
@@ -648,7 +685,7 @@ namespace bleu {
     //
     void populate_hash_table_bit_count_lookups()
     {
-      cout << "populate_hash_table_bit_count_lookups" << endl;
+      cout << "begin populate_hash_table_bit_count_lookups" << endl;
       for (int i = 0; i < HASHES; ++i )
       {
         _hash_table_total_bit_counts[i] = _hash_table[i]->CountBits();
@@ -671,23 +708,28 @@ namespace bleu {
         }
         cout << i << ": " << _hash_table_total_bit_counts[i] << " -- " << ((double)_hash_table_total_bit_counts[i] / (double)_tablesizes[i]) * 100 << "% occupancy" << endl;
       }
+      cout << "end populate_hash_table_bit_count_lookups" << endl;
     }
     
     void deallocate_hash_table_preliminary()
     {
+      cout << "begin deallocate_hash_table_preliminary" << endl;
       for (int i = 0; i < HASHES; ++i)
       {
         delete _hash_table_preliminary[i];
       }      
+      cout << "end deallocate_hash_table_preliminary" << endl;
     }
     
     void allocate_set_offset_table()
     {
+      cout << "begin allocate_set_offset_table" << endl;
       for (int i = 0; i < HASHES; ++i)
       {
         _set_offsets[i] = new unsigned short[ _hash_table_total_bit_counts[i] ];
         memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned short));
       }
+      cout << "end allocate_set_offset_table" << endl;
     }
 
     // create a set
@@ -695,6 +737,7 @@ namespace bleu {
     // otherwise, foster the sets out
     SetHandle create_set() 
     {
+      cout << "begin create_set" << endl;
       SetOffset lAddress = get_free_address();
       SetHandle lSet = NULL;
       
@@ -770,11 +813,14 @@ namespace bleu {
         assert(0);
       }
       
+      cout << "end create_set" << endl;
+      
       return lSet;
     }  
     
     void join ( SetHandle aJoinee, SetHandle aJoiner )
     {
+      cout << "begin join" << endl;
       if ( aJoinee->AmFosterChild() )      
       {
 //        assert( aJoiner->AmFosterChild() );
@@ -900,10 +946,12 @@ namespace bleu {
         assert( 0 ); // this should work
       }
       
+      cout << "end join" << endl;
     }
  
     SetHandle get_least_crowded_set()
     { 
+      cout << "begin get_least_crowded_set" << endl;
       if (_sorted_sets.empty() )
         return NULL;
         //re_sort_sets();
@@ -911,11 +959,13 @@ namespace bleu {
       SetHandle lSmallestSet = *(_sorted_sets.back());
       _sorted_sets.pop_back();
       
+      cout << "end get_least_crowded_set" << endl;
       return lSmallestSet;
     }
     
     void re_sort_sets()
     {
+      cout << "begin re_sort_sets" << endl;
       _sorted_sets.clear();
       for (int i = 0; i < SETS_SIZE; ++i )
       {
@@ -924,10 +974,12 @@ namespace bleu {
       }
       
       sort( _sorted_sets.begin(), _sorted_sets.end(), CanonicalSet::CompSet() );
+      cout << "end re_sort_sets" << endl;
     }
 
     SetOffset get_free_address()
     {
+      cout << "begin/end get_free_address" << endl;
       if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
         return get_a_released_offset(); 
       else if ( _last_set_offset < SETS_SIZE ) // no released ones, but we still have room at the head of the list
@@ -941,8 +993,10 @@ namespace bleu {
     }
     SetOffset get_a_released_offset()
     {
+      cout << "begin get_a_released_offset" << endl;
       SetOffset lSet = _released_set_offsets.back();
       _released_set_offsets.pop_back();
+      cout << "end get_a_released_offset" << endl;
       
       return lSet;
     }
