@@ -134,6 +134,12 @@ namespace bleu {
             if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
             {
               assert ( lExistingSet != NULL );
+              
+              if ( !(lExistingSet != NULL) ) // can't very well accept a foster child if I"m a foster myself.
+              {
+                cout << "consume string - existing set is null" << endl; 
+                assert(0);
+              }
 //              if ( lExistingSet == NULL )
 //              {
 //                _Sets_Manager->has_existing_set( hash ); 

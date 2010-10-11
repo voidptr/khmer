@@ -210,7 +210,13 @@ namespace bleu {
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
         
-        assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
+        if ( !(_set_offsets[i][ lBin ] > 0) )// somehow we fucked this up.
+        {
+          cout << "get_existing_buck - set offset is 0" << endl;
+          cout << "i=" << i;
+          cout << "lBin=" << lBin;
+          assert( 0 ); // this should work
+        }
         
         lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] ) ]++;
       }
@@ -235,7 +241,16 @@ namespace bleu {
     // put together two sets.
     SetHandle bridge_sets( SetHandle aEncounteredSet, SetHandle aOriginatingSet )
     {
-      assert ( aOriginatingSet != aEncounteredSet ); // we really really shouldn't be the same set.
+      if ( !( aOriginatingSet != aEncounteredSet) )// we really really shouldn't be the same set.
+      {
+        cout << "bridge set - originating set == encoutnered set" << endl;
+        cout << "originating set=";
+        aOriginatingSet->OutputInfo();
+        cout << "encountered set=";
+        aEncounteredSet->OutputInfo();
+        assert( 0 ); // this should work
+      }
+      
       
       SetHandle lDominatingSet = NULL;
 
@@ -618,7 +633,14 @@ namespace bleu {
         }
       }
       
-      assert( aSet->AmValid() );
+      //assert( aSet->AmValid() );
+      if (!( aSet->AmValid() ))
+      {
+        cout << "Add_to_set -- aSet isn't valid" << endl;
+        cout << "set=";
+        aSet->OutputInfo();
+        assert(0);
+      }
     }
     
     //
@@ -700,7 +722,17 @@ namespace bleu {
           if ( lAddress == 0 ) // if there are no free addresses, foster
           {
             lSet = new CanonicalSet(); // empty foster set.
-            assert(lParentSet->AcceptFosterChild( lSet )); // if this doesn't work, there's smething very wrong
+            //assert(lParentSet->AcceptFosterChild( lSet )); // if this doesn't work, there's smething very wrong
+            if (!( lParentSet->AcceptFosterChild( lSet ) ))
+            {
+              cout << "create_set -- parent set doesn't accept foster child" << endl;
+              cout << "lParentSet=";
+              lParentSet->OutputInfo();
+              cout << "lSet=";
+              lSet->OutputInfo();
+              assert(0);
+            }
+            
           }
           else // woohoo, no need to start the fostering round yet.
           {
@@ -711,7 +743,16 @@ namespace bleu {
         else // here's one
         {
           lSet = new CanonicalSet(); // empty foster set.
-          assert (lParentSet->AcceptFosterChild( lSet )); //if this doesn't work, there's something very wrong.
+          //assert (lParentSet->AcceptFosterChild( lSet )); //if this doesn't work, there's something very wrong.
+          if (!( lParentSet->AcceptFosterChild( lSet ) ))
+          {
+            cout << "create_set -- parent set doesn't accept foster child" << endl;
+            cout << "lParentSet=";
+            lParentSet->OutputInfo();
+            cout << "lSet=";
+            lSet->OutputInfo();
+            assert(0);
+          }
         }
       }
       else
@@ -720,7 +761,14 @@ namespace bleu {
         _sets[ lAddress ] = lSet->Self;
       }
       
-      assert( lSet->AmValid() );
+      //assert( lSet->AmValid() );
+      if (!( lSet->AmValid() ))
+      {
+        cout << "create_set -- lSet not valid" << endl;
+        cout << "lSet=";
+        lSet->OutputInfo();
+        assert(0);
+      }
       
       return lSet;
     }  
@@ -728,10 +776,38 @@ namespace bleu {
     void join ( SetHandle aJoinee, SetHandle aJoiner )
     {
       if ( aJoinee->AmFosterChild() )      
-        assert( aJoiner->AmFosterChild() );
+      {
+//        assert( aJoiner->AmFosterChild() );
+        
+        if (!( aJoiner->AmFosterChild() ))
+        {
+          cout << "join -- joinee is foster child, but joiner isn't" << endl;
+          cout << "aJoinee=";
+          aJoinee->OutputInfo();
+          cout << "aJoiner=";
+          aJoiner->OutputInfo();
+          assert(0);
+        }
+      }
       
-      assert ( aJoiner->AmValid() );
-      assert ( aJoinee->AmValid() );
+//      assert ( aJoiner->AmValid() );
+      if (!( aJoiner->AmValid() ))
+      {
+        cout << "join -- aJoiner isn't valid" << endl;
+        cout << "aJoiner=";
+        aJoiner->OutputInfo();
+        assert(0);
+      }
+      
+      //assert ( aJoinee->AmValid() );
+      if (!( aJoinee->AmValid() ))
+      {
+        cout << "join -- aJoiner isn't valid" << endl;
+        cout << "aJoinee=";
+        aJoinee->OutputInfo();
+        assert(0);
+      }
+      
       
       // move the back-references
       for ( int i = 0; i < aJoiner->BackReferences.size(); ++i )
@@ -756,7 +832,15 @@ namespace bleu {
             {
               SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(*lIt, i), i );    
               _set_offsets[i][ lBin ] = aJoinee->GetPrimaryOffset();        
-              assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
+              //assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
+              
+              if ( !(_set_offsets[i][ lBin ] > 0) )// somehow we fucked this up.
+              {
+                cout << "get_existing_buck - set offset is 0" << endl;
+                cout << "i=" << i;
+                cout << "lBin=" << lBin;
+                assert( 0 ); // this should work
+              }
             }
           }
         }
@@ -769,7 +853,17 @@ namespace bleu {
       
       if ( aJoiner->AmFosterChild() )
       {
-        assert( aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset()) );
+        //assert( aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset()) );
+        
+        if ( !(aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset())) )// somehow we fucked this up.
+        {
+          cout << "join - couldn't emancipate foster child" << endl;
+          cout << "aJoinee=";
+          aJoinee->OutputInfo();
+          cout << "aJoiner=";
+          aJoiner->OutputInfo();
+          assert( 0 ); // this should work
+        }
       }
       else
       {
@@ -785,9 +879,26 @@ namespace bleu {
       delete aJoiner;
       
       if ( !aJoinee->AmFosterChild() && aJoinee->ShouldStopStoringHashes() )
-        assert( aJoinee->StopStoringHashes() );
+      {
+        //assert( aJoinee->StopStoringHashes() );
+        
+        if ( !(aJoinee->StopStoringHashes()) )// somehow we fucked this up.
+        {
+          cout << "join - couldn't stop storing hashes" << endl;
+          cout << "aJoinee=";
+          aJoinee->OutputInfo();
+          assert( 0 ); // this should work
+        }
+      }
       
-      assert ( aJoinee->AmValid() );
+//      assert ( aJoinee->AmValid() );      
+      if ( !(aJoinee->AmValid()) )// somehow we fucked this up.
+      {
+        cout << "join - joinee isn't valid" << endl;
+        cout << "aJoinee=";
+        aJoinee->OutputInfo();
+        assert( 0 ); // this should work
+      }
       
     }
  
@@ -903,19 +1014,45 @@ namespace bleu {
     }    
     SetOffsetBin HashBinToSetOffsetBin( HashBin aBin, int i )
     {      
-      assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
+      //assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
+      if ( !(aBin < _tablesizes[i]) )// make sure it's a valid bin.
+      {
+        cout << "HashBinToSetOffsetBin - invalid bin" << endl;
+        cout << "aBin=" << aBin << endl;
+        assert( 0 ); // this should work
+      }
       
-      assert( _hash_table[i]->Get( aBin ) == true );
+//      assert( _hash_table[i]->Get( aBin ) == true );
+      if ( !(_hash_table[i]->Get( aBin ) == true) )// make sure we have a set
+      {
+        cout << "HashBinToSetOffsetBin - has a set is false" << endl;
+        cout << "aBin=" << aBin << endl;
+        assert( 0 ); // this should work
+      }
+      
       
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
-      assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION)); 
+      
+//      assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION));       
+      if ( !(lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION)) )// make sure we have a set
+      {
+        cout << "HashBinToSetOffsetBin - lBinSection index is too large" << endl;
+        cout << "lBinSectionIndex=" << lBinSectionIndex << endl;
+        assert( 0 ); // this should work
+      }
       
       unsigned long long lSetOffsetBin = _hash_table[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
       
       if ( lBinSectionIndex > 0 )      
         lSetOffsetBin += _hash_table_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
       
-      assert( lSetOffsetBin > 0 );
+//      assert( lSetOffsetBin > 0 );      
+      if ( !(lSetOffsetBin > 0) )// make sure we have a set
+      {
+        cout << "HashBinToSetOffsetBin - lSetOffsetBin == 0" << endl;
+        cout << "lSetOffsetBin=" << lSetOffsetBin << endl;
+        assert( 0 ); // this should work
+      }
       
       lSetOffsetBin -= 1; // to make it an array index rather than a count.
       
@@ -924,7 +1061,13 @@ namespace bleu {
     
     SetHandle SetOffsetToSet( SetOffset aOffset )
     {      
-      assert( aOffset > 0 ); // we should not be poking here if we don't have a set to go to
+//      assert( aOffset > 0 ); // we should not be poking here if we don't have a set to go to
+      if ( !(aOffset > 0) )// // we should not be poking here if we don't have a set to go to
+      {
+        cout << "SetOffsetToSet - aOffset == 0" << endl;
+        cout << "aOffset=" << aOffset << endl;
+        assert( 0 ); // this should work
+      }
       
       return *_sets[ aOffset ]; // pick up the gateway node      
     }
