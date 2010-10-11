@@ -361,9 +361,10 @@ namespace bleu {
           cout << "AmValid, Foster - Have Foster Children" << endl;
           cout << " This=";
           OutputInfo();
-          assert(0); 
+//          assert(0); 
+          return false;          
         }
-        //  return false;
+          
         
         if ( Parent == NULL )
         {
@@ -371,49 +372,50 @@ namespace bleu {
           cout << " This=";
           OutputInfo();
           
-          assert(0); //
-          //return false;
-          
-          if ( !StoringHashes )
-          {
-            cout << "AmValid, Foster - Not Storing Hashes" << endl;
-            cout << " This=";
-            OutputInfo();
-            
-            assert(0); //
-            //return false;
-          }
-          
-          if ( !FoundInParent() )
-          {
-            cout << "AmValid, Foster - Not Found in Parent" << endl;
-            cout << " This=";
-            OutputInfo();
-            assert(0); //
-            //return false;
-          }
+          //assert(0); 
+          return false;
         }
-        else
+        
+        if ( !StoringHashes )
         {
-          if ( Parent != NULL )
-          {
-            cout << "AmValid, !Foster - Have Parent" << endl;
-            cout << " This=";
-            OutputInfo();
-            assert(0); //
-            //return false;
-          }
-        }   
+          cout << "AmValid, Foster - Not Storing Hashes" << endl;
+          cout << " This=";
+          OutputInfo();
+          
+          //assert(0); 
+          return false;
+        }
+        
+        if ( !FoundInParent() )
+        {
+          cout << "AmValid, Foster - Not Found in Parent" << endl;
+          cout << " This=";
+          OutputInfo();
+          //assert(0); //
+          return false;
+        }
       }
+      else
+      {
+        if ( Parent != NULL )
+        {
+          cout << "AmValid, !Foster - Have Parent" << endl;
+          cout << " This=";
+          OutputInfo();
+          //assert(0); //
+          return false;
+        }
+      }   
+    
       if ( StoringHashes )
         if ( KmerCount != Hashes.size() )
         {
             cout << "AmValid, Storing Hashes, but Unmatched KMer to Hash Count" << endl;
             cout << " This=";
             OutputInfo();
-            assert(0); //
-            //return false; 
-          }
+            //assert(0); //
+            return false; 
+        }
         
       return true;          
       
