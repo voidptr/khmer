@@ -112,7 +112,6 @@ namespace bleu {
     // mark a kmer/hash as "interesting" if it appears more than once.
     void seen_hash( HashIntoType aHash )
     {
-      cout << "begin seen_hash "<< endl;
       for (int i = 0; i < HASHES; ++i )
       {
         unsigned long long lHashBin = HashToHashBinCached(aHash, i); 
@@ -122,8 +121,6 @@ namespace bleu {
         else
           _hash_table_preliminary[i]->Set(lHashBin, true);
       }
-      
-      cout << "end seen_hash "<< endl;
     }
     
     //
