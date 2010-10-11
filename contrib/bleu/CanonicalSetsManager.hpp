@@ -130,7 +130,7 @@ namespace bleu {
     // check whether a kmer can have a set. (I keep wanting to type can_has_set) Damned lolcats.
     bool can_have_set( HashIntoType aHash )
     {
-      cout << "begin can_have_set "<< endl;
+//      cout << "begin can_have_set "<< endl;
       bool lCanHaveASet = false;
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -142,14 +142,14 @@ namespace bleu {
           return false;
       }
 
-      cout << "end can_have_set "<< endl;
+//      cout << "end can_have_set "<< endl;
       
       return lCanHaveASet;
     }    
     // find a set for this hash. if there isn't one, create it.
     SetHandle get_set( HashIntoType aHash )
     { 
-      cout << "begin get_set "<< endl;
+//      cout << "begin get_set "<< endl;
       SetHandle lHandle = NULL;
       
       if ( has_existing_set( aHash ) )
@@ -159,27 +159,27 @@ namespace bleu {
         lHandle = create_set();
         add_to_set(lHandle, aHash);
       }
-      cout << "end get_set "<< endl;
+//      cout << "end get_set "<< endl;
       
       return lHandle;
     }
     // check whether a kmer has already been assigned a set.
     bool has_existing_set( HashIntoType aHash )
     {
-      cout << "begin has_existing_set "<< endl;
+//      cout << "begin has_existing_set "<< endl;
       for ( int i = 0; i < HASHES; ++i )
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
         if ( _set_offsets[i][ lBin ] == 0 )
           return false;
       }
-      cout << "end has_existing_set "<< endl;
+//      cout << "end has_existing_set "<< endl;
       return true;
     }
     // find a set for this hash that already exists.
     SetHandle get_existing_set( HashIntoType aHash )
     {    
-      cout << "begin get_existing_set "<< endl;
+//      cout << "begin get_existing_set "<< endl;
       map<SetHandle, int> lRepresented;
       
       for ( int i = 0; i < HASHES; ++i )
@@ -196,8 +196,6 @@ namespace bleu {
         }
         
         lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] )->FindResponsibleSet( aHash ) ]++;
-        
-        cout << "get_existing_set "<< endl;
       }
       
       // figure out what the consensus set was
@@ -208,7 +206,7 @@ namespace bleu {
           lMostRepresented = lSet->first;
       }     
       
-      cout << "get existing set "<< endl;
+//      cout << "end get existing set "<< endl;
       
       return lMostRepresented;      
     }
@@ -216,7 +214,7 @@ namespace bleu {
     // find a bucket for this hash that already exists. Identical to get_existing_set, but without the drill-down
     SetHandle get_existing_bucket( HashIntoType aHash )
     {      
-      cout << "begin get_existing_bucket "<< endl;
+  //    cout << "begin get_existing_bucket "<< endl;
       map<SetHandle, int> lRepresented;
       
       for ( int i = 0; i < HASHES; ++i )
@@ -241,13 +239,11 @@ namespace bleu {
         if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] ) // because maps are sorted, this will end up being the set with the lowest pointer, and the highest count.
           lMostRepresented = lSet->first;
       }     
-      cout << "end get_existing_bucket "<< endl;      
+ //     cout << "end get_existing_bucket "<< endl;      
       return lMostRepresented;      
     }
     bool sets_are_disconnected( SetHandle aSet1, SetHandle aSet2 )
     {
-      cout << "begin sets_are_disconnected "<< endl;      
-      cout << "end sets_are_disconnected "<< endl;
       if ( aSet1 == aSet2 )
         return false; // they're already in the same set.
       else
@@ -761,6 +757,7 @@ namespace bleu {
           lAddress = get_free_address();
           if ( lAddress == 0 ) // if there are no free addresses, foster
           {
+            cout << "create_set(begin) - address = 0" << endl;
             lSet = new CanonicalSet(); // empty foster set.
             //assert(lParentSet->AcceptFosterChild( lSet )); // if this doesn't work, there's smething very wrong
             if (!( lParentSet->AcceptFosterChild( lSet ) ))
@@ -772,12 +769,16 @@ namespace bleu {
               lSet->OutputInfo();
               assert(0);
             }
+            cout << "create_set(end) - address = 0" << endl;
             
           }
           else // woohoo, no need to start the fostering round yet.
           {
+            cout << "create_set(begin) - address != 0" << endl;
             lSet = new CanonicalSet( lAddress );
             _sets[ lAddress ] = lSet->Self;
+            cout << "create_set(end) - address != 0" << endl;
+            
           }
         } 
         else // here's one
@@ -978,13 +979,18 @@ namespace bleu {
     {
       cout << "begin/end get_free_address" << endl;
       if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
+      {
+                cout << "get_free_address getting released offset" << endl;
         return get_a_released_offset(); 
+      }
       else if ( _last_set_offset < SETS_SIZE ) // no released ones, but we still have room at the head of the list
       {
+        cout << "get_free_address incrementing last offset" << endl;
         return ++_last_set_offset;
       }
       else
       {
+                cout << "get_free_address we're fucked" << endl;
         return 0; // we're fucked. gotta start joining sets
       }
     }
