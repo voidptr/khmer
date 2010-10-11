@@ -178,7 +178,14 @@ namespace bleu {
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
         
-        assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
+                
+        if ( !(_set_offsets[i][ lBin ] > 0) )
+        {
+          cout << "get_existing_set - set offset is 0" << endl;
+          cout << "i=" << i;
+          cout << "lBin=" << lBin;
+          assert( 0 ); // this should work
+        }
         
         lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] )->FindResponsibleSet( aHash ) ]++;
       }
@@ -276,7 +283,15 @@ namespace bleu {
           {
             _set_offsets[i][j] = SetOffsetToSet( _set_offsets[i][j] )->GetPrimaryOffset(); 
             
-            assert ( SetOffsetToSet( _set_offsets[i][j] )->AmValid() );
+            //assert ( SetOffsetToSet( _set_offsets[i][j] )->AmValid() );
+            if ( !( SetOffsetToSet( _set_offsets[i][j] )->AmValid() ) )
+            {
+              cout << "canonicallize - pointed to set isn't valid" << endl;
+              cout << "i=" << i << " j=" << j;
+              cout << " pointedset=";
+              SetOffsetToSet( _set_offsets[i][j] )->OutputInfo();
+              assert( 0 ); // this should work
+            }
           }
         }
       }
@@ -289,7 +304,15 @@ namespace bleu {
         {
           SetHandle lSet = *_sets[k];
           
-          assert ( lSet->AmValid() );
+          if ( !lSet->AmValid() )
+          {
+            cout << "canonicallize - lSet isn't valid" << endl;
+            cout << "k=" << k;
+            cout << "lSet=";
+            lSet->OutputInfo();
+            assert( 0 ); // this should work
+          }
+          
           
           if ( k != lSet->GetPrimaryOffset() )
           {
@@ -369,9 +392,25 @@ namespace bleu {
           SetHandle lChild = *_sets[lChildOffset];
           
           // merge it
-          assert( lParent->AcceptFosterChild( lChild ) ); // this should work
+          if ( !lParent->AcceptFosterChild( lChild ) )
+          {
+            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
+            cout << "Parent=";
+            lParent->OutputInfo();
+            cout << "Child=";
+            lChild->OutputInfo();
+            assert( 0 ); // this should work
+          }
           
-          assert ( lParent->AmValid() && lChild->AmValid() );
+          if ( !(lParent->AmValid() && lChild->AmValid()) )
+          {
+            cout << "Reclaim and Rebalance -- either parent or child is invalid" << endl;
+            cout << "Parent=";
+            lParent->OutputInfo();
+            cout << "Child=";
+            lChild->OutputInfo();
+            assert ( 0 );
+          }
           
           // now, point all the kid's hashes to the new parent offset.
           for ( int n = 0; n < HASHES; ++n )
@@ -381,14 +420,30 @@ namespace bleu {
               SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached( *lIt, n ), n);
               _set_offsets[n][lBin] = SetOffsetToSet( _set_offsets[n][lBin] )->GetPrimaryOffset();  // canonicalize
               
-              assert ( _set_offsets[n][ lBin ] > 0 );
+              if (!( _set_offsets[n][ lBin ] > 0 ))
+              {
+                cout << "Reclaim and Rebalance -- Empty bin" << endl;
+                cout << "Parent=";
+                lParent->OutputInfo();
+                cout << "Child=";
+                lChild->OutputInfo();
+                assert(0);
+              }
             }
           }
                     // release it
           _sets[ lChildOffset ] = NULL;
           _released_set_offsets.push_back( lChildOffset );
           
-          assert ( lParent->AmValid() && lChild->AmValid() );
+          if ( !(lParent->AmValid() && lChild->AmValid()) )
+          {
+            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
+            cout << "Parent=";
+            lParent->OutputInfo();
+            cout << "Child=";
+            lChild->OutputInfo();
+            assert ( 0 );
+          }
         }
                 
         if ( lParent->Fosters.size() >= MAX_FOSTERS_ADD )
@@ -418,7 +473,13 @@ namespace bleu {
             {
               SetHandle lParent = *_sets[o];
               
-              assert( lParent->AmValid() );
+              if ( !(lParent->AmValid()) )
+              {
+                cout << "Rehome_too_big_set -- parent invalid" << endl;
+                cout << "Parent=";
+                lParent->OutputInfo();
+                assert ( 0 );
+              }
 
               bool lTooCrowded = false;
               if ( lParent->Fosters.size() > TOO_MANY_FOSTERS_COUNT )
@@ -486,9 +547,23 @@ namespace bleu {
     void promote_set( SetHandle aSet )
     {
       SetOffset lAddress = get_free_address();
-      assert( lAddress > 0 ); // we shouldn't be in here if this isn't possible.
+      
+      if (!( lAddress > 0 ))// this should work      
+      {
+        cout << "promote set -- address <= 0" << endl;
+        assert(0);
+      }
     
-      assert( aSet->Parent->EmancipateFosterChild( aSet, lAddress ) ); // this should work
+      if (!( aSet->Parent->EmancipateFosterChild( aSet, lAddress ) ))// this should work      
+      {
+        cout << "promote set -- failed to emancipate foster child" << endl;
+        cout << "aSet=";
+        aSet->OutputInfo();
+        cout << "Parent=";
+        aSet->Parent->OutputInfo();
+
+        assert(0);
+      }
       _sets[ lAddress ] = aSet->Self;
       
       // now, point all the kid's hashes to the new offset.
@@ -504,7 +579,13 @@ namespace bleu {
       if ( aSet->ShouldStopStoringHashes() )
         aSet->StopStoringHashes();  
       
-      assert( aSet->AmValid() );
+      if ( !(aSet->AmValid()) )
+      {
+        cout << "promote_set aSet is invalid" << endl;
+        cout << "Set=";
+        aSet->OutputInfo();
+        assert ( 0 );
+      }
     }
     
     // add a hash to an existing set
@@ -514,14 +595,27 @@ namespace bleu {
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );    
         _set_offsets[i][ lBin ] = aSet->GetPrimaryOffset();        
-        assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
+               
+        if (!( _set_offsets[i][ lBin ] > 0 ))// somehow we fucked this up.
+        {
+          cout << "Add_to_set -- bin is empty" << endl;
+          cout << "set=";
+          aSet->OutputInfo();
+          assert(0);
+        }
       }
       aSet->AddToSet(aHash);
       aSet->Increment();
       
       if ( !aSet->AmFosterChild() && aSet->ShouldStopStoringHashes() )
       {
-        assert( aSet->StopStoringHashes() );
+        if (!( aSet->StopStoringHashes() ))
+        {
+          cout << "Add_to_set -- set couldn't stop storing hashes" << endl;
+          cout << "set=";
+          aSet->OutputInfo();
+          assert(0);
+        }
       }
       
       assert( aSet->AmValid() );
