@@ -235,7 +235,7 @@ namespace bleu {
           
           
           SetHandle lSet = NULL;
-          SetHandle lBucket = NULL;
+//          SetHandle lBucket = NULL;
           
           HashIntoType hash = 0;
           HashIntoType forward_hash = 0, reverse_hash = 0;          
@@ -253,22 +253,27 @@ namespace bleu {
             if ( _Sets_Manager->can_have_set( hash ) )
             {
               lSet = _Sets_Manager->get_existing_set( hash );
-              lBucket = _Sets_Manager->get_existing_bucket( hash );
+//              lBucket = _Sets_Manager->get_existing_bucket( hash );
               break;
             }
                           
           }   
           
           unsigned int lSetID = 0;
-          if ( lBucket != NULL )
-            lSetID = lBucket->GetPrimaryOffset(); // foster children get to inherit
+          if ( lSet != NULL )
+          {
+            lSetID = lSet->GetPrimaryOffset();
+            
+            if ( lSet->JoinOfConvenience )
+            {
+              lFosteredCounts[ lSetID ]++;
+            }
+          }
+          
+//          if ( lBucket != NULL )
+//            lSetID = lBucket->GetPrimaryOffset(); // foster children get to inherit
             
           lReadCounts[ lSetID ]++;
-          
-          if ( lSet != lBucket )
-          {
-            lFosteredCounts[ lSetID ]++;
-          }
           
           outfile << ">" << read.name << "\t" 
           << lSetID 
@@ -298,8 +303,9 @@ namespace bleu {
         cout << setw(10) << lIt->second;
         
         if ( lFosteredCounts.find( lIt->first ) != lFosteredCounts.end() )
-          cout << setw(10) << lFosteredCounts.find( lIt->first )->second;
+          cout << setw(10) << "T";
         
+                
         cout << endl;
       }
       

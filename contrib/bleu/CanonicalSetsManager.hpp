@@ -64,13 +64,11 @@ namespace bleu {
     
     vector<SetOffset> _released_set_offsets;
     
-    //map<unsigned long long, list<SetHandle*> > _binned_sets; // our sets, sorted by size, in heap form
     vector<SetPointer> _sorted_sets;
     
   public:
     CanonicalSetsManager( unsigned long long aMaxMemory )
     {
-      cout << "begin CanonicalSetsManager constructor "<< endl;
       _last_set_offset = 0; // init to zero
       
       _tablesizes[0] = get_first_prime_below( aMaxMemory / HASHES );
@@ -102,7 +100,6 @@ namespace bleu {
       }
       
       _sets.resize(SETS_SIZE, NULL);
-      cout << "end CanonicalSetsManager constructor "<< endl;
     }
     //
     // first pass through the reads -- determine if reads are interesting 
@@ -150,7 +147,6 @@ namespace bleu {
     // check whether a kmer can have a set. (I keep wanting to type can_has_set) Damned lolcats.
     bool can_have_set( HashIntoType aHash )
     {
-//      cout << "begin can_have_set "<< endl;
       bool lCanHaveASet = false;
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -162,14 +158,11 @@ namespace bleu {
           return false;
       }
 
-//      cout << "end can_have_set "<< endl;
-      
       return lCanHaveASet;
     }    
     // find a set for this hash. if there isn't one, create it.
     SetHandle get_set( HashIntoType aHash )
     { 
-//      cout << "begin get_set "<< endl;
       SetHandle lHandle = NULL;
       
       if ( has_existing_set( aHash ) )
@@ -179,27 +172,23 @@ namespace bleu {
         lHandle = create_set();
         add_to_set(lHandle, aHash);
       }
-//      cout << "end get_set "<< endl;
       
       return lHandle;
     }
     // check whether a kmer has already been assigned a set.
     bool has_existing_set( HashIntoType aHash )
     {
-//      cout << "begin has_existing_set "<< endl;
       for ( int i = 0; i < HASHES; ++i )
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
         if ( _set_offsets[i][ lBin ] == 0 )
           return false;
       }
-//      cout << "end has_existing_set "<< endl;
       return true;
     }
     // find a set for this hash that already exists.
     SetHandle get_existing_set( HashIntoType aHash )
     {    
-//      cout << "begin get_existing_set "<< endl;
       map<SetHandle, int> lRepresented;
       
       for ( int i = 0; i < HASHES; ++i )
@@ -207,48 +196,9 @@ namespace bleu {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
         
                 
-        if ( !(_set_offsets[i][ lBin ] > 0) )
-        {
-  //        cout << "get_existing_set - set offset is 0" << endl;
-//          cout << "i=" << i;
-//          cout << "lBin=" << lBin;
-          assert( 0 ); // this should work
-        }
+        assert(_set_offsets[i][ lBin ] > 0);
         
-        lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] )->FindResponsibleSet( aHash ) ]++;
-      }
-      
-      // figure out what the consensus set was
-      SetHandle lMostRepresented = NULL; 
-      for ( map<SetHandle, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet ) // count the votes
-      {
-        if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] ) // because maps are sorted, this will end up being the set with the lowest pointer, and the highest count.
-          lMostRepresented = lSet->first;
-      }     
-      
-//      cout << "end get existing set "<< endl;
-      
-      return lMostRepresented;      
-    }
-    
-    // find a bucket for this hash that already exists. Identical to get_existing_set, but without the drill-down
-    SetHandle get_existing_bucket( HashIntoType aHash )
-    {      
-  //    cout << "begin get_existing_bucket "<< endl;
-      map<SetHandle, int> lRepresented;
-      
-      for ( int i = 0; i < HASHES; ++i )
-      {
-        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
-        
-        if ( !(_set_offsets[i][ lBin ] > 0) )// somehow we fucked this up.
-        {
-//          cout << "get_existing_buck - set offset is 0" << endl;
-//          cout << "i=" << i;
-//          cout << "lBin=" << lBin;
-          assert( 0 ); // this should work
-        }
-        
+//        lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] )->FindResponsibleSet( aHash ) ]++;
         lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] ) ]++;
       }
       
@@ -259,9 +209,33 @@ namespace bleu {
         if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] ) // because maps are sorted, this will end up being the set with the lowest pointer, and the highest count.
           lMostRepresented = lSet->first;
       }     
- //     cout << "end get_existing_bucket "<< endl;      
       return lMostRepresented;      
     }
+    
+//    // find a bucket for this hash that already exists. Identical to get_existing_set, but without the drill-down
+//    SetHandle get_existing_bucket( HashIntoType aHash )
+//    {      
+//      map<SetHandle, int> lRepresented;
+//      
+//      for ( int i = 0; i < HASHES; ++i )
+//      {
+//        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
+//        
+//        assert(_set_offsets[i][ lBin ] > 0); // somehow we fucked this up.
+//        
+//        lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] ) ]++;
+//      }
+//      
+//      // figure out what the consensus set was
+//      SetHandle lMostRepresented = NULL; 
+//      for ( map<SetHandle, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet ) // count the votes
+//      {
+//        if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] ) // because maps are sorted, this will end up being the set with the lowest pointer, and the highest count.
+//          lMostRepresented = lSet->first;
+//      }     
+//      return lMostRepresented;      
+//    }
+    
     bool sets_are_disconnected( SetHandle aSet1, SetHandle aSet2 )
     {
       if ( aSet1 == aSet2 )
@@ -272,17 +246,7 @@ namespace bleu {
     // put together two sets.
     SetHandle bridge_sets( SetHandle aEncounteredSet, SetHandle aOriginatingSet )
     {
-//      cout << "begin bridge_sets "<< endl;
-      if ( !( aOriginatingSet != aEncounteredSet) )// we really really shouldn't be the same set.
-      {
-//        cout << "bridge set - originating set == encoutnered set" << endl;
-//        cout << "originating set=";
-//        aOriginatingSet->OutputInfo();
-//        cout << "encountered set=";
-//        aEncounteredSet->OutputInfo();
-        assert( 0 ); // this should work
-      }
-      
+      assert( aOriginatingSet != aEncounteredSet); // we really really shouldn't be the same set.
       
       SetHandle lDominatingSet = NULL;
 
@@ -292,9 +256,9 @@ namespace bleu {
       // O->!f, E->f -- O dominates
       // O->f, E->!f -- E dominates
 
-      if ( (!aOriginatingSet->AmFosterChild() && !aEncounteredSet->AmFosterChild()) || 
-           (aOriginatingSet->AmFosterChild() && aEncounteredSet->AmFosterChild() ) ) // both or neither are fostered
-      {
+ //     if ( (!aOriginatingSet->AmFosterChild() && !aEncounteredSet->AmFosterChild()) || 
+//           (aOriginatingSet->AmFosterChild() && aEncounteredSet->AmFosterChild() ) ) // both or neither are fostered
+//      {
         if ( aOriginatingSet->GetPrimaryOffset() < aEncounteredSet->GetPrimaryOffset() )
         {
           join( aOriginatingSet, aEncounteredSet );
@@ -305,24 +269,23 @@ namespace bleu {
           join( aEncounteredSet, aOriginatingSet );
           lDominatingSet = aEncounteredSet;
         }
-      }
-      else if ( !aOriginatingSet->AmFosterChild() && aEncounteredSet->AmFosterChild() ) // originating set isn't fostered.
-      {
-        join( aOriginatingSet, aEncounteredSet );
-        lDominatingSet = aOriginatingSet;
-      }
-      else // encountered set isn't fostered.
-      {
-        join ( aEncounteredSet, aOriginatingSet );
-        lDominatingSet = aEncounteredSet;
-      }
-          
- //     cout << "end bridge_sets "<< endl;
+//      }
+//      else if ( !aOriginatingSet->AmFosterChild() && aEncounteredSet->AmFosterChild() ) // originating set isn't fostered.
+//      {
+//        join( aOriginatingSet, aEncounteredSet );
+//        lDominatingSet = aOriginatingSet;
+//      }
+//      else // encountered set isn't fostered.
+//      {
+//        join ( aEncounteredSet, aOriginatingSet );
+//        lDominatingSet = aEncounteredSet;
+//      }
+
       return lDominatingSet;
     }
+
     void canonicalize()
     {
-//      cout << "begin canonicalize "<< endl;
       // go through all the set offsets and point them to their canonical locations.
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -333,14 +296,6 @@ namespace bleu {
             _set_offsets[i][j] = SetOffsetToSet( _set_offsets[i][j] )->GetPrimaryOffset(); 
             
             //assert ( SetOffsetToSet( _set_offsets[i][j] )->AmValid() );
-            if ( !( SetOffsetToSet( _set_offsets[i][j] )->AmValid() ) )
-            {
-//              cout << "canonicallize - pointed to set isn't valid" << endl;
-//              cout << "i=" << i << " j=" << j;
-//              cout << " pointedset=";
-//              SetOffsetToSet( _set_offsets[i][j] )->OutputInfo();
-              assert( 0 ); // this should work
-            }
           }
         }
       }
@@ -353,344 +308,276 @@ namespace bleu {
         {
           SetHandle lSet = *_sets[k];
           
-          if ( !lSet->AmValid() )
-          {
-//            cout << "canonicallize - lSet isn't valid" << endl;
-//            cout << "k=" << k;
-//            cout << "lSet=";
-//            lSet->OutputInfo();
-            assert( 0 ); // this should work
-          }
-          
+          //assert ( lSet->AmValid() );
           
           if ( k != lSet->GetPrimaryOffset() )
           {
             _sets[k] = NULL;
             _released_set_offsets.push_back( k ); // it's null! hey!
-            //cout << k << endl;
           }
           else // we'll only hit each set once this way.
           {
-            //cout << k << endl;
             lSet->BackReferences.clear();
             lSet->BackReferences.push_back( lSet->Self ); // readd the canonical one.
           }
         }
         else
         {
-          //cout << k << endl;
           _released_set_offsets.push_back( k ); // it's null! hey!
         }
       }
       
-      cout << "released " << _released_set_offsets.size() << " sets." << endl;
-      
-//      cout << "end canonicalize"<< endl;
+      cout << "Canonicalizing: Released " << _released_set_offsets.size() << " sets." << endl;
     }
     
-#define MAX_FOSTERS_ADD 2
-#define TOO_MANY_FOSTERS_COUNT MAX_FOSTERS_ADD*2
+//#define MAX_FOSTERS_ADD 2
+//#define TOO_MANY_FOSTERS_COUNT MAX_FOSTERS_ADD*2
+//#define WAY_TOO_MANY_FOSTERS_COUNT TOO_MANY_FOSTERS_COUNT*10
+//    
+//    void reclaim_and_rebalance()
+//    {
+//      // now, go through and foster up the tiny sets, and release their set offsets.
+//      vector<SetOffset> lPotentialFosters;
+//      vector<SetOffset> lPotentialParents;
+//      int lFosterChildCount = 0;
+//      int lFosterParentCount = 0;
+//      for ( int l = 1; l < SETS_SIZE; ++l )
+//      {
+//        if ( _sets[l] != NULL )
+//        {
+//          SetHandle lPotential = *_sets[l];
+//          
+//          if ( lPotential->AmStoringHashes() && !lPotential->ShouldStopStoringHashes() && lPotential->Fosters.size() == 0 ) // you're small enough, and you're not holding anyone
+//          {
+//            lPotentialFosters.push_back( l );
+//          }
+//          else if ( lPotential->AmStoringHashes() && lPotential->Fosters.size() < MAX_FOSTERS_ADD ) // you're small enough, and you're not holding too many, but more than one.
+//          {
+//            lPotentialParents.push_back( l );
+//          }
+//        }
+//      }
+//      
+//      // if we're short on parents, volunteer some fosters from within the tiny set group.
+//      if ( lPotentialFosters.size() > 11 && lPotentialParents.size() < lPotentialFosters.size() / MAX_FOSTERS_ADD )
+//      {
+//        int lNeededCount = (lPotentialFosters.size() / MAX_FOSTERS_ADD) - lPotentialParents.size();
+//        for ( int q = 0; q < lNeededCount; ++q )
+//        {
+//          lPotentialParents.push_back( lPotentialFosters.back() );
+//          lPotentialFosters.pop_back();
+//        }
+//      }
+//      
+//      lFosterChildCount = lPotentialFosters.size();
+//      lFosterParentCount = lPotentialParents.size();
+//                        
+//      // we've crossed a threshold, where we have a parent, and a kid to fill it.
+//      while ( lPotentialParents.size() > 0 && lPotentialFosters.size() > 0 )
+//      {
+//        SetOffset lParentOffset = lPotentialParents.back();
+//        SetHandle lParent = *_sets[lParentOffset];
+//        int lSlotsToFill = MAX_FOSTERS_ADD - lParent->Fosters.size();
+//        
+//        // while there's room, and kids to fill it
+//        for ( int m = 0; lPotentialFosters.size() > 0 && m < lSlotsToFill; ++m, lPotentialFosters.pop_back() )
+//        {
+//          int lChildOffset = lPotentialFosters.back();            
+//          SetHandle lChild = *_sets[lChildOffset];
+//          
+//          // merge it
+//          assert( lParent->AcceptFosterChild( lChild ) );
+//          
+//          // now, point all the kid's hashes to the new parent offset.
+//          for ( int n = 0; n < HASHES; ++n )
+//          {
+//            for ( set<HashIntoType>::iterator lIt = lChild->Hashes.begin(); lIt != lChild->Hashes.end(); ++lIt )
+//            {
+//              SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached( *lIt, n ), n);
+//              _set_offsets[n][lBin] = SetOffsetToSet( _set_offsets[n][lBin] )->GetPrimaryOffset();  // canonicalize
+//              
+//              assert( _set_offsets[n][ lBin ] > 0 );
+//            }
+//          }
+//          // release it
+//          _sets[ lChildOffset ] = NULL;
+//          _released_set_offsets.push_back( lChildOffset );
+//          
+//          assert ( lParent->AmValid() && lChild->AmValid() );
+//        }
+//                
+//        if ( lParent->Fosters.size() >= MAX_FOSTERS_ADD )
+//          lPotentialParents.pop_back(); // this guy's filled up
+//      }    
+//      
+//      cout << "Reclaim and Rebalance: Fostered " << lFosterChildCount - lPotentialFosters.size() << " tiny sets to " << lFosterParentCount - lPotentialParents.size() << "-ish parents" << endl;
+//    }
     
-    void reclaim_and_rebalance()
-    {
-//      cout << "begin reclaim_and_rebalance "<< endl;
-      
-      // now, go through and foster up the tiny sets, and release their set offsets.
-      vector<SetOffset> lPotentialFosters;
-      vector<SetOffset> lPotentialParents;
-      int lFosterChildCount = 0;
-      int lFosterParentCount = 0;
-      for ( int l = 1; l < SETS_SIZE; ++l )
-      {
-        if ( _sets[l] != NULL )
-        {
-          SetHandle lPotential = *_sets[l];
-          
-          if ( lPotential->AmStoringHashes() && !lPotential->ShouldStopStoringHashes() && lPotential->Fosters.size() == 0 ) // you're small enough, and you're not holding anyone
-          {
-            lPotentialFosters.push_back( l );
-          }
-          else if ( lPotential->AmStoringHashes() && lPotential->Fosters.size() < MAX_FOSTERS_ADD ) // you're small enough, and you're not holding too many, but more than one.
-          {
-            lPotentialParents.push_back( l );
-          }
-        }
-      }
-      
-      // if we're short on parents, volunteer some fosters.
-      if ( lPotentialFosters.size() > 11 && lPotentialParents.size() < lPotentialFosters.size() / MAX_FOSTERS_ADD )
-      {
-        int lNeededCount = (lPotentialFosters.size() / MAX_FOSTERS_ADD) - lPotentialParents.size();
-        for ( int q = 0; q < lNeededCount; ++q )
-        {
-          lPotentialParents.push_back( lPotentialFosters.back() );
-          lPotentialFosters.pop_back();
-        }
-      }
-      
-      lFosterChildCount = lPotentialFosters.size();
-      lFosterParentCount = lPotentialParents.size();
-                        
-      // we've crossed a threshold, where we have a parent, and a kid to fill it. This may happen only once, but whatever.
-      while ( lPotentialParents.size() > 0 && lPotentialFosters.size() > 0 )
-      {
-        SetOffset lParentOffset = lPotentialParents.back();
-        SetHandle lParent = *_sets[lParentOffset];
-        int lSlotsToFill = MAX_FOSTERS_ADD - lParent->Fosters.size();
-        
-        // while there's room, and kids to fill it
-        for ( int m = 0; lPotentialFosters.size() > 0 && m < lSlotsToFill; ++m, lPotentialFosters.pop_back() )
-        {
-          int lChildOffset = lPotentialFosters.back();            
-          SetHandle lChild = *_sets[lChildOffset];
-          
-          // merge it
-          if ( !lParent->AcceptFosterChild( lChild ) )
-          {
-//            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
-//            cout << "Parent=";
-//            lParent->OutputInfo();
-//            cout << "Child=";
-//            lChild->OutputInfo();
-            assert( 0 ); // this should work
-          }
-          
-          if ( !(lParent->AmValid() && lChild->AmValid()) )
-          {
-//            cout << "Reclaim and Rebalance -- either parent or child is invalid" << endl;
-//            cout << "Parent=";
-//            lParent->OutputInfo();
-//            cout << "Child=";
-//            lChild->OutputInfo();
-            assert ( 0 );
-          }
-          
-          // now, point all the kid's hashes to the new parent offset.
-          for ( int n = 0; n < HASHES; ++n )
-          {
-            for ( set<HashIntoType>::iterator lIt = lChild->Hashes.begin(); lIt != lChild->Hashes.end(); ++lIt )
-            {
-              SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached( *lIt, n ), n);
-              _set_offsets[n][lBin] = SetOffsetToSet( _set_offsets[n][lBin] )->GetPrimaryOffset();  // canonicalize
-              
-              if (!( _set_offsets[n][ lBin ] > 0 ))
-              {
-//                cout << "Reclaim and Rebalance -- Empty bin" << endl;
-//                cout << "Parent=";
-//                lParent->OutputInfo();
-//                cout << "Child=";
-//                lChild->OutputInfo();
-                assert(0);
-              }
-            }
-          }
-                    // release it
-          _sets[ lChildOffset ] = NULL;
-          _released_set_offsets.push_back( lChildOffset );
-          
-          if ( !(lParent->AmValid() && lChild->AmValid()) )
-          {
-//            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
-//            cout << "Parent=";
-//            lParent->OutputInfo();
-//            cout << "Child=";
-//            lChild->OutputInfo();
-            assert ( 0 );
-          }
-        }
-                
-        if ( lParent->Fosters.size() >= MAX_FOSTERS_ADD )
-          lPotentialParents.pop_back(); // this guy's filled up
-      }    
-      
-      cout << "Fostered " << lFosterChildCount - lPotentialFosters.size() << " sets to " << lFosterParentCount - lPotentialParents.size() << "-ish parents" << endl;
-
-      canonicalize();
-      
-//      cout << "end reclaim_and_rebalance "<< endl;
-    }
+//    void rehome_too_big_sets()
+//    {
+//      if ( _released_set_offsets.size() > 0 ) // no point in doing anything if we have no space to go to.
+//      {
+//        // now, go through and release those fosters that have gotten too big
+//        vector<SetHandle> lSetsThatNeedReleaseBecauseParentIsTooBig;
+//        vector<SetHandle> lSetsThatNeedReleaseBecauseParentIsTooCrowded;
+//        vector<SetHandle> lSetsThatNeedReleaseBecauseTheyAreTooBig;
+//        vector<SetHandle> lSetsThatNeedCollapsingIfCannotBeReleased;
+//        int lTooCrowdedParent = 0;
+//        int lTooBigParent = 0;
+//        
+//        for ( int o = 1; o < SETS_SIZE; ++o )
+//        {
+//          if ( _sets[o] != NULL )
+//          {
+//            
+//            
+//            if ( (*(_sets[o]))->Fosters.size() > 0 ) // evaluate the children
+//            {
+//              SetHandle lParent = *_sets[o];
+//              
+//              assert( lParent->AmValid() );
+//
+//              bool lTooCrowded = false;
+//              if ( lParent->Fosters.size() > TOO_MANY_FOSTERS_COUNT )
+//              {
+//                lTooCrowded = true;
+//                lTooCrowdedParent++;
+//              }
+//              
+//              if ( lParent->Fosters.size() > WAY_TOO_MANY_FOSTERS_COUNT )
+//              {
+//                lSetsThatNeedCollapsingIfCannotBeReleased.push_back( *_sets[o] );
+//              }  
+//                              
+//              bool lTooBig = false;
+//              if ( !lParent->AmStoringHashes() )
+//              {
+//                lTooBig = true;
+//                lTooBigParent++;
+//              }
+//          
+//              for ( int p = 0; p < lParent->Fosters.size(); ++p )
+//              {
+//                if ( lParent->Fosters[p]->ShouldStopStoringHashes() )
+//                  lSetsThatNeedReleaseBecauseTheyAreTooBig.push_back( lParent->Fosters[p] );
+//                else if ( lTooBig )
+//                  lSetsThatNeedReleaseBecauseParentIsTooBig.push_back( lParent->Fosters[p] );
+//                else if ( lTooCrowded )
+//                  lSetsThatNeedReleaseBecauseParentIsTooCrowded.push_back( lParent->Fosters[p] );                
+//              }  
+//              
+//              
+//            }
+//          }
+//        }
+//        
+//        // now, do the "too big" sets
+//        int lPromoteCount = 0;
+//        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseTheyAreTooBig.size() > 0 ) 
+//        {
+//          SetHandle lSet = lSetsThatNeedReleaseBecauseTheyAreTooBig.back();
+//          lSetsThatNeedReleaseBecauseTheyAreTooBig.pop_back();
+//          
+//          promote_set( lSet );
+//          
+//          ++lPromoteCount;
+//        }
+//        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseTheyAreTooBig.size() << " too big sets" << endl;
+//
+//        // if there's space, do the parent is too big sets
+//        lPromoteCount = 0;
+//        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseParentIsTooBig.size() > 0 ) 
+//        {
+//          SetHandle lSet = lSetsThatNeedReleaseBecauseParentIsTooBig.back();
+//          lSetsThatNeedReleaseBecauseParentIsTooBig.pop_back();
+//          
+//          promote_set( lSet );
+//          ++lPromoteCount;
+//
+//        }
+//        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooBig.size() << " parent too big sets in " << lTooBigParent << " too big parents" << endl;
+//
+//        
+//        // if there's space, do the parent is too crowded sets
+//        lPromoteCount = 0;
+//        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() > 0 ) 
+//        {
+//          SetHandle lSet = lSetsThatNeedReleaseBecauseParentIsTooCrowded.back();
+//          lSetsThatNeedReleaseBecauseParentIsTooCrowded.pop_back();
+//          
+//          promote_set( lSet );
+//          ++lPromoteCount;
+//        }
+//        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() << " parent too crowded sets in " << lTooCrowdedParent << " too crowded parents" << endl;    
+//        
+//        // now, we do the drastic thing.
+//        int lCollapseParentCount = 0;
+//        int lCollapsedChildCount = 0;
+//        for ( int i = 0; i < lSetsThatNeedCollapsingIfCannotBeReleased.size(); ++i )
+//        {
+//          SetHandle lParentSet = lSetsThatNeedCollapsingIfCannotBeReleased[i];
+//          if ( lParentSet != NULL )
+//          {
+//            if ( lParentSet->Fosters.size() > WAY_TOO_MANY_FOSTERS_COUNT ) // still way too fucking big
+//            {
+//              for ( int k = lParentSet->Fosters.size(), l = 0; k > 4; --k, ++l )
+//              {
+//                if ( l == 5 ) // reset
+//                  l = 0;
+//                
+//                SetHandle lNewOwner = lParentSet->Fosters[l];
+//                join( lNewOwner, lParentSet->Fosters[k] );              
+//                lCollapsedChildCount++;
+//              }
+//              lCollapseParentCount++;
+//            }
+//          }
+//        }
+//        cout << "Collapsed the fosters of " << lCollapseParentCount << " parents from " << lCollapsedChildCount << " children into " << lCollapseParentCount*5 << " children " << endl;
+//      }
+//    }
     
-    void rehome_too_big_sets()
-    {
-//      cout << "begin rehome_too_big_sets "<< endl;
-      
-      if ( _released_set_offsets.size() > 0 ) // no point in doing anything if we have no space to go to.
-      {
-        // now, go through and release those fosters that have gotten too big
-        vector<SetHandle> lSetsThatNeedReleaseBecauseParentIsTooBig;
-        vector<SetHandle> lSetsThatNeedReleaseBecauseParentIsTooCrowded;
-        vector<SetHandle> lSetsThatNeedReleaseBecauseTheyAreTooBig;
-        for ( int o = 1; o < SETS_SIZE; ++o )
-       
-         {
-          if ( _sets[o] != NULL )
-          {
-            if ( (*(_sets[o]))->Fosters.size() > 0 ) // evaluate the children
-            {
-              SetHandle lParent = *_sets[o];
-              
-              if ( !(lParent->AmValid()) )
-              {
-//                cout << "Rehome_too_big_set -- parent invalid" << endl;
-//                cout << "Parent=";
-//                lParent->OutputInfo();
-                assert ( 0 );
-              }
-
-              bool lTooCrowded = false;
-              if ( lParent->Fosters.size() > TOO_MANY_FOSTERS_COUNT )
-                lTooCrowded = true;
-                
-              bool lTooBig = false;
-              if ( !lParent->AmStoringHashes() )
-                lTooBig = true;
-              
-              for ( int p = 0; p < lParent->Fosters.size(); ++p )
-              {
-                if ( lParent->Fosters[p]->ShouldStopStoringHashes() )
-                  lSetsThatNeedReleaseBecauseTheyAreTooBig.push_back( lParent->Fosters[p] );
-                else if ( lTooBig )
-                  lSetsThatNeedReleaseBecauseParentIsTooBig.push_back( lParent->Fosters[p] );
-                else if ( lTooCrowded )
-                  lSetsThatNeedReleaseBecauseParentIsTooCrowded.push_back( lParent->Fosters[p] );
-              }            
-            }
-          }
-        }
-        
-        // now, do the "too big" sets
-        int lPromoteCount = 0;
-        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseTheyAreTooBig.size() > 0 ) 
-        {
-          SetHandle lSet = lSetsThatNeedReleaseBecauseTheyAreTooBig.back();
-          lSetsThatNeedReleaseBecauseTheyAreTooBig.pop_back();
-          
-          promote_set( lSet );
-          
-          ++lPromoteCount;
-        }
-        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseTheyAreTooBig.size() << " too big sets " << endl;
-
-        // if there's space, do the parent is too big sets
-        lPromoteCount = 0;
-        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseParentIsTooBig.size() > 0 ) 
-        {
-          SetHandle lSet = lSetsThatNeedReleaseBecauseParentIsTooBig.back();
-          lSetsThatNeedReleaseBecauseParentIsTooBig.pop_back();
-          
-          promote_set( lSet );
-          ++lPromoteCount;
-
-        }
-        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooBig.size() << " parent too big sets " << endl;
-
-        
-        // if there's space, do the parent is too crowded sets
-        lPromoteCount = 0;
-        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() > 0 ) 
-        {
-          SetHandle lSet = lSetsThatNeedReleaseBecauseParentIsTooCrowded.back();
-          lSetsThatNeedReleaseBecauseParentIsTooCrowded.pop_back();
-          
-          promote_set( lSet );
-          ++lPromoteCount;
-
-        }
-        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() << " parent too crowded sets " << endl;        
-      }
-      
-//      cout << "end rehome_too_big_sets "<< endl;
-    }
-    
-    void promote_set( SetHandle aSet )
-    {
-//      cout << "begin promote_set "<< endl;
-      
-      SetOffset lAddress = get_free_address();
-      
-      if (!( lAddress > 0 ))// this should work      
-      {
-//        cout << "promote set -- address <= 0" << endl;
-        assert(0);
-      }
-    
-      if (!( aSet->Parent->EmancipateFosterChild( aSet, lAddress ) ))// this should work      
-      {
-//        cout << "promote set -- failed to emancipate foster child" << endl;
-//        cout << "aSet=";
-//        aSet->OutputInfo();
-//        cout << "Parent=";
-//        aSet->Parent->OutputInfo();
-
-        assert(0);
-      }
-      _sets[ lAddress ] = aSet->Self;
-      
-      // now, point all the kid's hashes to the new offset.
-      for ( int n = 0; n < HASHES; ++n )
-      {
-        for ( set<HashIntoType>::iterator lIt = aSet->Hashes.begin(); lIt != aSet->Hashes.end(); ++lIt )
-        {
-          SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached( *lIt, n), n);
-          _set_offsets[n][ lBin ] = lAddress;
-        }
-      }
-      
-      if ( aSet->ShouldStopStoringHashes() )
-        aSet->StopStoringHashes();  
-      
-      if ( !(aSet->AmValid()) )
-      {
-//        cout << "promote_set aSet is invalid" << endl;
-//        cout << "Set=";
-//        aSet->OutputInfo();
-        assert ( 0 );
-      }
-      
-      cout << "end promote_set "<< endl;
-    }
+//    void promote_set( SetHandle aSet )
+//    {
+//      SetOffset lAddress = get_free_address();
+//      
+//      assert( lAddress > 0 );    
+//      assert( aSet->Parent->EmancipateFosterChild( aSet, lAddress ) );
+//      _sets[ lAddress ] = aSet->Self;
+//      
+//      // now, point all the kid's hashes to the new offset.
+//      for ( int n = 0; n < HASHES; ++n )
+//      {
+//        for ( set<HashIntoType>::iterator lIt = aSet->Hashes.begin(); lIt != aSet->Hashes.end(); ++lIt )
+//        {
+//          SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached( *lIt, n), n);
+//          _set_offsets[n][ lBin ] = lAddress;
+//        }
+//      }
+//      
+//      if ( aSet->ShouldStopStoringHashes() )
+//        aSet->StopStoringHashes();  
+//      
+//      assert (aSet->AmValid());      
+//    }
     
     // add a hash to an existing set
     void add_to_set( SetHandle aSet, HashIntoType aHash )
     {   
-      //cout << "begin add_to_set "<< endl;
-      
       for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );    
         _set_offsets[i][ lBin ] = aSet->GetPrimaryOffset();        
                
-        if (!( _set_offsets[i][ lBin ] > 0 ))// somehow we fucked this up.
-        {
-//          cout << "Add_to_set -- bin is empty" << endl;
-//          cout << "set=";
-//          aSet->OutputInfo();
-          assert(0);
-        }
+        assert( _set_offsets[i][ lBin ] > 0 );      
       }
-      aSet->AddToSet(aHash);
+//      aSet->AddToSet(aHash);
       aSet->Increment();
       
-      if ( !aSet->AmFosterChild() && aSet->ShouldStopStoringHashes() )
-      {
-        if (!( aSet->StopStoringHashes() ))
-        {
-//          cout << "Add_to_set -- set couldn't stop storing hashes" << endl;
-//          cout << "set=";
-//          aSet->OutputInfo();
-          assert(0);
-        }
-      }
+//      if ( !aSet->AmFosterChild() && aSet->ShouldStopStoringHashes() )      
+//        assert( aSet->StopStoringHashes() );
       
-      //assert( aSet->AmValid() );
-      if (!( aSet->AmValid() ))
-      {
-//        cout << "Add_to_set -- aSet isn't valid" << endl;
-//        cout << "set=";
-//        aSet->OutputInfo();
-        assert(0);
-      }
-//      cout << "end add_to_set "<< endl;
+//      assert( aSet->AmValid() );
     }
     
     //
@@ -698,7 +585,6 @@ namespace bleu {
     //
     void populate_hash_table_bit_count_lookups()
     {
-//      cout << "begin populate_hash_table_bit_count_lookups" << endl;
       for (int i = 0; i < HASHES; ++i )
       {
         _hash_table_total_bit_counts[i] = _hash_table[i]->CountBits();
@@ -721,165 +607,127 @@ namespace bleu {
         }
         cout << i << ": " << _hash_table_total_bit_counts[i] << " -- " << ((double)_hash_table_total_bit_counts[i] / (double)_tablesizes[i]) * 100 << "% occupancy" << endl;
       }
-//      cout << "end populate_hash_table_bit_count_lookups" << endl;
     }
     
     void deallocate_hash_table_preliminary()
     {
-//      cout << "begin deallocate_hash_table_preliminary" << endl;
       for (int i = 0; i < HASHES; ++i)
       {
         delete _hash_table_preliminary[i];
       }      
-//      cout << "end deallocate_hash_table_preliminary" << endl;
     }
     
     void allocate_set_offset_table()
     {
-//      cout << "begin allocate_set_offset_table" << endl;
       for (int i = 0; i < HASHES; ++i)
       {
         _set_offsets[i] = new unsigned short[ _hash_table_total_bit_counts[i] ];
         memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned short));
       }
- //     cout << "end allocate_set_offset_table" << endl;
     }
 
     // create a set
-    // ideally, create each new set at its own address
-    // otherwise, foster the sets out
-    SetHandle create_set() 
+    SetHandle create_set()
     {
- //     cout << "begin create_set" << endl;
       SetOffset lAddress = get_free_address();
       SetHandle lSet = NULL;
       
-      if ( lAddress == 0 )
+      if ( lAddress == 0 ) // damn. do a round of fostering
       {
-        // so, we don't have any free addresses. start a round of fostering
-        SetHandle lParentSet = get_least_crowded_set();
-        
-        if ( lParentSet == NULL ) // we're out of potential foster parents...
+        lSet = get_least_crowded_set();
+        if ( lSet == NULL ) // damn damn.
         {
-          // slim down the list, free up some numbers, also de-foster guys that should be free.
           canonicalize();
-          
-          if ( _released_set_offsets.empty() )
-            reclaim_and_rebalance();
-          
-          if ( !_released_set_offsets.empty() )
-            rehome_too_big_sets();
-          
-          // re-populate the potential foster parents.
           re_sort_sets();
           
-          // try one more time for a free address
+          // one more try
           lAddress = get_free_address();
-          if ( lAddress == 0 ) // if there are no free addresses, foster
+          
+          if ( lAddress == 0 ) // ok, fine, foster away.
           {
-            // try again
-            lParentSet = get_least_crowded_set();
-            
- //           cout << "create_set(begin) - address = 0" << endl;
-            lSet= new CanonicalSet(); // empty foster set.
-//            cout << "created set " << &lSetThing << " " << lSetThing;
-//            lSetThing->OutputInfo();
-//            if ( lSetThing == NULL )
-//              cout << "WTF!?!?!" << endl;
-            
-            //assert(lParentSet->AcceptFosterChild( lSet )); // if this doesn't work, there's smething very wrong
-            if (!( lParentSet->AcceptFosterChild( lSet ) ))
-            {
-//              cout << "create_set -- parent set doesn't accept foster child" << endl;
-//              cout << "lParentSet=";
-//              lParentSet->OutputInfo();
-//              cout << "lSet=";
-//              lSet->OutputInfo();
-              assert(0);
-            }
- //           cout << "create_set(end) - address = 0" << endl;
-            
-          }
-          else // woohoo, no need to start the fostering round yet.
-          {
-//            cout << "create_set(begin) - address != 0" << endl;
-            lSet = new CanonicalSet( lAddress );
-            _sets[ lAddress ] = lSet->Self;
-//            cout << "create_set(end) - address != 0" << endl;
-            
-          }
-        } 
-        else // here's one
-        {
-          lSet = new CanonicalSet(); // empty foster set.
-          //assert (lParentSet->AcceptFosterChild( lSet )); //if this doesn't work, there's something very wrong.
-          if (!( lParentSet->AcceptFosterChild( lSet ) ))
-          {
-//            cout << "create_set -- parent set doesn't accept foster child" << endl;
-//            cout << "lParentSet=";
-//            lParentSet->OutputInfo();
-//            cout << "lSet=";
-//            lSet->OutputInfo();
-            assert(0);
+            lSet = get_least_crowded_set();
+            lSet->SetJoinOfConvenience();
+            cout << ".";
           }
         }
       }
-      else
+
+      if ( lAddress != 0 )
       {
         lSet = new CanonicalSet( lAddress );
-        _sets[ lAddress ] = lSet->Self;
+        _sets[ lAddress ] = lSet->Self;  
       }
-      
-      //assert( lSet->AmValid() );
-      if (!( lSet->AmValid() ))
-      {
-//        cout << "create_set -- lSet not valid" << endl;
-//        cout << "lSet=";
-//        lSet->OutputInfo();
-        assert(0);
-      }
-      
-//      cout << "end create_set" << endl;
       
       return lSet;
-    }  
+    }
+    
+    // create a set
+    // ideally, create each new set at its own address
+    // otherwise, foster the sets out
+//    SetHandle create_set() 
+//    {
+//      SetOffset lAddress = get_free_address();
+//      SetHandle lSet = NULL;
+//      
+//      if ( lAddress == 0 )
+//      {
+//        // so, we don't have any free addresses. start a round of fostering
+//        SetHandle lParentSet = get_least_crowded_set();
+//        
+//        if ( lParentSet == NULL ) // we're out of potential foster parents...
+//        {
+//          // slim down the list, free up some numbers, also de-foster guys that should be free.
+//          canonicalize();
+//          
+//          if ( _released_set_offsets.empty() )
+//            reclaim_and_rebalance();
+//          
+//          if ( !_released_set_offsets.empty() )
+//            rehome_too_big_sets();
+//          
+//          // re-populate the potential foster parents.
+//          re_sort_sets();
+//          
+//          // try one more time for a free address
+//          lAddress = get_free_address();
+//          if ( lAddress == 0 ) // if there are no free addresses, foster
+//          {
+//            // try again
+//            lParentSet = get_least_crowded_set();
+//            
+//            lSet= new CanonicalSet(); // empty foster set.
+//            assert(lParentSet->AcceptFosterChild( lSet )); // if this doesn't work, there's smething very wrong
+//          }
+//          else // woohoo, no need to start the fostering round yet.
+//          {
+//            lSet = new CanonicalSet( lAddress );
+//            _sets[ lAddress ] = lSet->Self;
+//          }
+//        } 
+//        else // here's one
+//        {
+//          lSet = new CanonicalSet(); // empty foster set.
+//          assert (lParentSet->AcceptFosterChild( lSet )); //if this doesn't work, there's something very wrong.
+//        }
+//      }
+//      else
+//      {
+//        lSet = new CanonicalSet( lAddress );
+//        _sets[ lAddress ] = lSet->Self;
+//      }
+//      
+//      assert( lSet->AmValid() );
+//      
+//      return lSet;
+//    }  
     
     void join ( SetHandle aJoinee, SetHandle aJoiner )
     {
-//      cout << "begin join" << endl;
-      if ( aJoinee->AmFosterChild() )      
-      {
+//      if ( aJoinee->AmFosterChild() )            
 //        assert( aJoiner->AmFosterChild() );
-        
-        if (!( aJoiner->AmFosterChild() ))
-        {
-//          cout << "join -- joinee is foster child, but joiner isn't" << endl;
-//          cout << "aJoinee=";
-//          aJoinee->OutputInfo();
-//          cout << "aJoiner=";
-//          aJoiner->OutputInfo();
-          assert(0);
-        }
-      }
-      
+//      
 //      assert ( aJoiner->AmValid() );
-      if (!( aJoiner->AmValid() ))
-      {
-//        cout << "join -- aJoiner isn't valid" << endl;
-//        cout << "aJoiner=";
-//        aJoiner->OutputInfo();
-        assert(0);
-      }
-      
-      //assert ( aJoinee->AmValid() );
-      if (!( aJoinee->AmValid() ))
-      {
-//        cout << "join -- aJoiner isn't valid" << endl;
-//        cout << "aJoinee=";
-//        aJoinee->OutputInfo();
-        assert(0);
-      }
-      
+//      assert ( aJoinee->AmValid() );
       
       // move the back-references
       for ( int i = 0; i < aJoiner->BackReferences.size(); ++i )
@@ -891,93 +739,54 @@ namespace bleu {
       // add up the stuff
       aJoinee->Increment( aJoiner->GetKmerCount() );
       
-      if ( aJoiner->AmStoringHashes() ) // bring hashes over in
-      {
-        for ( set<HashIntoType>::iterator lIt = aJoiner->Hashes.begin(); lIt != aJoiner->Hashes.end(); ++lIt )
-        {
-          if ( aJoinee->AmStoringHashes() )
-            aJoinee->Hashes.insert( *lIt );
-          
-          if ( aJoiner->AmFosterChild() )
-          {
-            for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
-            {
-              SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(*lIt, i), i );    
-              _set_offsets[i][ lBin ] = aJoinee->GetPrimaryOffset();        
-              //assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
-              
-              if ( !(_set_offsets[i][ lBin ] > 0) )// somehow we fucked this up.
-              {
-//                cout << "get_existing_buck - set offset is 0" << endl;
-//                cout << "i=" << i;
-//                cout << "lBin=" << lBin;
-//                assert( 0 ); // this should work
-              }
-            }
-          }
-        }
-      }
+//      if ( aJoiner->AmStoringHashes() ) // bring hashes over in
+//      {
+//        for ( set<HashIntoType>::iterator lIt = aJoiner->Hashes.begin(); lIt != aJoiner->Hashes.end(); ++lIt )
+//        {
+//          if ( aJoinee->AmStoringHashes() )
+//            aJoinee->Hashes.insert( *lIt );
+//          
+//          if ( aJoiner->AmFosterChild() )
+//          {
+//            for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
+//            {
+//              SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(*lIt, i), i );    
+//              _set_offsets[i][ lBin ] = aJoinee->GetPrimaryOffset();        
+//              assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
+//            }
+//          }
+//        }
+//      }
       
-      if ( !aJoiner->AmStoringHashes() && aJoinee->AmStoringHashes() )
-      {
-        aJoinee->StopStoringHashes();
-      }
+//      if ( !aJoiner->AmStoringHashes() && aJoinee->AmStoringHashes() )      
+//        aJoinee->StopStoringHashes();
+//      
       
-      if ( aJoiner->AmFosterChild() )
-      {
-        //assert( aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset()) );
-        
-        if ( !(aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset())) )// somehow we fucked this up.
-        {
-//          cout << "join - couldn't emancipate foster child" << endl;
-//          cout << "aJoinee=";
-//          aJoinee->OutputInfo();
-//          cout << "aJoiner=";
-//          aJoiner->OutputInfo();
-//          assert( 0 ); // this should work
-        }
-      }
-      else
-      {
-        if ( aJoiner->Fosters.size() > 0 ) // foster children need to be moved to the main
-        {
-          for ( int i = 0; i < aJoiner->Fosters.size(); ++i )
-          {
-            aJoinee->TakeFosterChild( aJoiner->Fosters[i] ); 
-          }
-        }
-      }
+//      if ( aJoiner->AmFosterChild() )      
+//        assert( aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset()) );      
+//      else
+//      {
+//        if ( aJoiner->Fosters.size() > 0 ) // foster children need to be moved to the main
+//        {
+//          for ( int i = 0; i < aJoiner->Fosters.size(); ++i )
+//          {
+//            aJoinee->TakeFosterChild( aJoiner->Fosters[i] ); 
+//          }
+//        }
+//      }
       
       delete aJoiner;
       
-      if ( !aJoinee->AmFosterChild() && aJoinee->ShouldStopStoringHashes() )
-      {
-        //assert( aJoinee->StopStoringHashes() );
-        
-        if ( !(aJoinee->StopStoringHashes()) )// somehow we fucked this up.
-        {
-//          cout << "join - couldn't stop storing hashes" << endl;
-//          cout << "aJoinee=";
-//          aJoinee->OutputInfo();
-//          assert( 0 ); // this should work
-        }
-      }
-      
+//      if ( !aJoinee->AmFosterChild() && aJoinee->ShouldStopStoringHashes() )
+//      {
+//        assert( aJoinee->StopStoringHashes() );
+//      }
+//      
 //      assert ( aJoinee->AmValid() );      
-      if ( !(aJoinee->AmValid()) )// somehow we fucked this up.
-      {
-//        cout << "join - joinee isn't valid" << endl;
-//        cout << "aJoinee=";
-//        aJoinee->OutputInfo();
-//        assert( 0 ); // this should work
-      }
-      
-//      cout << "end join" << endl;
     }
  
     SetHandle get_least_crowded_set()
     { 
-//      cout << "begin get_least_crowded_set" << endl;
       if (_sorted_sets.empty() )
         return NULL;
         //re_sort_sets();
@@ -985,13 +794,11 @@ namespace bleu {
       SetHandle lSmallestSet = *(_sorted_sets.back());
       _sorted_sets.pop_back();
       
-//      cout << "end get_least_crowded_set" << endl;
       return lSmallestSet;
     }
     
     void re_sort_sets()
     {
-//      cout << "begin re_sort_sets" << endl;
       _sorted_sets.clear();
       for (int i = 0; i < SETS_SIZE; ++i )
       {
@@ -1000,35 +807,27 @@ namespace bleu {
       }
       
       sort( _sorted_sets.begin(), _sorted_sets.end(), CanonicalSet::CompSet() );
-//      cout << "end re_sort_sets" << endl;
     }
 
     SetOffset get_free_address()
     {
- //     cout << "begin/end get_free_address" << endl;
       if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
       {
-  //              cout << "get_free_address getting released offset" << endl;
         return get_a_released_offset(); 
       }
       else if ( _last_set_offset < SETS_SIZE ) // no released ones, but we still have room at the head of the list
       {
- //       cout << "get_free_address incrementing last offset" << endl;
         return ++_last_set_offset;
       }
       else
       {
-  //              cout << "get_free_address we're fucked" << endl;
         return 0; // we're fucked. gotta start joining sets
       }
     }
     SetOffset get_a_released_offset()
     {
-//      cout << "begin get_a_released_offset" << endl;
       SetOffset lSet = _released_set_offsets.back();
       _released_set_offsets.pop_back();
-//      cout << "end get_a_released_offset" << endl;
-      
       return lSet;
     }
     
@@ -1099,45 +898,19 @@ namespace bleu {
     }    
     SetOffsetBin HashBinToSetOffsetBin( HashBin aBin, int i )
     {      
-      //assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
-      if ( !(aBin < _tablesizes[i]) )// make sure it's a valid bin.
-      {
-//        cout << "HashBinToSetOffsetBin - invalid bin" << endl;
-//        cout << "aBin=" << aBin << endl;
-//        assert( 0 ); // this should work
-      }
-      
-//      assert( _hash_table[i]->Get( aBin ) == true );
-      if ( !(_hash_table[i]->Get( aBin ) == true) )// make sure we have a set
-      {
-//        cout << "HashBinToSetOffsetBin - has a set is false" << endl;
-//        cout << "aBin=" << aBin << endl;
-        assert( 0 ); // this should work
-      }
-      
+      assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
+      assert( _hash_table[i]->Get( aBin ) == true );
       
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       
-//      assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION));       
-      if ( !(lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION)) )// make sure we have a set
-      {
-//        cout << "HashBinToSetOffsetBin - lBinSection index is too large" << endl;
-//        cout << "lBinSectionIndex=" << lBinSectionIndex << endl;
-        assert( 0 ); // this should work
-      }
+      assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION));       
       
       unsigned long long lSetOffsetBin = _hash_table[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
       
       if ( lBinSectionIndex > 0 )      
         lSetOffsetBin += _hash_table_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
       
-//      assert( lSetOffsetBin > 0 );      
-      if ( !(lSetOffsetBin > 0) )// make sure we have a set
-      {
-//        cout << "HashBinToSetOffsetBin - lSetOffsetBin == 0" << endl;
-//        cout << "lSetOffsetBin=" << lSetOffsetBin << endl;
-        assert( 0 ); // this should work
-      }
+      assert( lSetOffsetBin > 0 );      
       
       lSetOffsetBin -= 1; // to make it an array index rather than a count.
       
@@ -1146,14 +919,7 @@ namespace bleu {
     
     SetHandle SetOffsetToSet( SetOffset aOffset )
     {      
-//      assert( aOffset > 0 ); // we should not be poking here if we don't have a set to go to
-      if ( !(aOffset > 0) )// // we should not be poking here if we don't have a set to go to
-      {
-//        cout << "SetOffsetToSet - aOffset == 0" << endl;
-//        cout << "aOffset=" << aOffset << endl;
-        assert( 0 ); // this should work
-      }
-      
+      assert( aOffset > 0 ); // we should not be poking here if we don't have a set to go to
       return *_sets[ aOffset ]; // pick up the gateway node      
     }
     
