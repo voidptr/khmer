@@ -110,18 +110,38 @@ namespace bleu {
     //    
     
     // mark a kmer/hash as "interesting" if it appears more than once.
-    void seen_hash( HashIntoType aHash )
+    void seen_hash( HashIntoType aHash, bool lTwice=false )
     {
       for (int i = 0; i < HASHES; ++i )
       {
         unsigned long long lHashBin = HashToHashBinCached(aHash, i); 
         
-        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
+        if ( lTwice )
+        {
           _hash_table[i]->Set(lHashBin, true);
+        }
         else
-          _hash_table_preliminary[i]->Set(lHashBin, true);
+        {
+          if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
+            _hash_table[i]->Set(lHashBin, true);
+          else
+            _hash_table_preliminary[i]->Set(lHashBin, true);
+        }
       }
     }
+    
+//    void seen_hash( HashIntoType aHash )
+//    {
+//      for (int i = 0; i < HASHES; ++i )
+//      {
+//        unsigned long long lHashBin = HashToHashBinCached(aHash, i); 
+//        
+//        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
+//          _hash_table[i]->Set(lHashBin, true);
+//        else
+//          _hash_table_preliminary[i]->Set(lHashBin, true);
+//      }
+//    }
     
     //
     // second pass through the reads -- actually perform the set assignments

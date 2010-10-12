@@ -42,15 +42,7 @@ namespace bleu {
     }
 
   public:
-    typedef unsigned int (BleuFilter::*ConsumeStringFN)(//const std::string &sequence,
-                                                       string *,
-                                                      int aReadCount
-                                                      //void * ptr//pair<string (&reads)[10000], int> aReads,
-                                  
-                                                       //HashIntoType upper_bound,
-                                                       //HashIntoType lower_bound
-    );
-
+    typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
     
     BleuFilter(WordLength ksize, unsigned long long aMaxMemory)
     : Hashtable(ksize, 0)
@@ -77,41 +69,53 @@ namespace bleu {
     // overriding the Hashtable version to support my new thang.
     unsigned int consume_strings_for_hash_table(string * aReads,
                                                 int aReadCount)
-//                                HashIntoType lower_bound = 0,
-//                                HashIntoType upper_bound = 0)
-//                        void *ptr)
-    {
-      
-  //    pair<string *, int> * lReads = (pair<string *, int> *)ptr; 
-
+    {      
       unsigned int n_consumed = 0;
-      for ( int i = 0; i < aReadCount; ++i )
-      {
-        const char * sp = aReads[i].c_str();
-        const unsigned int length = aReads[i].length();
 
-        
-        HashIntoType forward_hash = 0, reverse_hash = 0;
-        
-        
-        HashIntoType hash = 0;
-        bool lHashGenerated = false;      
-        for (unsigned int i = _ksize - 1; i < length; ++i)
+//      map<HashIntoType, int> lHashes;
+      vector<HashIntoType> lHashes;
+      for ( int i = 0; i < aReadCount; ++i )        
+      {
+        if ( check_read( aReads[i] ) ) // read's ok
         {
-          if ( lHashGenerated )
-            hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
-          else
+          const char * sp = aReads[i].c_str();
+          const unsigned int length = aReads[i].length();
+          
+          HashIntoType forward_hash = 0, reverse_hash = 0;
+          
+          HashIntoType hash = 0;
+          bool lHashGenerated = false;      
+          for (unsigned int i = _ksize - 1; i < length; ++i)
           {
-            hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-            lHashGenerated = true;
-          }
-          
-          ++n_consumed;
-          
-          _Sets_Manager->seen_hash( hash );
-        } 
+            if ( lHashGenerated )
+              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
+            else
+            {
+              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+              lHashGenerated = true;
+            }
+            
+            lHashes.push_back( hash );
+            //lHashes[ hash ]++;
+            ++n_consumed;
+            
+          }   
+        }
       }
+
+//      for ( map<HashIntoType, int>::iterator lIt = lHashes.begin(); lIt != lHashes.end(); ++lIt )
+//      {
+//        if ( lIt->second > 1 )
+//          _Sets_Manager->seen_hash( lIt->first, true );
+//        else 
+//          _Sets_Manager->seen_hash( lIt->first );
+//      }
       
+      int lHashCount = lHashes.size();
+      for ( int j = 0; j < lHashCount; ++j )
+      {
+        _Sets_Manager->seen_hash( lHashes[j] );
+      }      
       return n_consumed;
     }
     
@@ -124,58 +128,62 @@ namespace bleu {
 
     {
       unsigned int n_consumed = 0;
+      
       for ( int i = 0; i < aReadCount; ++i )
       {
-        const char * sp = reads[i].c_str();
-        const unsigned int length = reads[i].length();
-       
-        HashIntoType forward_hash = 0, reverse_hash = 0;
-        
-        SetHandle lWorkingSet = NULL;
-        HashIntoType hash = 0;
-        bool lHashGenerated = false;
-        
-        for (unsigned int i = _ksize - 1; i < length; ++i)
+        if ( check_read( reads[i] ) )
         {
-          if ( lHashGenerated )
-            hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
-          else
-          {
-            hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-            lHashGenerated = true;
-          }
+          const char * sp = reads[i].c_str();
+          const unsigned int length = reads[i].length();
+         
+          HashIntoType forward_hash = 0, reverse_hash = 0;
           
-          ++n_consumed;
-                    
-          if ( _Sets_Manager->can_have_set( hash ) )
+          SetHandle lWorkingSet = NULL;
+          HashIntoType hash = 0;
+          bool lHashGenerated = false;
+          
+          for (unsigned int i = _ksize - 1; i < length; ++i)
           {
-            if ( lWorkingSet == NULL )
+            if ( lHashGenerated )
+              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
+            else
             {
-              lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
-              continue; // move on
+              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+              lHashGenerated = true;
             }
             
-            if ( _Sets_Manager->has_existing_set( hash ) )
+            ++n_consumed;
+                      
+            if ( _Sets_Manager->can_have_set( hash ) )
             {
-              SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
-              if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
+              if ( lWorkingSet == NULL )
               {
-                assert ( lExistingSet != NULL );
-                
-                if ( !(lExistingSet != NULL) ) // can't very well accept a foster child if I"m a foster myself.
-                {
-                  cout << "consume string - existing set is null" << endl; 
-                  assert(0);
-                }
-
-                lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
-                
+                lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
+                continue; // move on
               }
+              
+              if ( _Sets_Manager->has_existing_set( hash ) )
+              {
+                SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
+                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
+                {
+                  assert ( lExistingSet != NULL );
+                  
+                  if ( !(lExistingSet != NULL) ) // can't very well accept a foster child if I"m a foster myself.
+                  {
+                    cout << "consume string - existing set is null" << endl; 
+                    assert(0);
+                  }
+
+                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
+                  
+                }
+              }
+              else
+                _Sets_Manager->add_to_set( lWorkingSet, hash );
             }
-            else
-              _Sets_Manager->add_to_set( lWorkingSet, hash );
           }
-        }      
+        }
       }
       return n_consumed;
     }
@@ -329,11 +337,6 @@ namespace bleu {
       string currSeq = "";
       
       string reads[10000];
-      memset(reads, 0, sizeof(string) * 10000);
-      
-      //
-      // iterate through the FASTA file & consume the reads.
-      //
       
       while(!parser->is_complete())  {
         
@@ -342,19 +345,21 @@ namespace bleu {
         {
           read = parser->get_next_read();
           reads[i] = read.seq;
-          lCount = i;
+          lCount = i + 1;
         }
           
         // yep! process.
-        unsigned int this_n_consumed = check_and_process_read(reads, lCount, consume_string_fn);        
+        
+        unsigned int this_n_consumed = (this->*consume_string_fn)(reads, lCount);
+        
+//        unsigned int this_n_consumed = check_and_process_read(reads, lCount, consume_string_fn);        
 
         n_consumed += this_n_consumed;
       
         // reset the sequence info, increment read number
-        total_reads++;
+        total_reads += lCount;
         
-        if (total_reads % 10000 == 0)
-          cout << total_reads << endl;
+        cout << total_reads << " " << n_consumed << endl;
         
       }
     }
@@ -363,19 +368,19 @@ namespace bleu {
     // check_and_process_read: checks for non-ACGT characters before consuming
     //
     
-    unsigned int check_and_process_read(string * reads,
-                                        int aCount,
-                                        ConsumeStringFN consume_string_fn)
-    {
-      
-      for ( int i = 0; i < aCount; ++i )        
-      {
-        if ( !check_read( reads[i] ) )
-          return 0;
-      }
-      
-      return (this->*consume_string_fn)(reads, aCount);
-    }
+//    unsigned int check_and_process_read(string * reads,
+//                                        int aCount,
+//                                        ConsumeStringFN consume_string_fn)
+//    {
+//      
+//      for ( int i = 0; i < aCount; ++i )        
+//      {
+//        if ( !check_read( reads[i] ) )
+//          return 0;
+//      }
+//      
+//      return (this->*consume_string_fn)(reads, aCount);
+//    }
   };
 }
 
