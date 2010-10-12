@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
   bleu::BleuFilter bf(atoi(argv[2]), atoll(argv[3]));
 
   // populate the hash table
-  bf.consume_reads(argv[1], total_reads, n_consumed, &bleu::BleuFilter::consume_string_for_hash_table);
+  bf.consume_reads(argv[1], total_reads, n_consumed, &bleu::BleuFilter::consume_strings_for_hash_table);
   bf.deallocate_hash_table_preliminary();
 
   // allocate valid permutation table and has_set table
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
   bf.allocate_set_offset_table();
 
   // generate the sets
-  bf.consume_reads(argv[1], total_reads, n_consumed, &bleu::BleuFilter::consume_string_for_set);
+  bf.consume_reads(argv[1], total_reads, n_consumed, &bleu::BleuFilter::consume_strings_for_set);
 
   bf.output_partitioned_file(argv[1], argv[4]);
   end = time(NULL);

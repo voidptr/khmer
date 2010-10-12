@@ -189,9 +189,9 @@ namespace bleu {
                 
         if ( !(_set_offsets[i][ lBin ] > 0) )
         {
-          cout << "get_existing_set - set offset is 0" << endl;
-          cout << "i=" << i;
-          cout << "lBin=" << lBin;
+  //        cout << "get_existing_set - set offset is 0" << endl;
+//          cout << "i=" << i;
+//          cout << "lBin=" << lBin;
           assert( 0 ); // this should work
         }
         
@@ -223,9 +223,9 @@ namespace bleu {
         
         if ( !(_set_offsets[i][ lBin ] > 0) )// somehow we fucked this up.
         {
-          cout << "get_existing_buck - set offset is 0" << endl;
-          cout << "i=" << i;
-          cout << "lBin=" << lBin;
+//          cout << "get_existing_buck - set offset is 0" << endl;
+//          cout << "i=" << i;
+//          cout << "lBin=" << lBin;
           assert( 0 ); // this should work
         }
         
@@ -252,14 +252,14 @@ namespace bleu {
     // put together two sets.
     SetHandle bridge_sets( SetHandle aEncounteredSet, SetHandle aOriginatingSet )
     {
-      cout << "begin bridge_sets "<< endl;
+//      cout << "begin bridge_sets "<< endl;
       if ( !( aOriginatingSet != aEncounteredSet) )// we really really shouldn't be the same set.
       {
-        cout << "bridge set - originating set == encoutnered set" << endl;
-        cout << "originating set=";
-        aOriginatingSet->OutputInfo();
-        cout << "encountered set=";
-        aEncounteredSet->OutputInfo();
+//        cout << "bridge set - originating set == encoutnered set" << endl;
+//        cout << "originating set=";
+//        aOriginatingSet->OutputInfo();
+//        cout << "encountered set=";
+//        aEncounteredSet->OutputInfo();
         assert( 0 ); // this should work
       }
       
@@ -297,12 +297,12 @@ namespace bleu {
         lDominatingSet = aEncounteredSet;
       }
           
-      cout << "end bridge_sets "<< endl;
+ //     cout << "end bridge_sets "<< endl;
       return lDominatingSet;
     }
     void canonicalize()
     {
-      cout << "begin canonicalize "<< endl;
+//      cout << "begin canonicalize "<< endl;
       // go through all the set offsets and point them to their canonical locations.
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -315,10 +315,10 @@ namespace bleu {
             //assert ( SetOffsetToSet( _set_offsets[i][j] )->AmValid() );
             if ( !( SetOffsetToSet( _set_offsets[i][j] )->AmValid() ) )
             {
-              cout << "canonicallize - pointed to set isn't valid" << endl;
-              cout << "i=" << i << " j=" << j;
-              cout << " pointedset=";
-              SetOffsetToSet( _set_offsets[i][j] )->OutputInfo();
+//              cout << "canonicallize - pointed to set isn't valid" << endl;
+//              cout << "i=" << i << " j=" << j;
+//              cout << " pointedset=";
+//              SetOffsetToSet( _set_offsets[i][j] )->OutputInfo();
               assert( 0 ); // this should work
             }
           }
@@ -335,10 +335,10 @@ namespace bleu {
           
           if ( !lSet->AmValid() )
           {
-            cout << "canonicallize - lSet isn't valid" << endl;
-            cout << "k=" << k;
-            cout << "lSet=";
-            lSet->OutputInfo();
+//            cout << "canonicallize - lSet isn't valid" << endl;
+//            cout << "k=" << k;
+//            cout << "lSet=";
+//            lSet->OutputInfo();
             assert( 0 ); // this should work
           }
           
@@ -365,7 +365,7 @@ namespace bleu {
       
       cout << "released " << _released_set_offsets.size() << " sets." << endl;
       
-      cout << "end canonicalize"<< endl;
+//      cout << "end canonicalize"<< endl;
     }
     
 #define MAX_FOSTERS_ADD 2
@@ -373,7 +373,7 @@ namespace bleu {
     
     void reclaim_and_rebalance()
     {
-      cout << "begin reclaim_and_rebalance "<< endl;
+//      cout << "begin reclaim_and_rebalance "<< endl;
       
       // now, go through and foster up the tiny sets, and release their set offsets.
       vector<SetOffset> lPotentialFosters;
@@ -427,21 +427,21 @@ namespace bleu {
           // merge it
           if ( !lParent->AcceptFosterChild( lChild ) )
           {
-            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
-            cout << "Parent=";
-            lParent->OutputInfo();
-            cout << "Child=";
-            lChild->OutputInfo();
+//            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
+//            cout << "Parent=";
+//            lParent->OutputInfo();
+//            cout << "Child=";
+//            lChild->OutputInfo();
             assert( 0 ); // this should work
           }
           
           if ( !(lParent->AmValid() && lChild->AmValid()) )
           {
-            cout << "Reclaim and Rebalance -- either parent or child is invalid" << endl;
-            cout << "Parent=";
-            lParent->OutputInfo();
-            cout << "Child=";
-            lChild->OutputInfo();
+//            cout << "Reclaim and Rebalance -- either parent or child is invalid" << endl;
+//            cout << "Parent=";
+//            lParent->OutputInfo();
+//            cout << "Child=";
+//            lChild->OutputInfo();
             assert ( 0 );
           }
           
@@ -455,11 +455,11 @@ namespace bleu {
               
               if (!( _set_offsets[n][ lBin ] > 0 ))
               {
-                cout << "Reclaim and Rebalance -- Empty bin" << endl;
-                cout << "Parent=";
-                lParent->OutputInfo();
-                cout << "Child=";
-                lChild->OutputInfo();
+//                cout << "Reclaim and Rebalance -- Empty bin" << endl;
+//                cout << "Parent=";
+//                lParent->OutputInfo();
+//                cout << "Child=";
+//                lChild->OutputInfo();
                 assert(0);
               }
             }
@@ -470,11 +470,11 @@ namespace bleu {
           
           if ( !(lParent->AmValid() && lChild->AmValid()) )
           {
-            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
-            cout << "Parent=";
-            lParent->OutputInfo();
-            cout << "Child=";
-            lChild->OutputInfo();
+//            cout << "Reclaim and Rebalance -- Failed to accept foster child" << endl;
+//            cout << "Parent=";
+//            lParent->OutputInfo();
+//            cout << "Child=";
+//            lChild->OutputInfo();
             assert ( 0 );
           }
         }
@@ -487,12 +487,12 @@ namespace bleu {
 
       canonicalize();
       
-      cout << "end reclaim_and_rebalance "<< endl;
+//      cout << "end reclaim_and_rebalance "<< endl;
     }
     
     void rehome_too_big_sets()
     {
-      cout << "begin rehome_too_big_sets "<< endl;
+//      cout << "begin rehome_too_big_sets "<< endl;
       
       if ( _released_set_offsets.size() > 0 ) // no point in doing anything if we have no space to go to.
       {
@@ -511,9 +511,9 @@ namespace bleu {
               
               if ( !(lParent->AmValid()) )
               {
-                cout << "Rehome_too_big_set -- parent invalid" << endl;
-                cout << "Parent=";
-                lParent->OutputInfo();
+//                cout << "Rehome_too_big_set -- parent invalid" << endl;
+//                cout << "Parent=";
+//                lParent->OutputInfo();
                 assert ( 0 );
               }
 
@@ -579,28 +579,28 @@ namespace bleu {
         cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() << " parent too crowded sets " << endl;        
       }
       
-      cout << "end rehome_too_big_sets "<< endl;
+//      cout << "end rehome_too_big_sets "<< endl;
     }
     
     void promote_set( SetHandle aSet )
     {
-      cout << "begin promote_set "<< endl;
+//      cout << "begin promote_set "<< endl;
       
       SetOffset lAddress = get_free_address();
       
       if (!( lAddress > 0 ))// this should work      
       {
-        cout << "promote set -- address <= 0" << endl;
+//        cout << "promote set -- address <= 0" << endl;
         assert(0);
       }
     
       if (!( aSet->Parent->EmancipateFosterChild( aSet, lAddress ) ))// this should work      
       {
-        cout << "promote set -- failed to emancipate foster child" << endl;
-        cout << "aSet=";
-        aSet->OutputInfo();
-        cout << "Parent=";
-        aSet->Parent->OutputInfo();
+//        cout << "promote set -- failed to emancipate foster child" << endl;
+//        cout << "aSet=";
+//        aSet->OutputInfo();
+//        cout << "Parent=";
+//        aSet->Parent->OutputInfo();
 
         assert(0);
       }
@@ -621,9 +621,9 @@ namespace bleu {
       
       if ( !(aSet->AmValid()) )
       {
-        cout << "promote_set aSet is invalid" << endl;
-        cout << "Set=";
-        aSet->OutputInfo();
+//        cout << "promote_set aSet is invalid" << endl;
+//        cout << "Set=";
+//        aSet->OutputInfo();
         assert ( 0 );
       }
       
@@ -633,7 +633,7 @@ namespace bleu {
     // add a hash to an existing set
     void add_to_set( SetHandle aSet, HashIntoType aHash )
     {   
-      cout << "begin add_to_set "<< endl;
+      //cout << "begin add_to_set "<< endl;
       
       for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
       {
@@ -642,9 +642,9 @@ namespace bleu {
                
         if (!( _set_offsets[i][ lBin ] > 0 ))// somehow we fucked this up.
         {
-          cout << "Add_to_set -- bin is empty" << endl;
-          cout << "set=";
-          aSet->OutputInfo();
+//          cout << "Add_to_set -- bin is empty" << endl;
+//          cout << "set=";
+//          aSet->OutputInfo();
           assert(0);
         }
       }
@@ -655,9 +655,9 @@ namespace bleu {
       {
         if (!( aSet->StopStoringHashes() ))
         {
-          cout << "Add_to_set -- set couldn't stop storing hashes" << endl;
-          cout << "set=";
-          aSet->OutputInfo();
+//          cout << "Add_to_set -- set couldn't stop storing hashes" << endl;
+//          cout << "set=";
+//          aSet->OutputInfo();
           assert(0);
         }
       }
@@ -665,12 +665,12 @@ namespace bleu {
       //assert( aSet->AmValid() );
       if (!( aSet->AmValid() ))
       {
-        cout << "Add_to_set -- aSet isn't valid" << endl;
-        cout << "set=";
-        aSet->OutputInfo();
+//        cout << "Add_to_set -- aSet isn't valid" << endl;
+//        cout << "set=";
+//        aSet->OutputInfo();
         assert(0);
       }
-      cout << "end add_to_set "<< endl;
+//      cout << "end add_to_set "<< endl;
     }
     
     //
@@ -678,7 +678,7 @@ namespace bleu {
     //
     void populate_hash_table_bit_count_lookups()
     {
-      cout << "begin populate_hash_table_bit_count_lookups" << endl;
+//      cout << "begin populate_hash_table_bit_count_lookups" << endl;
       for (int i = 0; i < HASHES; ++i )
       {
         _hash_table_total_bit_counts[i] = _hash_table[i]->CountBits();
@@ -701,28 +701,28 @@ namespace bleu {
         }
         cout << i << ": " << _hash_table_total_bit_counts[i] << " -- " << ((double)_hash_table_total_bit_counts[i] / (double)_tablesizes[i]) * 100 << "% occupancy" << endl;
       }
-      cout << "end populate_hash_table_bit_count_lookups" << endl;
+//      cout << "end populate_hash_table_bit_count_lookups" << endl;
     }
     
     void deallocate_hash_table_preliminary()
     {
-      cout << "begin deallocate_hash_table_preliminary" << endl;
+//      cout << "begin deallocate_hash_table_preliminary" << endl;
       for (int i = 0; i < HASHES; ++i)
       {
         delete _hash_table_preliminary[i];
       }      
-      cout << "end deallocate_hash_table_preliminary" << endl;
+//      cout << "end deallocate_hash_table_preliminary" << endl;
     }
     
     void allocate_set_offset_table()
     {
-      cout << "begin allocate_set_offset_table" << endl;
+//      cout << "begin allocate_set_offset_table" << endl;
       for (int i = 0; i < HASHES; ++i)
       {
         _set_offsets[i] = new unsigned short[ _hash_table_total_bit_counts[i] ];
         memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned short));
       }
-      cout << "end allocate_set_offset_table" << endl;
+ //     cout << "end allocate_set_offset_table" << endl;
     }
 
     // create a set
@@ -730,7 +730,7 @@ namespace bleu {
     // otherwise, foster the sets out
     SetHandle create_set() 
     {
-      cout << "begin create_set" << endl;
+ //     cout << "begin create_set" << endl;
       SetOffset lAddress = get_free_address();
       SetHandle lSet = NULL;
       
@@ -757,27 +757,35 @@ namespace bleu {
           lAddress = get_free_address();
           if ( lAddress == 0 ) // if there are no free addresses, foster
           {
-            cout << "create_set(begin) - address = 0" << endl;
-            lSet = new CanonicalSet(); // empty foster set.
+            // try again
+            lParentSet = get_least_crowded_set();
+            
+ //           cout << "create_set(begin) - address = 0" << endl;
+            lSet= new CanonicalSet(); // empty foster set.
+//            cout << "created set " << &lSetThing << " " << lSetThing;
+//            lSetThing->OutputInfo();
+//            if ( lSetThing == NULL )
+//              cout << "WTF!?!?!" << endl;
+            
             //assert(lParentSet->AcceptFosterChild( lSet )); // if this doesn't work, there's smething very wrong
             if (!( lParentSet->AcceptFosterChild( lSet ) ))
             {
-              cout << "create_set -- parent set doesn't accept foster child" << endl;
-              cout << "lParentSet=";
-              lParentSet->OutputInfo();
-              cout << "lSet=";
-              lSet->OutputInfo();
+//              cout << "create_set -- parent set doesn't accept foster child" << endl;
+//              cout << "lParentSet=";
+//              lParentSet->OutputInfo();
+//              cout << "lSet=";
+//              lSet->OutputInfo();
               assert(0);
             }
-            cout << "create_set(end) - address = 0" << endl;
+ //           cout << "create_set(end) - address = 0" << endl;
             
           }
           else // woohoo, no need to start the fostering round yet.
           {
-            cout << "create_set(begin) - address != 0" << endl;
+//            cout << "create_set(begin) - address != 0" << endl;
             lSet = new CanonicalSet( lAddress );
             _sets[ lAddress ] = lSet->Self;
-            cout << "create_set(end) - address != 0" << endl;
+//            cout << "create_set(end) - address != 0" << endl;
             
           }
         } 
@@ -787,11 +795,11 @@ namespace bleu {
           //assert (lParentSet->AcceptFosterChild( lSet )); //if this doesn't work, there's something very wrong.
           if (!( lParentSet->AcceptFosterChild( lSet ) ))
           {
-            cout << "create_set -- parent set doesn't accept foster child" << endl;
-            cout << "lParentSet=";
-            lParentSet->OutputInfo();
-            cout << "lSet=";
-            lSet->OutputInfo();
+//            cout << "create_set -- parent set doesn't accept foster child" << endl;
+//            cout << "lParentSet=";
+//            lParentSet->OutputInfo();
+//            cout << "lSet=";
+//            lSet->OutputInfo();
             assert(0);
           }
         }
@@ -805,31 +813,31 @@ namespace bleu {
       //assert( lSet->AmValid() );
       if (!( lSet->AmValid() ))
       {
-        cout << "create_set -- lSet not valid" << endl;
-        cout << "lSet=";
-        lSet->OutputInfo();
+//        cout << "create_set -- lSet not valid" << endl;
+//        cout << "lSet=";
+//        lSet->OutputInfo();
         assert(0);
       }
       
-      cout << "end create_set" << endl;
+//      cout << "end create_set" << endl;
       
       return lSet;
     }  
     
     void join ( SetHandle aJoinee, SetHandle aJoiner )
     {
-      cout << "begin join" << endl;
+//      cout << "begin join" << endl;
       if ( aJoinee->AmFosterChild() )      
       {
 //        assert( aJoiner->AmFosterChild() );
         
         if (!( aJoiner->AmFosterChild() ))
         {
-          cout << "join -- joinee is foster child, but joiner isn't" << endl;
-          cout << "aJoinee=";
-          aJoinee->OutputInfo();
-          cout << "aJoiner=";
-          aJoiner->OutputInfo();
+//          cout << "join -- joinee is foster child, but joiner isn't" << endl;
+//          cout << "aJoinee=";
+//          aJoinee->OutputInfo();
+//          cout << "aJoiner=";
+//          aJoiner->OutputInfo();
           assert(0);
         }
       }
@@ -837,18 +845,18 @@ namespace bleu {
 //      assert ( aJoiner->AmValid() );
       if (!( aJoiner->AmValid() ))
       {
-        cout << "join -- aJoiner isn't valid" << endl;
-        cout << "aJoiner=";
-        aJoiner->OutputInfo();
+//        cout << "join -- aJoiner isn't valid" << endl;
+//        cout << "aJoiner=";
+//        aJoiner->OutputInfo();
         assert(0);
       }
       
       //assert ( aJoinee->AmValid() );
       if (!( aJoinee->AmValid() ))
       {
-        cout << "join -- aJoiner isn't valid" << endl;
-        cout << "aJoinee=";
-        aJoinee->OutputInfo();
+//        cout << "join -- aJoiner isn't valid" << endl;
+//        cout << "aJoinee=";
+//        aJoinee->OutputInfo();
         assert(0);
       }
       
@@ -880,10 +888,10 @@ namespace bleu {
               
               if ( !(_set_offsets[i][ lBin ] > 0) )// somehow we fucked this up.
               {
-                cout << "get_existing_buck - set offset is 0" << endl;
-                cout << "i=" << i;
-                cout << "lBin=" << lBin;
-                assert( 0 ); // this should work
+//                cout << "get_existing_buck - set offset is 0" << endl;
+//                cout << "i=" << i;
+//                cout << "lBin=" << lBin;
+//                assert( 0 ); // this should work
               }
             }
           }
@@ -901,12 +909,12 @@ namespace bleu {
         
         if ( !(aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset())) )// somehow we fucked this up.
         {
-          cout << "join - couldn't emancipate foster child" << endl;
-          cout << "aJoinee=";
-          aJoinee->OutputInfo();
-          cout << "aJoiner=";
-          aJoiner->OutputInfo();
-          assert( 0 ); // this should work
+//          cout << "join - couldn't emancipate foster child" << endl;
+//          cout << "aJoinee=";
+//          aJoinee->OutputInfo();
+//          cout << "aJoiner=";
+//          aJoiner->OutputInfo();
+//          assert( 0 ); // this should work
         }
       }
       else
@@ -928,28 +936,28 @@ namespace bleu {
         
         if ( !(aJoinee->StopStoringHashes()) )// somehow we fucked this up.
         {
-          cout << "join - couldn't stop storing hashes" << endl;
-          cout << "aJoinee=";
-          aJoinee->OutputInfo();
-          assert( 0 ); // this should work
+//          cout << "join - couldn't stop storing hashes" << endl;
+//          cout << "aJoinee=";
+//          aJoinee->OutputInfo();
+//          assert( 0 ); // this should work
         }
       }
       
 //      assert ( aJoinee->AmValid() );      
       if ( !(aJoinee->AmValid()) )// somehow we fucked this up.
       {
-        cout << "join - joinee isn't valid" << endl;
-        cout << "aJoinee=";
-        aJoinee->OutputInfo();
-        assert( 0 ); // this should work
+//        cout << "join - joinee isn't valid" << endl;
+//        cout << "aJoinee=";
+//        aJoinee->OutputInfo();
+//        assert( 0 ); // this should work
       }
       
-      cout << "end join" << endl;
+//      cout << "end join" << endl;
     }
  
     SetHandle get_least_crowded_set()
     { 
-      cout << "begin get_least_crowded_set" << endl;
+//      cout << "begin get_least_crowded_set" << endl;
       if (_sorted_sets.empty() )
         return NULL;
         //re_sort_sets();
@@ -957,13 +965,13 @@ namespace bleu {
       SetHandle lSmallestSet = *(_sorted_sets.back());
       _sorted_sets.pop_back();
       
-      cout << "end get_least_crowded_set" << endl;
+//      cout << "end get_least_crowded_set" << endl;
       return lSmallestSet;
     }
     
     void re_sort_sets()
     {
-      cout << "begin re_sort_sets" << endl;
+//      cout << "begin re_sort_sets" << endl;
       _sorted_sets.clear();
       for (int i = 0; i < SETS_SIZE; ++i )
       {
@@ -972,34 +980,34 @@ namespace bleu {
       }
       
       sort( _sorted_sets.begin(), _sorted_sets.end(), CanonicalSet::CompSet() );
-      cout << "end re_sort_sets" << endl;
+//      cout << "end re_sort_sets" << endl;
     }
 
     SetOffset get_free_address()
     {
-      cout << "begin/end get_free_address" << endl;
+ //     cout << "begin/end get_free_address" << endl;
       if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
       {
-                cout << "get_free_address getting released offset" << endl;
+  //              cout << "get_free_address getting released offset" << endl;
         return get_a_released_offset(); 
       }
       else if ( _last_set_offset < SETS_SIZE ) // no released ones, but we still have room at the head of the list
       {
-        cout << "get_free_address incrementing last offset" << endl;
+ //       cout << "get_free_address incrementing last offset" << endl;
         return ++_last_set_offset;
       }
       else
       {
-                cout << "get_free_address we're fucked" << endl;
+  //              cout << "get_free_address we're fucked" << endl;
         return 0; // we're fucked. gotta start joining sets
       }
     }
     SetOffset get_a_released_offset()
     {
-      cout << "begin get_a_released_offset" << endl;
+//      cout << "begin get_a_released_offset" << endl;
       SetOffset lSet = _released_set_offsets.back();
       _released_set_offsets.pop_back();
-      cout << "end get_a_released_offset" << endl;
+//      cout << "end get_a_released_offset" << endl;
       
       return lSet;
     }
@@ -1074,16 +1082,16 @@ namespace bleu {
       //assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
       if ( !(aBin < _tablesizes[i]) )// make sure it's a valid bin.
       {
-        cout << "HashBinToSetOffsetBin - invalid bin" << endl;
-        cout << "aBin=" << aBin << endl;
-        assert( 0 ); // this should work
+//        cout << "HashBinToSetOffsetBin - invalid bin" << endl;
+//        cout << "aBin=" << aBin << endl;
+//        assert( 0 ); // this should work
       }
       
 //      assert( _hash_table[i]->Get( aBin ) == true );
       if ( !(_hash_table[i]->Get( aBin ) == true) )// make sure we have a set
       {
-        cout << "HashBinToSetOffsetBin - has a set is false" << endl;
-        cout << "aBin=" << aBin << endl;
+//        cout << "HashBinToSetOffsetBin - has a set is false" << endl;
+//        cout << "aBin=" << aBin << endl;
         assert( 0 ); // this should work
       }
       
@@ -1093,8 +1101,8 @@ namespace bleu {
 //      assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION));       
       if ( !(lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION)) )// make sure we have a set
       {
-        cout << "HashBinToSetOffsetBin - lBinSection index is too large" << endl;
-        cout << "lBinSectionIndex=" << lBinSectionIndex << endl;
+//        cout << "HashBinToSetOffsetBin - lBinSection index is too large" << endl;
+//        cout << "lBinSectionIndex=" << lBinSectionIndex << endl;
         assert( 0 ); // this should work
       }
       
@@ -1106,8 +1114,8 @@ namespace bleu {
 //      assert( lSetOffsetBin > 0 );      
       if ( !(lSetOffsetBin > 0) )// make sure we have a set
       {
-        cout << "HashBinToSetOffsetBin - lSetOffsetBin == 0" << endl;
-        cout << "lSetOffsetBin=" << lSetOffsetBin << endl;
+//        cout << "HashBinToSetOffsetBin - lSetOffsetBin == 0" << endl;
+//        cout << "lSetOffsetBin=" << lSetOffsetBin << endl;
         assert( 0 ); // this should work
       }
       
@@ -1121,8 +1129,8 @@ namespace bleu {
 //      assert( aOffset > 0 ); // we should not be poking here if we don't have a set to go to
       if ( !(aOffset > 0) )// // we should not be poking here if we don't have a set to go to
       {
-        cout << "SetOffsetToSet - aOffset == 0" << endl;
-        cout << "aOffset=" << aOffset << endl;
+//        cout << "SetOffsetToSet - aOffset == 0" << endl;
+//        cout << "aOffset=" << aOffset << endl;
         assert( 0 ); // this should work
       }
       

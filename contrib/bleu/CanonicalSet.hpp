@@ -69,6 +69,9 @@ namespace bleu {
       Parent = aParent;
       
       StoringHashes = true; // everyone starts out storing hashes.
+      
+      if ( !AmValid() )
+        OutputInfo();
     }
     
     void OutputInfo()
@@ -146,11 +149,11 @@ namespace bleu {
     { 
       if ( AmFoster ) // can't very well accept a foster child if I"m a foster myself.
       {
-        cout << "AcceptFosterChild, AmFoster" << endl; 
-        cout << "This=";
-        OutputInfo();
-        cout << "Child=";
-        aChild->OutputInfo();
+//        cout << "AcceptFosterChild, AmFoster" << endl; 
+//        cout << "This=";
+//        OutputInfo();
+//        cout << "Child=";
+//        aChild->OutputInfo();
         return false;
       }
       
@@ -160,11 +163,11 @@ namespace bleu {
         return true;
       }
       
-      cout << "AcceptFosterChild, Child Couldn't become Foster" << endl;
-      cout << "This=";
-      OutputInfo();
-      cout << "Child=";
-      aChild->OutputInfo();
+//      cout << "AcceptFosterChild, Child Couldn't become Foster" << endl;
+//      cout << "This=";
+//      OutputInfo();
+//      cout << "Child=";
+//      aChild->OutputInfo();
       return false;
     }
     
@@ -172,21 +175,21 @@ namespace bleu {
     {
       if ( AmFoster ) // can't accept a foster if I'm a foster myself
       {
-        cout << "TakeFosterChild, AmFoster" << endl;     
-        cout << "This=";
-        OutputInfo();
-        cout << "Child=";
-        aChild->OutputInfo();
+//        cout << "TakeFosterChild, AmFoster" << endl;     
+//        cout << "This=";
+//        OutputInfo();
+//        cout << "Child=";
+//        aChild->OutputInfo();
         assert(0); //return false;
       }
       
       if ( !aChild->AmFoster ) // it's gotta be someone else's kid already
       {
-        cout << "TakeFosterChild, Child !AmFoster" << endl; 
-        cout << "This=";
-        OutputInfo();
-        cout << "Child=";
-        aChild->OutputInfo();
+//        cout << "TakeFosterChild, Child !AmFoster" << endl; 
+//        cout << "This=";
+//        OutputInfo();
+//        cout << "Child=";
+//        aChild->OutputInfo();
         assert(0); //return false;
       }
       
@@ -203,11 +206,11 @@ namespace bleu {
       
       if ( !lWorked )
       {
-        cout << "TakeFosterChild, Foster Release Failed" << endl; 
-        cout << "This=";
-        OutputInfo();
-        cout << "Child=";
-        aChild->OutputInfo();
+//        cout << "TakeFosterChild, Foster Release Failed" << endl; 
+//        cout << "This=";
+//        OutputInfo();
+//        cout << "Child=";
+//        aChild->OutputInfo();
         assert(0); // return false;
       }
       
@@ -221,12 +224,12 @@ namespace bleu {
     {
       if ( AmFoster || Fosters.size() == 0 ) // can't very well remove a foster child I don't have
       {
-        cout << "EmancipateFosterChild - Foster.size() == 0 || AmFoster" << endl;
-        cout << " This=";
-        OutputInfo();
-        cout << " Child=";
-        aChild->OutputInfo();
-        cout << " NewOffset=" << aNewSetOffset << endl;
+//        cout << "EmancipateFosterChild - Foster.size() == 0 || AmFoster" << endl;
+//        cout << " This=";
+//        OutputInfo();
+//        cout << " Child=";
+//        aChild->OutputInfo();
+//        cout << " NewOffset=" << aNewSetOffset << endl;
         assert(0);  //  return false;
       }
       
@@ -241,23 +244,23 @@ namespace bleu {
           }
           else // removal failed. wut?
           {
-            cout << "EmancipateFosterChild, Foster Release Failed" << endl; 
-            cout << " This=";
-            OutputInfo();
-            cout << " Child=";
-            aChild->OutputInfo();
-            cout << " NewOffset=" << aNewSetOffset << endl;
+//            cout << "EmancipateFosterChild, Foster Release Failed" << endl; 
+//            cout << " This=";
+//            OutputInfo();
+//            cout << " Child=";
+//            aChild->OutputInfo();
+//            cout << " NewOffset=" << aNewSetOffset << endl;
             assert(0);   //  return false;
           }
         }
       }      
       
-      cout << "EmancipateFosterChild - Couldn't find the child to emancipate" << endl;
-      cout << " This=";
-      OutputInfo();
-      cout << " Child=";
-      aChild->OutputInfo();
-      cout << " NewOffset=" << aNewSetOffset << endl;
+//      cout << "EmancipateFosterChild - Couldn't find the child to emancipate" << endl;
+//      cout << " This=";
+//      OutputInfo();
+//      cout << " Child=";
+//      aChild->OutputInfo();
+//      cout << " NewOffset=" << aNewSetOffset << endl;
       assert(0);   //  return false; // couldn't find it.
     }
     
@@ -267,11 +270,11 @@ namespace bleu {
     {
       if ( Fosters.size() > 0 || AmFoster || !StoringHashes ) // can't become someone's foster if I'm already fostering, or I'm already fostered to someone else.
       {
-        cout << "BecomeFoster - Foster.size() > 0 || AmFoster || !StoringHashes" << endl;
-        cout << " This=";
-        OutputInfo();
-        cout << " Parent=";
-        aParent->OutputInfo();
+//        cout << "BecomeFoster - Foster.size() > 0 || AmFoster || !StoringHashes" << endl;
+//        cout << " This=";
+//        OutputInfo();
+//        cout << " Parent=";
+//        aParent->OutputInfo();
         assert(0); // return false;
       }
       
@@ -286,10 +289,10 @@ namespace bleu {
     {
       if ( !AmFoster ) // can't become free if you're already free
       {
-        cout << "BecomeIndependent, !AmFoster" << endl;
-        cout << " This=";
-        OutputInfo();
-        cout << " NewOffset=" << aNewSetOffset << endl;
+//        cout << "BecomeIndependent, !AmFoster" << endl;
+//        cout << " This=";
+//        OutputInfo();
+//        cout << " NewOffset=" << aNewSetOffset << endl;
         assert(0); //return false;
       }
       
@@ -306,9 +309,9 @@ namespace bleu {
     {
       if ( AmFoster )
       {
-        cout << "StopStoringHashes, !AmFoster" << endl;
-        cout << " This=";
-        OutputInfo();
+//        cout << "StopStoringHashes, !AmFoster" << endl;
+//        cout << " This=";
+//        OutputInfo();
         assert(0); //return false; // nowai
       }
       
@@ -358,40 +361,40 @@ namespace bleu {
       {
         if ( Fosters.size() > 0 )
         {
-          cout << "AmValid, Foster - Have Foster Children" << endl;
-          cout << " This=";
-          OutputInfo();
-//          assert(0); 
+//          cout << "AmValid, Foster - Have Foster Children" << endl;
+//          cout << " This=";
+//          OutputInfo();
+////          assert(0); 
           return false;          
         }
           
         
         if ( Parent == NULL )
         {
-          cout << "AmValid, Foster - No Parent" << endl;
-          cout << " This=";
-          OutputInfo();
-          
-          //assert(0); 
+//          cout << "AmValid, Foster - No Parent" << endl;
+//          cout << " This=";
+//          OutputInfo();
+//          
+//          //assert(0); 
           return false;
         }
         
         if ( !StoringHashes )
         {
-          cout << "AmValid, Foster - Not Storing Hashes" << endl;
-          cout << " This=";
-          OutputInfo();
-          
-          //assert(0); 
+//          cout << "AmValid, Foster - Not Storing Hashes" << endl;
+//          cout << " This=";
+//          OutputInfo();
+//          
+//          //assert(0); 
           return false;
         }
         
         if ( !FoundInParent() )
         {
-          cout << "AmValid, Foster - Not Found in Parent" << endl;
-          cout << " This=";
-          OutputInfo();
-          //assert(0); //
+//          cout << "AmValid, Foster - Not Found in Parent" << endl;
+//          cout << " This=";
+//          OutputInfo();
+//          //assert(0); //
           return false;
         }
       }
@@ -399,10 +402,10 @@ namespace bleu {
       {
         if ( Parent != NULL )
         {
-          cout << "AmValid, !Foster - Have Parent" << endl;
-          cout << " This=";
-          OutputInfo();
-          //assert(0); //
+//          cout << "AmValid, !Foster - Have Parent" << endl;
+//          cout << " This=";
+//          OutputInfo();
+//          //assert(0); //
           return false;
         }
       }   
@@ -410,10 +413,10 @@ namespace bleu {
       if ( StoringHashes )
         if ( KmerCount != Hashes.size() )
         {
-            cout << "AmValid, Storing Hashes, but Unmatched KMer to Hash Count" << endl;
-            cout << " This=";
-            OutputInfo();
-            //assert(0); //
+//            cout << "AmValid, Storing Hashes, but Unmatched KMer to Hash Count" << endl;
+//            cout << " This=";
+//            OutputInfo();
+//            //assert(0); //
             return false; 
         }
         
@@ -427,9 +430,9 @@ namespace bleu {
       {
         if ( !AmFoster )
         {
-          cout << "FoundInParent, Called by Not AmFoster" << endl;
-          cout << " This=";
-          OutputInfo();
+//          cout << "FoundInParent, Called by Not AmFoster" << endl;
+//          cout << " This=";
+//          OutputInfo();
           assert( 0 );
         }
         
@@ -440,9 +443,9 @@ namespace bleu {
             return true;
         }
         
-        cout << "FoundInParent, Not Found" << endl;
-        cout << " This=";
-        OutputInfo();      
+//        cout << "FoundInParent, Not Found" << endl;
+//        cout << " This=";
+//        OutputInfo();      
         return false;
       }  
       
