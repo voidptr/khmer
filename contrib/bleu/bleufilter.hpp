@@ -72,8 +72,6 @@ namespace bleu {
     {      
       unsigned int n_consumed = 0;
 
-//      map<HashIntoType, int> lHashes;
-      vector<HashIntoType> lHashes;
       for ( int i = 0; i < aReadCount; ++i )        
       {
         if ( check_read( aReads[i] ) ) // read's ok
@@ -95,27 +93,13 @@ namespace bleu {
               lHashGenerated = true;
             }
             
-            lHashes.push_back( hash );
-            //lHashes[ hash ]++;
+            _Sets_Manager->seen_hash( hash );
             ++n_consumed;
             
           }   
         }
       }
-
-//      for ( map<HashIntoType, int>::iterator lIt = lHashes.begin(); lIt != lHashes.end(); ++lIt )
-//      {
-//        if ( lIt->second > 1 )
-//          _Sets_Manager->seen_hash( lIt->first, true );
-//        else 
-//          _Sets_Manager->seen_hash( lIt->first );
-//      }
       
-      int lHashCount = lHashes.size();
-      for ( int j = 0; j < lHashCount; ++j )
-      {
-        _Sets_Manager->seen_hash( lHashes[j] );
-      }      
       return n_consumed;
     }
     
@@ -153,7 +137,7 @@ namespace bleu {
             }
             
             ++n_consumed;
-                      
+             
             if ( _Sets_Manager->can_have_set( hash ) )
             {
               if ( lWorkingSet == NULL )
@@ -161,23 +145,11 @@ namespace bleu {
                 lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
                 continue; // move on
               }
-              
               if ( _Sets_Manager->has_existing_set( hash ) )
               {
                 SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
                 if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
-                {
-                  assert ( lExistingSet != NULL );
-                  
-                  if ( !(lExistingSet != NULL) ) // can't very well accept a foster child if I"m a foster myself.
-                  {
-                    cout << "consume string - existing set is null" << endl; 
-                    assert(0);
-                  }
-
                   lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
-                  
-                }
               }
               else
                 _Sets_Manager->add_to_set( lWorkingSet, hash );
@@ -235,8 +207,6 @@ namespace bleu {
           
           
           SetHandle lSet = NULL;
-//          SetHandle lBucket = NULL;
-          
           HashIntoType hash = 0;
           HashIntoType forward_hash = 0, reverse_hash = 0;          
           bool lHashGenerated = false;          
@@ -253,7 +223,6 @@ namespace bleu {
             if ( _Sets_Manager->can_have_set( hash ) )
             {
               lSet = _Sets_Manager->get_existing_set( hash );
-//              lBucket = _Sets_Manager->get_existing_bucket( hash );
               break;
             }
                           
@@ -262,7 +231,7 @@ namespace bleu {
           unsigned int lSetID = 0;
           if ( lSet != NULL )
           {
-            lSetID = lSet->GetPrimaryOffset();
+            lSetID = lSet->PrimarySetOffset;
             
             if ( lSet->JoinOfConvenience )
             {
@@ -270,9 +239,6 @@ namespace bleu {
             }
           }
           
-//          if ( lBucket != NULL )
-//            lSetID = lBucket->GetPrimaryOffset(); // foster children get to inherit
-            
           lReadCounts[ lSetID ]++;
           
           outfile << ">" << read.name << "\t" 

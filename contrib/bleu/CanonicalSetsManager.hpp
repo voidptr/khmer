@@ -16,11 +16,7 @@
 #define BIT_COUNT_PARTITION 1000
 
 #define HASHES 8
-#define BIN_SIZE 50
-#define FOSTER_COUNT_MULTIPLIER 5
-
 #define CACHESIZE 10
-
 #define SETS_SIZE 65535
 
 namespace bleu {
@@ -107,38 +103,18 @@ namespace bleu {
     //    
     
     // mark a kmer/hash as "interesting" if it appears more than once.
-    void seen_hash( HashIntoType aHash, bool lTwice=false )
+    void seen_hash( HashIntoType aHash )
     {
       for (int i = 0; i < HASHES; ++i )
       {
         unsigned long long lHashBin = HashToHashBinCached(aHash, i); 
         
-        if ( lTwice )
-        {
+        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
           _hash_table[i]->Set(lHashBin, true);
-        }
         else
-        {
-          if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
-            _hash_table[i]->Set(lHashBin, true);
-          else
-            _hash_table_preliminary[i]->Set(lHashBin, true);
-        }
+          _hash_table_preliminary[i]->Set(lHashBin, true);
       }
     }
-    
-//    void seen_hash( HashIntoType aHash )
-//    {
-//      for (int i = 0; i < HASHES; ++i )
-//      {
-//        unsigned long long lHashBin = HashToHashBinCached(aHash, i); 
-//        
-//        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
-//          _hash_table[i]->Set(lHashBin, true);
-//        else
-//          _hash_table_preliminary[i]->Set(lHashBin, true);
-//      }
-//    }
     
     //
     // second pass through the reads -- actually perform the set assignments
@@ -198,7 +174,6 @@ namespace bleu {
                 
         assert(_set_offsets[i][ lBin ] > 0);
         
-//        lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] )->FindResponsibleSet( aHash ) ]++;
         lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] ) ]++;
       }
       
@@ -211,30 +186,53 @@ namespace bleu {
       }     
       return lMostRepresented;      
     }
+
     
-//    // find a bucket for this hash that already exists. Identical to get_existing_set, but without the drill-down
-//    SetHandle get_existing_bucket( HashIntoType aHash )
-//    {      
-//      map<SetHandle, int> lRepresented;
-//      
-//      for ( int i = 0; i < HASHES; ++i )
-//      {
-//        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
-//        
-//        assert(_set_offsets[i][ lBin ] > 0); // somehow we fucked this up.
-//        
-//        lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] ) ]++;
-//      }
-//      
-//      // figure out what the consensus set was
-//      SetHandle lMostRepresented = NULL; 
-//      for ( map<SetHandle, int>::iterator lSet = lRepresented.begin(); lSet != lRepresented.end(); ++lSet ) // count the votes
-//      {
-//        if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] ) // because maps are sorted, this will end up being the set with the lowest pointer, and the highest count.
-//          lMostRepresented = lSet->first;
-//      }     
-//      return lMostRepresented;      
-//    }
+    // add a hash to an existing set
+    void add_to_set( SetHandle aSet, HashIntoType aHash )
+    {   
+      for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
+      {
+        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );    
+        _set_offsets[i][ lBin ] = aSet->PrimarySetOffset;        
+      }
+      aSet->KmerCount++;
+    }
+
+    // create a set
+    SetHandle create_set()
+    {
+      SetOffset lAddress = get_free_address();
+      SetHandle lSet = NULL;
+      
+      if ( lAddress == 0 ) // damn. do a round of fostering
+      {
+        lSet = get_least_crowded_set();
+        if ( lSet == NULL ) // damn damn.
+        {
+          canonicalize();
+          re_sort_sets();
+          
+          // one more try
+          lAddress = get_free_address();
+          
+          if ( lAddress == 0 ) // ok, fine, foster away.
+          {
+            lSet = get_least_crowded_set();
+            lSet->JoinOfConvenience = true;
+            cout << ".";
+          }
+        }
+      }
+
+      if ( lAddress != 0 )
+      {
+        lSet = new CanonicalSet( lAddress );
+        _sets[ lAddress ] = lSet->Self;  
+      }
+      
+      return lSet;
+    }
     
     bool sets_are_disconnected( SetHandle aSet1, SetHandle aSet2 )
     {
@@ -247,43 +245,20 @@ namespace bleu {
     SetHandle bridge_sets( SetHandle aEncounteredSet, SetHandle aOriginatingSet )
     {
       assert( aOriginatingSet != aEncounteredSet); // we really really shouldn't be the same set.
-      
-      SetHandle lDominatingSet = NULL;
 
-      // four scenarios, 
-      // O->!f, E->!f -- lower offset dominates
-      // O->f, E->f -- lower offset parent dominates
-      // O->!f, E->f -- O dominates
-      // O->f, E->!f -- E dominates
-
- //     if ( (!aOriginatingSet->AmFosterChild() && !aEncounteredSet->AmFosterChild()) || 
-//           (aOriginatingSet->AmFosterChild() && aEncounteredSet->AmFosterChild() ) ) // both or neither are fostered
-//      {
-        if ( aOriginatingSet->GetPrimaryOffset() < aEncounteredSet->GetPrimaryOffset() )
-        {
-          join( aOriginatingSet, aEncounteredSet );
-          lDominatingSet = aOriginatingSet;
-        }
-        else
-        {
-          join( aEncounteredSet, aOriginatingSet );
-          lDominatingSet = aEncounteredSet;
-        }
-//      }
-//      else if ( !aOriginatingSet->AmFosterChild() && aEncounteredSet->AmFosterChild() ) // originating set isn't fostered.
-//      {
-//        join( aOriginatingSet, aEncounteredSet );
-//        lDominatingSet = aOriginatingSet;
-//      }
-//      else // encountered set isn't fostered.
-//      {
-//        join ( aEncounteredSet, aOriginatingSet );
-//        lDominatingSet = aEncounteredSet;
-//      }
-
-      return lDominatingSet;
+      if ( aOriginatingSet->PrimarySetOffset < aEncounteredSet->PrimarySetOffset ) // the bigger one wins, since it almost certainly has more back references.
+      {
+        join( aOriginatingSet, aEncounteredSet );
+        return aOriginatingSet;
+      }
+      else
+      {
+        join( aEncounteredSet, aOriginatingSet );
+        return aEncounteredSet;
+      }
+      //return lDominatingSet;
     }
-
+    
     void canonicalize()
     {
       // go through all the set offsets and point them to their canonical locations.
@@ -293,9 +268,7 @@ namespace bleu {
         {
           if ( _set_offsets[i][j] != 0 ) // there's something in here
           {
-            _set_offsets[i][j] = SetOffsetToSet( _set_offsets[i][j] )->GetPrimaryOffset(); 
-            
-            //assert ( SetOffsetToSet( _set_offsets[i][j] )->AmValid() );
+            _set_offsets[i][j] = SetOffsetToSet( _set_offsets[i][j] )->PrimarySetOffset; 
           }
         }
       }
@@ -308,18 +281,14 @@ namespace bleu {
         {
           SetHandle lSet = *_sets[k];
           
-          //assert ( lSet->AmValid() );
-          
-          if ( k != lSet->GetPrimaryOffset() )
+          if ( k != lSet->PrimarySetOffset )
           {
             _sets[k] = NULL;
             _released_set_offsets.push_back( k ); // it's null! hey!
           }
           else // we'll only hit each set once this way.
-          {
             lSet->BackReferences.clear();
-            lSet->BackReferences.push_back( lSet->Self ); // readd the canonical one.
-          }
+
         }
         else
         {
@@ -330,254 +299,66 @@ namespace bleu {
       cout << "Canonicalizing: Released " << _released_set_offsets.size() << " sets." << endl;
     }
     
-//#define MAX_FOSTERS_ADD 2
-//#define TOO_MANY_FOSTERS_COUNT MAX_FOSTERS_ADD*2
-//#define WAY_TOO_MANY_FOSTERS_COUNT TOO_MANY_FOSTERS_COUNT*10
-//    
-//    void reclaim_and_rebalance()
-//    {
-//      // now, go through and foster up the tiny sets, and release their set offsets.
-//      vector<SetOffset> lPotentialFosters;
-//      vector<SetOffset> lPotentialParents;
-//      int lFosterChildCount = 0;
-//      int lFosterParentCount = 0;
-//      for ( int l = 1; l < SETS_SIZE; ++l )
-//      {
-//        if ( _sets[l] != NULL )
-//        {
-//          SetHandle lPotential = *_sets[l];
-//          
-//          if ( lPotential->AmStoringHashes() && !lPotential->ShouldStopStoringHashes() && lPotential->Fosters.size() == 0 ) // you're small enough, and you're not holding anyone
-//          {
-//            lPotentialFosters.push_back( l );
-//          }
-//          else if ( lPotential->AmStoringHashes() && lPotential->Fosters.size() < MAX_FOSTERS_ADD ) // you're small enough, and you're not holding too many, but more than one.
-//          {
-//            lPotentialParents.push_back( l );
-//          }
-//        }
-//      }
-//      
-//      // if we're short on parents, volunteer some fosters from within the tiny set group.
-//      if ( lPotentialFosters.size() > 11 && lPotentialParents.size() < lPotentialFosters.size() / MAX_FOSTERS_ADD )
-//      {
-//        int lNeededCount = (lPotentialFosters.size() / MAX_FOSTERS_ADD) - lPotentialParents.size();
-//        for ( int q = 0; q < lNeededCount; ++q )
-//        {
-//          lPotentialParents.push_back( lPotentialFosters.back() );
-//          lPotentialFosters.pop_back();
-//        }
-//      }
-//      
-//      lFosterChildCount = lPotentialFosters.size();
-//      lFosterParentCount = lPotentialParents.size();
-//                        
-//      // we've crossed a threshold, where we have a parent, and a kid to fill it.
-//      while ( lPotentialParents.size() > 0 && lPotentialFosters.size() > 0 )
-//      {
-//        SetOffset lParentOffset = lPotentialParents.back();
-//        SetHandle lParent = *_sets[lParentOffset];
-//        int lSlotsToFill = MAX_FOSTERS_ADD - lParent->Fosters.size();
-//        
-//        // while there's room, and kids to fill it
-//        for ( int m = 0; lPotentialFosters.size() > 0 && m < lSlotsToFill; ++m, lPotentialFosters.pop_back() )
-//        {
-//          int lChildOffset = lPotentialFosters.back();            
-//          SetHandle lChild = *_sets[lChildOffset];
-//          
-//          // merge it
-//          assert( lParent->AcceptFosterChild( lChild ) );
-//          
-//          // now, point all the kid's hashes to the new parent offset.
-//          for ( int n = 0; n < HASHES; ++n )
-//          {
-//            for ( set<HashIntoType>::iterator lIt = lChild->Hashes.begin(); lIt != lChild->Hashes.end(); ++lIt )
-//            {
-//              SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached( *lIt, n ), n);
-//              _set_offsets[n][lBin] = SetOffsetToSet( _set_offsets[n][lBin] )->GetPrimaryOffset();  // canonicalize
-//              
-//              assert( _set_offsets[n][ lBin ] > 0 );
-//            }
-//          }
-//          // release it
-//          _sets[ lChildOffset ] = NULL;
-//          _released_set_offsets.push_back( lChildOffset );
-//          
-//          assert ( lParent->AmValid() && lChild->AmValid() );
-//        }
-//                
-//        if ( lParent->Fosters.size() >= MAX_FOSTERS_ADD )
-//          lPotentialParents.pop_back(); // this guy's filled up
-//      }    
-//      
-//      cout << "Reclaim and Rebalance: Fostered " << lFosterChildCount - lPotentialFosters.size() << " tiny sets to " << lFosterParentCount - lPotentialParents.size() << "-ish parents" << endl;
-//    }
-    
-//    void rehome_too_big_sets()
-//    {
-//      if ( _released_set_offsets.size() > 0 ) // no point in doing anything if we have no space to go to.
-//      {
-//        // now, go through and release those fosters that have gotten too big
-//        vector<SetHandle> lSetsThatNeedReleaseBecauseParentIsTooBig;
-//        vector<SetHandle> lSetsThatNeedReleaseBecauseParentIsTooCrowded;
-//        vector<SetHandle> lSetsThatNeedReleaseBecauseTheyAreTooBig;
-//        vector<SetHandle> lSetsThatNeedCollapsingIfCannotBeReleased;
-//        int lTooCrowdedParent = 0;
-//        int lTooBigParent = 0;
-//        
-//        for ( int o = 1; o < SETS_SIZE; ++o )
-//        {
-//          if ( _sets[o] != NULL )
-//          {
-//            
-//            
-//            if ( (*(_sets[o]))->Fosters.size() > 0 ) // evaluate the children
-//            {
-//              SetHandle lParent = *_sets[o];
-//              
-//              assert( lParent->AmValid() );
-//
-//              bool lTooCrowded = false;
-//              if ( lParent->Fosters.size() > TOO_MANY_FOSTERS_COUNT )
-//              {
-//                lTooCrowded = true;
-//                lTooCrowdedParent++;
-//              }
-//              
-//              if ( lParent->Fosters.size() > WAY_TOO_MANY_FOSTERS_COUNT )
-//              {
-//                lSetsThatNeedCollapsingIfCannotBeReleased.push_back( *_sets[o] );
-//              }  
-//                              
-//              bool lTooBig = false;
-//              if ( !lParent->AmStoringHashes() )
-//              {
-//                lTooBig = true;
-//                lTooBigParent++;
-//              }
-//          
-//              for ( int p = 0; p < lParent->Fosters.size(); ++p )
-//              {
-//                if ( lParent->Fosters[p]->ShouldStopStoringHashes() )
-//                  lSetsThatNeedReleaseBecauseTheyAreTooBig.push_back( lParent->Fosters[p] );
-//                else if ( lTooBig )
-//                  lSetsThatNeedReleaseBecauseParentIsTooBig.push_back( lParent->Fosters[p] );
-//                else if ( lTooCrowded )
-//                  lSetsThatNeedReleaseBecauseParentIsTooCrowded.push_back( lParent->Fosters[p] );                
-//              }  
-//              
-//              
-//            }
-//          }
-//        }
-//        
-//        // now, do the "too big" sets
-//        int lPromoteCount = 0;
-//        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseTheyAreTooBig.size() > 0 ) 
-//        {
-//          SetHandle lSet = lSetsThatNeedReleaseBecauseTheyAreTooBig.back();
-//          lSetsThatNeedReleaseBecauseTheyAreTooBig.pop_back();
-//          
-//          promote_set( lSet );
-//          
-//          ++lPromoteCount;
-//        }
-//        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseTheyAreTooBig.size() << " too big sets" << endl;
-//
-//        // if there's space, do the parent is too big sets
-//        lPromoteCount = 0;
-//        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseParentIsTooBig.size() > 0 ) 
-//        {
-//          SetHandle lSet = lSetsThatNeedReleaseBecauseParentIsTooBig.back();
-//          lSetsThatNeedReleaseBecauseParentIsTooBig.pop_back();
-//          
-//          promote_set( lSet );
-//          ++lPromoteCount;
-//
-//        }
-//        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooBig.size() << " parent too big sets in " << lTooBigParent << " too big parents" << endl;
-//
-//        
-//        // if there's space, do the parent is too crowded sets
-//        lPromoteCount = 0;
-//        while ( _released_set_offsets.size() > 0 && lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() > 0 ) 
-//        {
-//          SetHandle lSet = lSetsThatNeedReleaseBecauseParentIsTooCrowded.back();
-//          lSetsThatNeedReleaseBecauseParentIsTooCrowded.pop_back();
-//          
-//          promote_set( lSet );
-//          ++lPromoteCount;
-//        }
-//        cout << "Promoted " << lPromoteCount << " out of " << lPromoteCount + lSetsThatNeedReleaseBecauseParentIsTooCrowded.size() << " parent too crowded sets in " << lTooCrowdedParent << " too crowded parents" << endl;    
-//        
-//        // now, we do the drastic thing.
-//        int lCollapseParentCount = 0;
-//        int lCollapsedChildCount = 0;
-//        for ( int i = 0; i < lSetsThatNeedCollapsingIfCannotBeReleased.size(); ++i )
-//        {
-//          SetHandle lParentSet = lSetsThatNeedCollapsingIfCannotBeReleased[i];
-//          if ( lParentSet != NULL )
-//          {
-//            if ( lParentSet->Fosters.size() > WAY_TOO_MANY_FOSTERS_COUNT ) // still way too fucking big
-//            {
-//              for ( int k = lParentSet->Fosters.size(), l = 0; k > 4; --k, ++l )
-//              {
-//                if ( l == 5 ) // reset
-//                  l = 0;
-//                
-//                SetHandle lNewOwner = lParentSet->Fosters[l];
-//                join( lNewOwner, lParentSet->Fosters[k] );              
-//                lCollapsedChildCount++;
-//              }
-//              lCollapseParentCount++;
-//            }
-//          }
-//        }
-//        cout << "Collapsed the fosters of " << lCollapseParentCount << " parents from " << lCollapsedChildCount << " children into " << lCollapseParentCount*5 << " children " << endl;
-//      }
-//    }
-    
-//    void promote_set( SetHandle aSet )
-//    {
-//      SetOffset lAddress = get_free_address();
-//      
-//      assert( lAddress > 0 );    
-//      assert( aSet->Parent->EmancipateFosterChild( aSet, lAddress ) );
-//      _sets[ lAddress ] = aSet->Self;
-//      
-//      // now, point all the kid's hashes to the new offset.
-//      for ( int n = 0; n < HASHES; ++n )
-//      {
-//        for ( set<HashIntoType>::iterator lIt = aSet->Hashes.begin(); lIt != aSet->Hashes.end(); ++lIt )
-//        {
-//          SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached( *lIt, n), n);
-//          _set_offsets[n][ lBin ] = lAddress;
-//        }
-//      }
-//      
-//      if ( aSet->ShouldStopStoringHashes() )
-//        aSet->StopStoringHashes();  
-//      
-//      assert (aSet->AmValid());      
-//    }
-    
-    // add a hash to an existing set
-    void add_to_set( SetHandle aSet, HashIntoType aHash )
-    {   
-      for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
+    void join ( SetHandle aJoinee, SetHandle aJoiner )
+    {
+      // move the back-references
+      *aJoiner->Self = aJoinee;
+      aJoinee->BackReferences.push_back( aJoiner->Self );
+      for ( int i = 0; i < aJoiner->BackReferences.size(); ++i )
       {
-        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );    
-        _set_offsets[i][ lBin ] = aSet->GetPrimaryOffset();        
-               
-        assert( _set_offsets[i][ lBin ] > 0 );      
+        *(aJoiner->BackReferences[i]) = aJoinee;
+        aJoinee->BackReferences.push_back( aJoiner->BackReferences[i] );
       }
-//      aSet->AddToSet(aHash);
-      aSet->Increment();
       
-//      if ( !aSet->AmFosterChild() && aSet->ShouldStopStoringHashes() )      
-//        assert( aSet->StopStoringHashes() );
+      // add up the stuff
+      aJoinee->KmerCount += aJoiner->KmerCount;
+      delete aJoiner;
+    }
+ 
+    SetHandle get_least_crowded_set()
+    { 
+      if (_sorted_sets.empty() )
+        return NULL;
       
-//      assert( aSet->AmValid() );
+      SetHandle lSmallestSet = *(_sorted_sets.back());
+      _sorted_sets.pop_back();
+      
+      return lSmallestSet;
+    }
+    
+    void re_sort_sets()
+    {
+      _sorted_sets.clear();
+      for (int i = 0; i < SETS_SIZE; ++i )
+      {
+        if ( _sets[i] != NULL && (*(_sets[i]))->PrimarySetOffset == i ) // I'm in my canonical spot
+          _sorted_sets.push_back( _sets[i] );
+      }
+      
+      sort( _sorted_sets.begin(), _sorted_sets.end(), CanonicalSet::CompSet() );
+    }
+
+    SetOffset get_free_address()
+    {
+      if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
+      {
+        return get_a_released_offset(); 
+      }
+      else if ( _last_set_offset < SETS_SIZE ) // no released ones, but we still have room at the head of the list
+      {
+        return ++_last_set_offset;
+      }
+      else
+      {
+        return 0; // we're fucked. gotta start joining sets
+      }
+    }
+    
+    SetOffset get_a_released_offset()
+    {
+      SetOffset lSet = _released_set_offsets.back();
+      _released_set_offsets.pop_back();
+      return lSet;
     }
     
     //
@@ -624,211 +405,6 @@ namespace bleu {
         _set_offsets[i] = new unsigned short[ _hash_table_total_bit_counts[i] ];
         memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned short));
       }
-    }
-
-    // create a set
-    SetHandle create_set()
-    {
-      SetOffset lAddress = get_free_address();
-      SetHandle lSet = NULL;
-      
-      if ( lAddress == 0 ) // damn. do a round of fostering
-      {
-        lSet = get_least_crowded_set();
-        if ( lSet == NULL ) // damn damn.
-        {
-          canonicalize();
-          re_sort_sets();
-          
-          // one more try
-          lAddress = get_free_address();
-          
-          if ( lAddress == 0 ) // ok, fine, foster away.
-          {
-            lSet = get_least_crowded_set();
-            lSet->SetJoinOfConvenience();
-            cout << ".";
-          }
-        }
-      }
-
-      if ( lAddress != 0 )
-      {
-        lSet = new CanonicalSet( lAddress );
-        _sets[ lAddress ] = lSet->Self;  
-      }
-      
-      return lSet;
-    }
-    
-    // create a set
-    // ideally, create each new set at its own address
-    // otherwise, foster the sets out
-//    SetHandle create_set() 
-//    {
-//      SetOffset lAddress = get_free_address();
-//      SetHandle lSet = NULL;
-//      
-//      if ( lAddress == 0 )
-//      {
-//        // so, we don't have any free addresses. start a round of fostering
-//        SetHandle lParentSet = get_least_crowded_set();
-//        
-//        if ( lParentSet == NULL ) // we're out of potential foster parents...
-//        {
-//          // slim down the list, free up some numbers, also de-foster guys that should be free.
-//          canonicalize();
-//          
-//          if ( _released_set_offsets.empty() )
-//            reclaim_and_rebalance();
-//          
-//          if ( !_released_set_offsets.empty() )
-//            rehome_too_big_sets();
-//          
-//          // re-populate the potential foster parents.
-//          re_sort_sets();
-//          
-//          // try one more time for a free address
-//          lAddress = get_free_address();
-//          if ( lAddress == 0 ) // if there are no free addresses, foster
-//          {
-//            // try again
-//            lParentSet = get_least_crowded_set();
-//            
-//            lSet= new CanonicalSet(); // empty foster set.
-//            assert(lParentSet->AcceptFosterChild( lSet )); // if this doesn't work, there's smething very wrong
-//          }
-//          else // woohoo, no need to start the fostering round yet.
-//          {
-//            lSet = new CanonicalSet( lAddress );
-//            _sets[ lAddress ] = lSet->Self;
-//          }
-//        } 
-//        else // here's one
-//        {
-//          lSet = new CanonicalSet(); // empty foster set.
-//          assert (lParentSet->AcceptFosterChild( lSet )); //if this doesn't work, there's something very wrong.
-//        }
-//      }
-//      else
-//      {
-//        lSet = new CanonicalSet( lAddress );
-//        _sets[ lAddress ] = lSet->Self;
-//      }
-//      
-//      assert( lSet->AmValid() );
-//      
-//      return lSet;
-//    }  
-    
-    void join ( SetHandle aJoinee, SetHandle aJoiner )
-    {
-//      if ( aJoinee->AmFosterChild() )            
-//        assert( aJoiner->AmFosterChild() );
-//      
-//      assert ( aJoiner->AmValid() );
-//      assert ( aJoinee->AmValid() );
-      
-      // move the back-references
-      for ( int i = 0; i < aJoiner->BackReferences.size(); ++i )
-      {
-        *(aJoiner->BackReferences[i]) = aJoinee;
-        aJoinee->BackReferences.push_back( aJoiner->BackReferences[i] );
-      }
-
-      // add up the stuff
-      aJoinee->Increment( aJoiner->GetKmerCount() );
-      
-//      if ( aJoiner->AmStoringHashes() ) // bring hashes over in
-//      {
-//        for ( set<HashIntoType>::iterator lIt = aJoiner->Hashes.begin(); lIt != aJoiner->Hashes.end(); ++lIt )
-//        {
-//          if ( aJoinee->AmStoringHashes() )
-//            aJoinee->Hashes.insert( *lIt );
-//          
-//          if ( aJoiner->AmFosterChild() )
-//          {
-//            for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
-//            {
-//              SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(*lIt, i), i );    
-//              _set_offsets[i][ lBin ] = aJoinee->GetPrimaryOffset();        
-//              assert ( _set_offsets[i][ lBin ] > 0 ); // somehow we fucked this up.
-//            }
-//          }
-//        }
-//      }
-      
-//      if ( !aJoiner->AmStoringHashes() && aJoinee->AmStoringHashes() )      
-//        aJoinee->StopStoringHashes();
-//      
-      
-//      if ( aJoiner->AmFosterChild() )      
-//        assert( aJoiner->Parent->EmancipateFosterChild( aJoiner, aJoinee->GetPrimaryOffset()) );      
-//      else
-//      {
-//        if ( aJoiner->Fosters.size() > 0 ) // foster children need to be moved to the main
-//        {
-//          for ( int i = 0; i < aJoiner->Fosters.size(); ++i )
-//          {
-//            aJoinee->TakeFosterChild( aJoiner->Fosters[i] ); 
-//          }
-//        }
-//      }
-      
-      delete aJoiner;
-      
-//      if ( !aJoinee->AmFosterChild() && aJoinee->ShouldStopStoringHashes() )
-//      {
-//        assert( aJoinee->StopStoringHashes() );
-//      }
-//      
-//      assert ( aJoinee->AmValid() );      
-    }
- 
-    SetHandle get_least_crowded_set()
-    { 
-      if (_sorted_sets.empty() )
-        return NULL;
-        //re_sort_sets();
-      
-      SetHandle lSmallestSet = *(_sorted_sets.back());
-      _sorted_sets.pop_back();
-      
-      return lSmallestSet;
-    }
-    
-    void re_sort_sets()
-    {
-      _sorted_sets.clear();
-      for (int i = 0; i < SETS_SIZE; ++i )
-      {
-        if ( _sets[i] != NULL && (*(_sets[i]))->GetPrimaryOffset() == i ) // I'm in my canonical spot
-          _sorted_sets.push_back( _sets[i] );
-      }
-      
-      sort( _sorted_sets.begin(), _sorted_sets.end(), CanonicalSet::CompSet() );
-    }
-
-    SetOffset get_free_address()
-    {
-      if ( !_released_set_offsets.empty() ) // we've got some released ones to go with.
-      {
-        return get_a_released_offset(); 
-      }
-      else if ( _last_set_offset < SETS_SIZE ) // no released ones, but we still have room at the head of the list
-      {
-        return ++_last_set_offset;
-      }
-      else
-      {
-        return 0; // we're fucked. gotta start joining sets
-      }
-    }
-    SetOffset get_a_released_offset()
-    {
-      SetOffset lSet = _released_set_offsets.back();
-      _released_set_offsets.pop_back();
-      return lSet;
     }
     
     //
@@ -923,6 +499,9 @@ namespace bleu {
       return *_sets[ aOffset ]; // pick up the gateway node      
     }
     
+    //
+    // prime calculation functions
+    //
     bool is_prime( unsigned long long aCandidate )
     {
       if ( aCandidate < 2 )
