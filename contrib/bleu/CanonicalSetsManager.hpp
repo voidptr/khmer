@@ -9,8 +9,7 @@
 
 #include "../../lib/hashtable.hh"
 #include "../../lib/parsers.hh"
-//#include "../external_lib/cBitArray.h"
-#include "BitArray.hpp"
+#include "../external_lib/cBitArray.h"
 #include "CanonicalSet.hpp"
 #include <algorithm>
 
@@ -36,8 +35,8 @@ namespace bleu {
   {
   private:
     // sizes set during constructor
-    BitArray * _hash_table[HASHES]; // two-dimensional hash-table
-    //cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
+    cBitArray * _hash_table_preliminary[HASHES]; // two-dimensional hash-table
+    cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
     
     unsigned long long _tablesizes[HASHES]; // the sizes of the hash tables
     unsigned long long * _hash_table_bit_counts_lookup[HASHES]; // the number of bits set in the hash table, by every 10k entries
@@ -76,11 +75,11 @@ namespace bleu {
       
       for ( int j = 0; j < HASHES; ++j )      
       {
-//        _hash_table_preliminary[j] = new cBitArray( _tablesizes[j] );
-//        _hash_table_preliminary[j]->Clear();      
-//        
-        _hash_table[j] = new BitArray( _tablesizes[j], true );
-//        _hash_table[j]->Clear(); 
+        _hash_table_preliminary[j] = new cBitArray( _tablesizes[j] );
+        _hash_table_preliminary[j]->Clear();      
+        
+        _hash_table[j] = new cBitArray( _tablesizes[j] );
+        _hash_table[j]->Clear(); 
         
         _hash_table_bit_counts_lookup[j] = new unsigned long long[(_tablesizes[j] / BIT_COUNT_PARTITION)+1];
         memset(_hash_table_bit_counts_lookup[j], 0, ((_tablesizes[j] / BIT_COUNT_PARTITION)+1) * sizeof(unsigned long long));
@@ -110,12 +109,12 @@ namespace bleu {
       {
         unsigned long long lHashBin = HashToHashBin(aHash, i); 
         
-       _hash_table[i]->IncrementSemiNibble(lHashBin);
+       // _hash_table_preliminary[i]->IncrementSemiNibble(lHashBin);
         
-//        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
-//          _hash_table[i]->Set(lHashBin, true);
-//        else
-//          _hash_table_preliminary[i]->Set(lHashBin, true);
+        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
+          _hash_table[i]->Set(lHashBin, true);
+        else
+          _hash_table_preliminary[i]->Set(lHashBin, true);
       }
     }
     
@@ -132,8 +131,8 @@ namespace bleu {
         HashBin lHashBin = HashToHashBin(aHash, i);
         
         if ( i == 0 )
-          lCanHaveASet = _hash_table[i]->GetBit(lHashBin) == true;
-        else if ( _hash_table[i]->GetBit(lHashBin) != lCanHaveASet ) // we have a disagreement.
+          lCanHaveASet = _hash_table[i]->Get(lHashBin) == true;
+        else if ( _hash_table[i]->Get(lHashBin) != lCanHaveASet ) // we have a disagreement.
           return false;
       }
 
@@ -397,8 +396,7 @@ namespace bleu {
     {
       for (int i = 0; i < HASHES; ++i)
       {
-        _hash_table[i]->CollapseArrayToSecondBit();
-//        delete _hash_table_preliminary[i];
+        delete _hash_table_preliminary[i];
       }      
     }
     
@@ -479,7 +477,7 @@ namespace bleu {
     SetOffsetBin HashBinToSetOffsetBin( HashBin aBin, int i )
     {      
       assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
-      assert( _hash_table[i]->GetBit( aBin ) == true );
+      assert( _hash_table[i]->Get( aBin ) == true );
       
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       
