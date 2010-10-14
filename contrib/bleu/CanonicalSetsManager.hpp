@@ -109,7 +109,9 @@ namespace bleu {
       {
         unsigned long long lHashBin = HashToHashBin(aHash, i); 
         
-       // _hash_table_preliminary[i]->IncrementSemiNibble(lHashBin);
+        //_hash_table_preliminary[i]->IncrementSemiNibble(lHashBin);
+        
+//        _hash_table_preliminary[i]->Get(lHashBin)
         
         if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
           _hash_table[i]->Set(lHashBin, true);

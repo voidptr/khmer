@@ -1,4 +1,4 @@
-CXXFLAGS=-g -fPIC -O2 -Wall -pg -I$(KMERDIR)
+CXXFLAGS=-fPIC -O3 -Wall -pg -I$(KMERDIR)
 
 KMERDIR=../../lib
 EXTLIBDIR=../external_lib
