@@ -18,7 +18,7 @@
 #include <pthread.h>
 
 #define CALLBACK_PERIOD 10000
-
+#define THREADCT 1
 
 namespace bleu {
   
@@ -27,19 +27,13 @@ namespace bleu {
   
   typedef unsigned long long MaxSize;
   
+  void * ThreadStart( void * aArgs );
+  
   class BleuFilter
   : public Hashtable
   {
   private:
     CanonicalSetsManager * _Sets_Manager;
-    
-    
-    template<class T, void(T::*mem_fn)()>
-    void* thunk(void* p)
-    {
-      (static_cast<T*>(p)->*mem_fn)();
-      return 0;
-    }
 
   public:
     typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
@@ -65,44 +59,48 @@ namespace bleu {
       _Sets_Manager->allocate_set_offset_table();      
     }
         
-    // consume_string: run through every k-mer in the given string, & hash it.
-    // overriding the Hashtable version to support my new thang.
-    unsigned int consume_strings_for_hash_table(string * aReads,
-                                                int aReadCount)
-    {      
-      unsigned int n_consumed = 0;
-
-      for ( int i = 0; i < aReadCount; ++i )        
-      {
-        if ( check_read( aReads[i] ) ) // read's ok
-        {
-          const char * sp = aReads[i].c_str();
-          const unsigned int length = aReads[i].length();
-          
-          HashIntoType forward_hash = 0, reverse_hash = 0;
-          
-          HashIntoType hash = 0;
-          bool lHashGenerated = false;      
-          for (unsigned int i = _ksize - 1; i < length; ++i)
-          {
-            if ( lHashGenerated )
-              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
-            else
-            {
-              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-              lHashGenerated = true;
-            }
-            
-            _Sets_Manager->seen_hash( hash );
-            ++n_consumed;
-            
-          }   
-        }
-      }
-      
-      return n_consumed;
-    }
-    
+//    // consume_string: run through every k-mer in the given string, & hash it.
+//    // overriding the Hashtable version to support my new thang.
+//    unsigned int consume_strings_for_hash_table(string * aReads,
+//                                                int aReadCount)
+//    {      
+//      unsigned int n_consumed = 0;
+//
+//      for ( int i = 0; i < aReadCount; ++i )        
+//      {
+//        if ( check_read( aReads[i] ) ) // read's ok
+//        {
+//          const char * sp = aReads[i].c_str();
+//          const unsigned int length = aReads[i].length();
+//          
+//          HashIntoType forward_hash = 0, reverse_hash = 0;
+//          
+//          HashIntoType hash = 0;
+//          bool lHashGenerated = false;      
+//          for (unsigned int i = _ksize - 1; i < length; ++i)
+//          {
+//            if ( lHashGenerated )
+//              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
+//            else
+//            {
+//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+//              lHashGenerated = true;
+//            }
+//            
+//            _Sets_Manager->seen_hash( hash );
+//            ++n_consumed;
+//            
+//          }   
+//        }
+////        if ( i % 100 == 0 )
+////          cout << i << endl;
+//      }
+//      
+//      
+//      
+//      return n_consumed;
+//    }
+//    
     
     // consume_string: run through every k-mer in the given string, & hash it.
     // overriding the Hashtable version to support my new thang.
@@ -310,6 +308,8 @@ namespace bleu {
       
       string reads[10000];
       
+      //vector<pthread_t> lThreads;
+
       while(!parser->is_complete())  {
         
         int lCount = 0;
@@ -321,39 +321,206 @@ namespace bleu {
         }
           
         // yep! process.
-        
-        unsigned int this_n_consumed = (this->*consume_string_fn)(reads, lCount);
-        
-//        unsigned int this_n_consumed = check_and_process_read(reads, lCount, consume_string_fn);        
 
-        n_consumed += this_n_consumed;
-      
-        // reset the sequence info, increment read number
+        pthread_t lThread;  
+        //lThreads.push_back( lThread );
+        
+        typedef struct ThreadArgs {
+          ConsumeStringFN aMethod;
+          string * aReads;
+          int aCount;
+          BleuFilter * aThis;
+          int aChunk;
+        };
+
+        ThreadArgs * lArgs = new ThreadArgs();
+        lArgs->aMethod = consume_string_fn;
+        lArgs->aReads = reads;
+        lArgs->aCount = lCount;
+        lArgs->aThis = this;
+        lArgs->aChunk = 0;
+        
+        pthread_create(&lThread, NULL, &ThreadStart, lArgs);
+        pthread_join(lThread, NULL);
+        
+        //unsigned int this_n_consumed = (this->*consume_string_fn)(reads, lCount);
+        
         total_reads += lCount;
         
         cout << total_reads << " " << n_consumed << endl;
         
+//        if ( lThreads.size() >= THREADCT )
+//        {
+//          for (int i = 0; i < lThreads.size(); ++i)
+//          {
+//            pthread_join(lThreads[i], NULL);
+//            cout << "hihi " << i << endl;
+//          }
+//          lThreads.clear();
+//        }
       }
     }
     
-    //
-    // check_and_process_read: checks for non-ACGT characters before consuming
-    //
+    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
+    void consume_strings_for_hash_table(const std::string &filename)
+    {
+      time_t start, end;      
+      start = time(NULL);
+      
+      int total_reads = 0;
+      
+      IParser* parser = IParser::get_parser(filename.c_str());
+      Read read;
+      
+      string currName = "";
+      string currSeq = "";
+      
+      string reads[100000];
+      
+      while(!parser->is_complete())  {
+        
+        int lCount = 0;
+        for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
+        {
+          read = parser->get_next_read();
+          if ( check_read( read.seq ) )
+          {
+            reads[lCount] = read.seq;
+            lCount++;
+          }
+        }
+
+        for ( int j = 0; j < lCount; ++j )
+        {        
+          const char * sp = reads[j].c_str();
+          const unsigned int length = reads[j].length();
+          
+          HashIntoType forward_hash = 0, reverse_hash = 0;
+                    
+          HashIntoType hash = 0;
+          bool lHashGenerated = false;
+          
+          for (unsigned int k = _ksize - 1; k < length; ++k)
+          {
+            if ( lHashGenerated )
+              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
+            else
+            {
+              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+              lHashGenerated = true;
+            }
+            _Sets_Manager->seen_hash( hash );
+          }
+        }
+        
+        total_reads += lCount;        
+        
+        cout << total_reads << endl;
+      }
+      
+      end = time(NULL);        
+      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
+    }
     
-//    unsigned int check_and_process_read(string * reads,
-//                                        int aCount,
-//                                        ConsumeStringFN consume_string_fn)
-//    {
-//      
-//      for ( int i = 0; i < aCount; ++i )        
-//      {
-//        if ( !check_read( reads[i] ) )
-//          return 0;
-//      }
-//      
-//      return (this->*consume_string_fn)(reads, aCount);
-//    }
+    
+    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
+    void generate_sets(const std::string &filename)
+    {
+      time_t start, end;      
+      start = time(NULL);
+      
+      int total_reads = 0;
+      
+      IParser* parser = IParser::get_parser(filename.c_str());
+      Read read;
+      
+      string currName = "";
+      string currSeq = "";
+      
+      string reads[100000];
+      
+      while(!parser->is_complete())  {
+        
+        int lCount = 0;
+        for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
+        {
+          read = parser->get_next_read();
+          if ( check_read( read.seq ) )
+          {
+            reads[lCount] = read.seq;
+            lCount++;
+          }
+        }
+        
+        for ( int j = 0; j < lCount; ++j )
+        {        
+          const char * sp = reads[j].c_str();
+          const unsigned int length = reads[j].length();
+          
+          HashIntoType forward_hash = 0, reverse_hash = 0;
+          
+          SetHandle lWorkingSet = NULL;
+          HashIntoType hash = 0;
+          bool lHashGenerated = false;
+          
+          for (unsigned int k = _ksize - 1; k < length; ++k)
+          {
+            if ( lHashGenerated )
+              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
+            else
+            {
+              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+              lHashGenerated = true;
+            }
+            
+            if ( _Sets_Manager->can_have_set( hash ) )
+            {
+              if ( lWorkingSet == NULL )
+              {
+                lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
+                continue; // move on
+              }
+              if ( _Sets_Manager->has_existing_set( hash ) )
+              {
+                SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
+                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
+                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
+              }
+              else
+                _Sets_Manager->add_to_set( lWorkingSet, hash );
+            }
+          }
+        }
+        total_reads += lCount;        
+        
+        cout << total_reads << endl;
+      }
+      
+      end = time(NULL);        
+      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
+    }
+    
   };
+  
+  typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
+  
+  typedef struct ThreadArgs {
+    ConsumeStringFN aMethod;
+    string * aReads;
+    int aCount;
+    BleuFilter * aThis;
+    int aChunk;
+  };
+  
+  void * ThreadStart( void * aArgs )
+  {
+    ThreadArgs * lArgs = (ThreadArgs*) aArgs;
+
+    int lConsumed = (lArgs->aThis->*lArgs->aMethod)( lArgs->aReads, lArgs->aCount );
+    cout << "Chunk " << lArgs->aChunk << " consumed: " << lConsumed << endl;
+    
+    return (void*) lConsumed;
+  }
 }
 
 

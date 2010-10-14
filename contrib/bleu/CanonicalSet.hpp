@@ -18,10 +18,11 @@
 #include "../../lib/khmer.hh"
 #include <list>
 
-#define BIT_COUNT_PARTITION 1000
+
 
 #define HASHES 8
 #define BIN_SIZE 50
+
 
 namespace bleu {
   

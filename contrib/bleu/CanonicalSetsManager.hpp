@@ -9,7 +9,8 @@
 
 #include "../../lib/hashtable.hh"
 #include "../../lib/parsers.hh"
-#include "../external_lib/cBitArray.h"
+//#include "../external_lib/cBitArray.h"
+#include "BitArray.hpp"
 #include "CanonicalSet.hpp"
 #include <algorithm>
 
@@ -35,8 +36,8 @@ namespace bleu {
   {
   private:
     // sizes set during constructor
-    cBitArray * _hash_table_preliminary[HASHES]; // two-dimensional hash-table
-    cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
+    BitArray * _hash_table[HASHES]; // two-dimensional hash-table
+    //cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
     
     unsigned long long _tablesizes[HASHES]; // the sizes of the hash tables
     unsigned long long * _hash_table_bit_counts_lookup[HASHES]; // the number of bits set in the hash table, by every 10k entries
@@ -75,11 +76,11 @@ namespace bleu {
       
       for ( int j = 0; j < HASHES; ++j )      
       {
-        _hash_table_preliminary[j] = new cBitArray( _tablesizes[j] );
-        _hash_table_preliminary[j]->Clear();      
-        
-        _hash_table[j] = new cBitArray( _tablesizes[j] );
-        _hash_table[j]->Clear(); 
+//        _hash_table_preliminary[j] = new cBitArray( _tablesizes[j] );
+//        _hash_table_preliminary[j]->Clear();      
+//        
+        _hash_table[j] = new BitArray( _tablesizes[j], true );
+//        _hash_table[j]->Clear(); 
         
         _hash_table_bit_counts_lookup[j] = new unsigned long long[(_tablesizes[j] / BIT_COUNT_PARTITION)+1];
         memset(_hash_table_bit_counts_lookup[j], 0, ((_tablesizes[j] / BIT_COUNT_PARTITION)+1) * sizeof(unsigned long long));
@@ -107,12 +108,14 @@ namespace bleu {
     {
       for (int i = 0; i < HASHES; ++i )
       {
-        unsigned long long lHashBin = HashToHashBinCached(aHash, i); 
+        unsigned long long lHashBin = HashToHashBin(aHash, i); 
         
-        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
-          _hash_table[i]->Set(lHashBin, true);
-        else
-          _hash_table_preliminary[i]->Set(lHashBin, true);
+       _hash_table[i]->IncrementSemiNibble(lHashBin);
+        
+//        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
+//          _hash_table[i]->Set(lHashBin, true);
+//        else
+//          _hash_table_preliminary[i]->Set(lHashBin, true);
       }
     }
     
@@ -126,11 +129,11 @@ namespace bleu {
       bool lCanHaveASet = false;
       for ( int i = 0; i < HASHES; ++i )
       {
-        HashBin lHashBin = HashToHashBinCached(aHash, i);
+        HashBin lHashBin = HashToHashBin(aHash, i);
         
         if ( i == 0 )
-          lCanHaveASet = _hash_table[i]->Get(lHashBin) == true;
-        else if ( _hash_table[i]->Get(lHashBin) != lCanHaveASet ) // we have a disagreement.
+          lCanHaveASet = _hash_table[i]->GetBit(lHashBin) == true;
+        else if ( _hash_table[i]->GetBit(lHashBin) != lCanHaveASet ) // we have a disagreement.
           return false;
       }
 
@@ -156,7 +159,7 @@ namespace bleu {
     {
       for ( int i = 0; i < HASHES; ++i )
       {
-        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
+        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBin(aHash, i), i );
         if ( _set_offsets[i][ lBin ] == 0 )
           return false;
       }
@@ -169,7 +172,7 @@ namespace bleu {
       
       for ( int i = 0; i < HASHES; ++i )
       {
-        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );
+        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBin(aHash, i), i );
         
                 
         assert(_set_offsets[i][ lBin ] > 0);
@@ -193,7 +196,7 @@ namespace bleu {
     {   
       for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
       {
-        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBinCached(aHash, i), i );    
+        SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBin(aHash, i), i );    
         _set_offsets[i][ lBin ] = aSet->PrimarySetOffset;        
       }
       aSet->KmerCount++;
@@ -394,7 +397,8 @@ namespace bleu {
     {
       for (int i = 0; i < HASHES; ++i)
       {
-        delete _hash_table_preliminary[i];
+        _hash_table[i]->CollapseArrayToSecondBit();
+//        delete _hash_table_preliminary[i];
       }      
     }
     
@@ -411,34 +415,34 @@ namespace bleu {
     // helper functions
     //
     
-    // calculate the hash bin from a kmer's hash
-    // store the modulo output for future reference.
-    HashBin HashToHashBinCached( HashIntoType aHash, int i ) // no idea if this will be faster than moduloing every time.
-    {
-      for (int j = 0, index = _hash_bin_cache_last_used_index[i]; j < CACHESIZE; ++j, ++index)
-      {
-        if ( index >= CACHESIZE )
-          index = 0;
-        
-        if ( _hash_bin_cache[i][index].first == aHash )
-        {
-          _hash_bin_cache_last_used_index[i] = index;
-          return _hash_bin_cache[i][index].second; // found it
-        }
-      }
-      
-      // didn't find it.
-      HashBin lHashBin = HashToHashBin(aHash, i);
-      
-      // insert it into the cache;
-      _hash_bin_cache_last_used_index[i]++;
-      if ( _hash_bin_cache_last_used_index[i] >= CACHESIZE )
-        _hash_bin_cache_last_used_index[i] = 0;
-      
-      _hash_bin_cache[i][ _hash_bin_cache_last_used_index[i] ] = pair<HashIntoType,HashBin>(aHash, lHashBin);
-      
-      return lHashBin;  
-    }    
+//    // calculate the hash bin from a kmer's hash
+//    // store the modulo output for future reference.
+//    HashBin HashToHashBinCached( HashIntoType aHash, int i ) // no idea if this will be faster than moduloing every time.
+//    {
+//      for (int j = 0, index = _hash_bin_cache_last_used_index[i]; j < CACHESIZE; ++j, ++index)
+//      {
+//        if ( index >= CACHESIZE )
+//          index = 0;
+//        
+//        if ( _hash_bin_cache[i][index].first == aHash )
+//        {
+//          _hash_bin_cache_last_used_index[i] = index;
+//          return _hash_bin_cache[i][index].second; // found it
+//        }
+//      }
+//      
+//      // didn't find it.
+//      HashBin lHashBin = HashToHashBin(aHash, i);
+//      
+//      // insert it into the cache;
+//      _hash_bin_cache_last_used_index[i]++;
+//      if ( _hash_bin_cache_last_used_index[i] >= CACHESIZE )
+//        _hash_bin_cache_last_used_index[i] = 0;
+//      
+//      _hash_bin_cache[i][ _hash_bin_cache_last_used_index[i] ] = pair<HashIntoType,HashBin>(aHash, lHashBin);
+//      
+//      return lHashBin;  
+//    }    
     HashBin HashToHashBin( HashIntoType aHash, int i ) // no idea which is faster.
     {
       return (aHash % _tablesizes[i]);
@@ -475,7 +479,7 @@ namespace bleu {
     SetOffsetBin HashBinToSetOffsetBin( HashBin aBin, int i )
     {      
       assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
-      assert( _hash_table[i]->Get( aBin ) == true );
+      assert( _hash_table[i]->GetBit( aBin ) == true );
       
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       

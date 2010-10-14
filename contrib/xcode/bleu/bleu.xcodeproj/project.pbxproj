@@ -33,6 +33,7 @@
 		C6859E8B029090EE04C91782 /* bleu.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = bleu.1; sourceTree = "<group>"; };
 		D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CanonicalSetsManager.hpp; path = ../../bleu/CanonicalSetsManager.hpp; sourceTree = SOURCE_ROOT; };
 		D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CanonicalSet.hpp; path = ../../bleu/CanonicalSet.hpp; sourceTree = SOURCE_ROOT; };
+		D845C6531267B757003A3CE6 /* BitArray.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = BitArray.hpp; path = ../../bleu/BitArray.hpp; sourceTree = SOURCE_ROOT; };
 		D850F4A6124CFD07003E38AA /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../pyrex/Makefile; sourceTree = SOURCE_ROOT; };
 		D850F4A7124CFD2A003E38AA /* bleu.pyx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = bleu.pyx; path = ../../pyrex/bleu.pyx; sourceTree = SOURCE_ROOT; xcLanguageSpecificationIdentifier = xcode.lang.python; };
 		D850F4CE124D0DC8003E38AA /* setup.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = setup.py; path = ../../pyrex/setup.py; sourceTree = SOURCE_ROOT; };
@@ -83,8 +84,9 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
+				D845C6531267B757003A3CE6 /* BitArray.hpp */,
 				D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */,
+				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
 				D898060D121DCF9D0007A0AB /* bleu.cpp */,
 				D8B9DAE2125A7C65007AEFA4 /* SupportingFiles */,
@@ -182,7 +184,6 @@
 			isa = PBXProject;
 			buildConfigurationList = 1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "bleu" */;
 			compatibilityVersion = "Xcode 3.1";
-			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
 				en,

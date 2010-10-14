@@ -391,8 +391,8 @@ bool Hashtable::check_read(const std::string &read)
 
    for (i = 0; i < read.length(); i++)  {
      if (!is_valid_dna(read[i])) {
-         is_valid = false;
-	 return 0;
+        is_valid = false;
+        return 0;
       }
    }
 
