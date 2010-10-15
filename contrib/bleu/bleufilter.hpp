@@ -101,62 +101,62 @@ namespace bleu {
 //      return n_consumed;
 //    }
 //    
-    
-    // consume_string: run through every k-mer in the given string, & hash it.
-    // overriding the Hashtable version to support my new thang.
-    unsigned int consume_strings_for_set(
-                                string * reads,
-                                int aReadCount)
-
-    {
-      unsigned int n_consumed = 0;
-      
-      for ( int i = 0; i < aReadCount; ++i )
-      {
-        if ( check_read( reads[i] ) )
-        {
-          const char * sp = reads[i].c_str();
-          const unsigned int length = reads[i].length();
-         
-          HashIntoType forward_hash = 0, reverse_hash = 0;
-          
-          SetHandle lWorkingSet = NULL;
-          HashIntoType hash = 0;
-          bool lHashGenerated = false;
-          
-          for (unsigned int i = _ksize - 1; i < length; ++i)
-          {
-            if ( lHashGenerated )
-              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
-            else
-            {
-              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-              lHashGenerated = true;
-            }
-            
-            ++n_consumed;
-             
-            if ( _Sets_Manager->can_have_set( hash ) )
-            {
-              if ( lWorkingSet == NULL )
-              {
-                lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
-                continue; // move on
-              }
-              if ( _Sets_Manager->has_existing_set( hash ) )
-              {
-                SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
-                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
-                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
-              }
-              else
-                _Sets_Manager->add_to_set( lWorkingSet, hash );
-            }
-          }
-        }
-      }
-      return n_consumed;
-    }
+//    
+//    // consume_string: run through every k-mer in the given string, & hash it.
+//    // overriding the Hashtable version to support my new thang.
+//    unsigned int consume_strings_for_set(
+//                                string * reads,
+//                                int aReadCount)
+//
+//    {
+//      unsigned int n_consumed = 0;
+//      
+//      for ( int i = 0; i < aReadCount; ++i )
+//      {
+//        if ( check_read( reads[i] ) )
+//        {
+//          const char * sp = reads[i].c_str();
+//          const unsigned int length = reads[i].length();
+//         
+//          HashIntoType forward_hash = 0, reverse_hash = 0;
+//          
+//          SetHandle lWorkingSet = NULL;
+//          HashIntoType hash = 0;
+//          bool lHashGenerated = false;
+//          
+//          for (unsigned int i = _ksize - 1; i < length; ++i)
+//          {
+//            if ( lHashGenerated )
+//              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
+//            else
+//            {
+//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+//              lHashGenerated = true;
+//            }
+//            
+//            ++n_consumed;
+//             
+//            if ( _Sets_Manager->can_have_set( hash ) )
+//            {
+//              if ( lWorkingSet == NULL )
+//              {
+//                lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
+//                continue; // move on
+//              }
+//              if ( _Sets_Manager->has_existing_set( hash ) )
+//              {
+//                SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
+//                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
+//                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
+//              }
+//              else
+//                _Sets_Manager->add_to_set( lWorkingSet, hash );
+//            }
+//          }
+//        }
+//      }
+//      return n_consumed;
+//    }
     
     HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
     {
@@ -285,81 +285,81 @@ namespace bleu {
     
 
 
-    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
-    void consume_reads(const std::string &filename,
-                       unsigned int &total_reads,
-                       unsigned long long &n_consumed,
-                       ConsumeStringFN consume_string_fn,
-                       HashIntoType lower_bound = 0,
-                       HashIntoType upper_bound = 0,
-                       ReadMaskTable ** orig_readmask = NULL,
-                       bool update_readmask = true,
-                       CallbackFn callback = NULL,
-                       void * callback_data = NULL)
-    {
-      total_reads = 0;
-      n_consumed = 0;
-      
-      IParser* parser = IParser::get_parser(filename.c_str());
-      Read read;
-      
-      string currName = "";
-      string currSeq = "";
-      
-      string reads[10000];
-      
-      //vector<pthread_t> lThreads;
-
-      while(!parser->is_complete())  {
-        
-        int lCount = 0;
-        for (int i = 0; i < 10000 && !parser->is_complete(); ++i)
-        {
-          read = parser->get_next_read();
-          reads[i] = read.seq;
-          lCount = i + 1;
-        }
-          
-        // yep! process.
-
-        pthread_t lThread;  
-        //lThreads.push_back( lThread );
-        
-        typedef struct ThreadArgs {
-          ConsumeStringFN aMethod;
-          string * aReads;
-          int aCount;
-          BleuFilter * aThis;
-          int aChunk;
-        };
-
-        ThreadArgs * lArgs = new ThreadArgs();
-        lArgs->aMethod = consume_string_fn;
-        lArgs->aReads = reads;
-        lArgs->aCount = lCount;
-        lArgs->aThis = this;
-        lArgs->aChunk = 0;
-        
-        pthread_create(&lThread, NULL, &ThreadStart, lArgs);
-        pthread_join(lThread, NULL);
-        
-        //unsigned int this_n_consumed = (this->*consume_string_fn)(reads, lCount);
-        
-        total_reads += lCount;
-        
-        cout << total_reads << " " << n_consumed << endl;
-        
-//        if ( lThreads.size() >= THREADCT )
+//    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
+//    void consume_reads(const std::string &filename,
+//                       unsigned int &total_reads,
+//                       unsigned long long &n_consumed,
+//                       ConsumeStringFN consume_string_fn,
+//                       HashIntoType lower_bound = 0,
+//                       HashIntoType upper_bound = 0,
+//                       ReadMaskTable ** orig_readmask = NULL,
+//                       bool update_readmask = true,
+//                       CallbackFn callback = NULL,
+//                       void * callback_data = NULL)
+//    {
+//      total_reads = 0;
+//      n_consumed = 0;
+//      
+//      IParser* parser = IParser::get_parser(filename.c_str());
+//      Read read;
+//      
+//      string currName = "";
+//      string currSeq = "";
+//      
+//      string reads[10000];
+//      
+//      //vector<pthread_t> lThreads;
+//
+//      while(!parser->is_complete())  {
+//        
+//        int lCount = 0;
+//        for (int i = 0; i < 10000 && !parser->is_complete(); ++i)
 //        {
-//          for (int i = 0; i < lThreads.size(); ++i)
-//          {
-//            pthread_join(lThreads[i], NULL);
-//            cout << "hihi " << i << endl;
-//          }
-//          lThreads.clear();
+//          read = parser->get_next_read();
+//          reads[i] = read.seq;
+//          lCount = i + 1;
 //        }
-      }
-    }
+//          
+//        // yep! process.
+//
+//        pthread_t lThread;  
+//        //lThreads.push_back( lThread );
+//        
+//        typedef struct ThreadArgs {
+//          ConsumeStringFN aMethod;
+//          string * aReads;
+//          int aCount;
+//          BleuFilter * aThis;
+//          int aChunk;
+//        };
+//
+//        ThreadArgs * lArgs = new ThreadArgs();
+//        lArgs->aMethod = consume_string_fn;
+//        lArgs->aReads = reads;
+//        lArgs->aCount = lCount;
+//        lArgs->aThis = this;
+//        lArgs->aChunk = 0;
+//        
+//        pthread_create(&lThread, NULL, &ThreadStart, lArgs);
+//        pthread_join(lThread, NULL);
+//        
+//        //unsigned int this_n_consumed = (this->*consume_string_fn)(reads, lCount);
+//        
+//        total_reads += lCount;
+//        
+//        cout << total_reads << " " << n_consumed << endl;
+//        
+////        if ( lThreads.size() >= THREADCT )
+////        {
+////          for (int i = 0; i < lThreads.size(); ++i)
+////          {
+////            pthread_join(lThreads[i], NULL);
+////            cout << "hihi " << i << endl;
+////          }
+////          lThreads.clear();
+////        }
+//      }
+//    }
     
     // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
     void consume_strings_for_hash_table(const std::string &filename)
@@ -380,6 +380,7 @@ namespace bleu {
       while(!parser->is_complete())  {
         
         int lCount = 0;
+        int lKmerCt = 0;
         for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
         {
           read = parser->get_next_read();
@@ -387,9 +388,18 @@ namespace bleu {
           {
             reads[lCount] = read.seq;
             lCount++;
+            
+            lKmerCt += read.seq.length() - _ksize + 1;
           }
         }
-
+        
+        HashBin * lBins[HASHES];
+        for ( int table = 0; table < HASHES; ++table )
+        {
+          lBins[table] = new HashBin[lKmerCt];
+        } 
+        
+//        int lKCt = 0;
         for ( int j = 0; j < lCount; ++j )
         {        
           const char * sp = reads[j].c_str();
@@ -409,9 +419,26 @@ namespace bleu {
               hash = _hash(sp, _ksize, forward_hash, reverse_hash);
               lHashGenerated = true;
             }
+            
+//            for ( int table = 0; table < HASHES; ++table )
+//            {
+//              lBins[table][lKCt] = _Sets_Manager->HashToHashBin(hash, table);
+//            }
+//            ++lKCt;
             _Sets_Manager->seen_hash( hash );
           }
         }
+        
+//        for ( int l = 0; l < HASHES; ++l )
+//        {
+//          sort(lBins[l], lBins[l] + lKmerCt);
+//          
+//          //for ( int m = 0; m < lKmerCt; ++m )
+////          {
+//            _Sets_Manager->seen_hash(lBins[l], lKmerCt, l);
+//          //}
+//          
+//        }
         
         total_reads += lCount;        
         

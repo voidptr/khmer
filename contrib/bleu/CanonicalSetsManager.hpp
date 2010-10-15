@@ -103,21 +103,36 @@ namespace bleu {
     //    
     
     // mark a kmer/hash as "interesting" if it appears more than once.
+    void seen_hash( HashBin * aBins, unsigned long long lCount, int lTable )
+    {
+      cBitArray * lPrelim = _hash_table_preliminary[lTable];
+      cBitArray * lFinal = _hash_table[lTable];
+      HashBin lBin = 0;
+      for ( int i = 0; i < lCount; ++i )
+      {
+        lBin = aBins[i];
+        
+        if ( lPrelim->Get(lBin) )
+          lFinal->Set(lBin, true);
+        else
+          lPrelim->Set(lBin, true);
+
+      }
+    }
+    
     void seen_hash( HashIntoType aHash )
     {
-      for (int i = 0; i < HASHES; ++i )
+      
+      for ( int i = 0; i < HASHES; ++i )
       {
         unsigned long long lHashBin = HashToHashBin(aHash, i); 
-        
-        //_hash_table_preliminary[i]->IncrementSemiNibble(lHashBin);
-        
-//        _hash_table_preliminary[i]->Get(lHashBin)
-        
+
         if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
           _hash_table[i]->Set(lHashBin, true);
         else
           _hash_table_preliminary[i]->Set(lHashBin, true);
-      }
+       } 
+          
     }
     
     //
@@ -479,7 +494,7 @@ namespace bleu {
     SetOffsetBin HashBinToSetOffsetBin( HashBin aBin, int i )
     {      
       assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
-      assert( _hash_table[i]->Get( aBin ) == true );
+//      assert( _hash_table[i]->Get( aBin ) == true );
       
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       
