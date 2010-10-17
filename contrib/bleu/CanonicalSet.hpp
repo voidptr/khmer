@@ -33,16 +33,16 @@ namespace bleu {
   {
     typedef CanonicalSet * SetHandle;
     typedef SetHandle * SetPointer;
-    typedef unsigned short SetOffset;
+    typedef unsigned long long SetOffset;
     
     friend class CanonicalSetManager;    
 
   public:
     vector<SetPointer> BackReferences;
     bool JoinOfConvenience;
-    SetOffset PrimarySetOffset;
     unsigned long long KmerCount;
-
+  private:
+    SetOffset PrimarySetOffset;
     
   public:
     SetPointer Self;
@@ -50,6 +50,7 @@ namespace bleu {
     CanonicalSet( SetOffset aStartingSetOffset )      
     {        
       PrimarySetOffset = aStartingSetOffset;
+      assert( PrimarySetOffset > 0 );
       
       Self = new SetHandle();
       *Self = this;
@@ -59,6 +60,12 @@ namespace bleu {
       KmerCount = 0;
       
       JoinOfConvenience = false;
+    }
+    
+    SetOffset GetPrimarySetOffset()
+    {
+      assert( PrimarySetOffset > 0 );
+      return PrimarySetOffset;
     }
     
     void OutputInfo()

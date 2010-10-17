@@ -17,7 +17,8 @@
 
 #define HASHES 8
 #define CACHESIZE 10
-#define SETS_SIZE 65535
+#define SET_OFFSET_BITS 17
+#define SETS_SIZE pow(2, SET_OFFSET_BITS)
 
 namespace bleu {
   
@@ -29,7 +30,9 @@ namespace bleu {
   
   typedef unsigned long long HashBin;
   typedef unsigned long long SetOffsetBin;
-  typedef unsigned short SetOffset;
+  typedef unsigned long long SetOffset;
+  
+  typedef unsigned long long SetOffsetContainer;
   
   class CanonicalSetsManager
   {
@@ -44,7 +47,7 @@ namespace bleu {
     
     // sizes set during prep 1 (based on processing of _hash_table)
     unsigned long long _hash_table_total_bit_counts[HASHES];
-    unsigned short * _set_offsets[HASHES]; 
+    SetOffsetContainer * _set_offsets[HASHES]; 
     
     // contents set during (based on the processing of the reads)  
     vector<SetPointer> _sets; // array of sets
@@ -96,6 +99,7 @@ namespace bleu {
       }
       
       _sets.resize(SETS_SIZE, NULL);
+      cout << SETS_SIZE << endl;
     }
     //
     // first pass through the reads -- determine if reads are interesting 
@@ -176,25 +180,24 @@ namespace bleu {
       for ( int i = 0; i < HASHES; ++i )
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBin(aHash, i), i );
-        if ( _set_offsets[i][ lBin ] == 0 )
+        if ( SetOffsetBinToSetOffset( lBin, i ) == 0 )
           return false;
       }
       return true;
     }
     // find a set for this hash that already exists.
-    SetHandle get_existing_set( HashIntoType aHash )
+    SetHandle get_existing_set( HashIntoType aHash, SetHandle aWorkingSet=NULL )
     {    
       map<SetHandle, int> lRepresented;
       
       for ( int i = 0; i < HASHES; ++i )
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBin(aHash, i), i );
-        
-                
-        assert(_set_offsets[i][ lBin ] > 0);
-        
-        lRepresented[ SetOffsetToSet( _set_offsets[i][ lBin ] ) ]++;
+        SetOffset lOffset = SetOffsetBinToSetOffset(lBin, i);
+        assert(lOffset > 0);        
+        lRepresented[ SetOffsetToSet( lOffset ) ]++;
       }
+      
       
       // figure out what the consensus set was
       SetHandle lMostRepresented = NULL; 
@@ -202,8 +205,11 @@ namespace bleu {
       {
         if ( lMostRepresented == NULL || lSet->second > lRepresented[ lMostRepresented ] ) // because maps are sorted, this will end up being the set with the lowest pointer, and the highest count.
           lMostRepresented = lSet->first;
-      }     
+      }
+      
+      // even if there isn't consensus, well, we just join up the working set with the one who won the election. Good enough.
       return lMostRepresented;      
+      
     }
 
     
@@ -213,7 +219,7 @@ namespace bleu {
       for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
       {
         SetOffsetBin lBin = HashBinToSetOffsetBinCached( HashToHashBin(aHash, i), i );    
-        _set_offsets[i][ lBin ] = aSet->PrimarySetOffset;        
+        AssignSetOffsetToBin( lBin, i, aSet->GetPrimarySetOffset(), false ); // don't overwrite
       }
       aSet->KmerCount++;
     }
@@ -265,7 +271,7 @@ namespace bleu {
     {
       assert( aOriginatingSet != aEncounteredSet); // we really really shouldn't be the same set.
 
-      if ( aOriginatingSet->PrimarySetOffset < aEncounteredSet->PrimarySetOffset ) // the bigger one wins, since it almost certainly has more back references.
+      if ( aOriginatingSet->GetPrimarySetOffset() < aEncounteredSet->GetPrimarySetOffset() ) // the bigger one wins, since it almost certainly has more back references.
       {
         join( aOriginatingSet, aEncounteredSet );
         return aOriginatingSet;
@@ -285,9 +291,11 @@ namespace bleu {
       {
         for ( int j = 0; j < _hash_table_total_bit_counts[i]; ++j )
         {
-          if ( _set_offsets[i][j] != 0 ) // there's something in here
+          SetOffset lOffset = SetOffsetBinToSetOffset(j, i);
+          if ( lOffset != 0 ) // there's something in here
           {
-            _set_offsets[i][j] = SetOffsetToSet( _set_offsets[i][j] )->PrimarySetOffset; 
+            AssignSetOffsetToBin( j, i, SetOffsetToSet( lOffset )->GetPrimarySetOffset(), true );
+//            _set_offsets[i][j] = SetOffsetToSet( lOffset )->PrimarySetOffset; 
           }
         }
       }
@@ -300,7 +308,7 @@ namespace bleu {
         {
           SetHandle lSet = *_sets[k];
           
-          if ( k != lSet->PrimarySetOffset )
+          if ( k != lSet->GetPrimarySetOffset() )
           {
             _sets[k] = NULL;
             _released_set_offsets.push_back( k ); // it's null! hey!
@@ -350,7 +358,7 @@ namespace bleu {
       _sorted_sets.clear();
       for (int i = 0; i < SETS_SIZE; ++i )
       {
-        if ( _sets[i] != NULL && (*(_sets[i]))->PrimarySetOffset == i ) // I'm in my canonical spot
+        if ( _sets[i] != NULL && (*(_sets[i]))->GetPrimarySetOffset() == i ) // I'm in my canonical spot
           _sorted_sets.push_back( _sets[i] );
       }
       
@@ -421,8 +429,11 @@ namespace bleu {
     {
       for (int i = 0; i < HASHES; ++i)
       {
-        _set_offsets[i] = new unsigned short[ _hash_table_total_bit_counts[i] ];
-        memset(_set_offsets[i], 0, _hash_table_total_bit_counts[i] * sizeof(unsigned short));
+        
+        unsigned long long lContainerCount = ceil( (17/(double)(sizeof(SetOffsetContainer)*8)) *_hash_table_total_bit_counts[i]);
+      
+        _set_offsets[i] = new SetOffsetContainer[ lContainerCount ];
+        memset(_set_offsets[i], 0, lContainerCount * sizeof(SetOffsetContainer));
       }
     }
     
@@ -510,6 +521,87 @@ namespace bleu {
       lSetOffsetBin -= 1; // to make it an array index rather than a count.
       
       return lSetOffsetBin;
+    }
+    
+    SetOffset SetOffsetBinToSetOffset( SetOffsetBin aBin, int i )
+    {
+      unsigned long long lGlobalBit = aBin * SET_OFFSET_BITS;
+      unsigned long long lField = lGlobalBit / (sizeof(SetOffsetContainer)*8);
+      unsigned long long lLocalBit = lGlobalBit % (sizeof(SetOffsetContainer)*8);
+      
+      SetOffset lMask = pow(2, SET_OFFSET_BITS)-1;
+      SetOffset lOffset = (_set_offsets[i][lField] >> lLocalBit) & lMask;
+
+      int lSpaceUsed = (sizeof(SetOffsetContainer)*8) - lLocalBit;      
+      
+//      SetOffsetContainer lDELETEMEField1 = _set_offsets[i][lField];
+//      SetOffsetContainer lDELETEMEField2 = 0;
+      if (lSpaceUsed < SET_OFFSET_BITS)
+      {
+        lOffset |= (_set_offsets[i][lField+1] << lSpaceUsed) & lMask;
+//        lDELETEMEField2 = _set_offsets[i][lField+1];
+      }
+      
+      assert( lOffset < SETS_SIZE );
+      
+      return lOffset;      
+    }
+    
+    bool AssignSetOffsetToBin( SetOffsetBin aBin, int i, SetOffset aVal, bool aOverwrite )
+    {
+
+      if ( !aOverwrite ) // if overwrite is false
+      {
+        SetOffset lOldOffset = SetOffsetBinToSetOffset(aBin, i);
+        if ( lOldOffset > 0 )
+          return false;
+      }
+    
+      SetOffsetContainer lWorkingValue = aVal;
+    
+      unsigned long long lGlobalBit = aBin * SET_OFFSET_BITS;
+      unsigned long long lField = lGlobalBit / (sizeof(SetOffsetContainer)*8);
+      unsigned long long lLocalBit = lGlobalBit % (sizeof(SetOffsetContainer)*8);
+
+      int lSpaceUsed = (sizeof(SetOffsetContainer)*8) - lLocalBit;
+      SetOffsetContainer lAssignmentMask = ~( ((SetOffsetContainer)pow(2, SET_OFFSET_BITS) - 1) << lLocalBit );
+      
+//      SetOffsetContainer lDELETEMEField1 = _set_offsets[i][lField];
+//      SetOffsetContainer lDELETEMEField2 = 0;
+//      SetOffsetContainer lDELETEMEField2After = 0;
+//      
+//      SetOffsetContainer lDELETEMEShiftedValue = (lWorkingValue << lLocalBit);
+//      SetOffsetContainer lDELETEMEMaskedOriginalValue = (_set_offsets[i][lField] & lAssignmentMask);
+//      SetOffsetContainer lDELETEMEOREDTOGETHER = (_set_offsets[i][lField] & lAssignmentMask) | (lWorkingValue << lLocalBit);
+//
+//      SetOffsetContainer lDELETEMEShiftedValue2 = 0;
+//      SetOffsetContainer lDELETEMEMaskedOriginalValue2 = 0;
+//      SetOffsetContainer lDELETEMEOREDTOGETHER2 = 0;
+
+      
+      _set_offsets[i][lField] = (_set_offsets[i][lField] & lAssignmentMask) | (lWorkingValue << lLocalBit);
+      
+//      SetOffsetContainer lDELETEMEField1After = _set_offsets[i][lField];
+      
+      if ( lSpaceUsed < SET_OFFSET_BITS )
+      {
+//        lDELETEMEField2 = _set_offsets[i][lField+1];
+        int lShiftCount = lSpaceUsed;
+        SetOffsetContainer lShiftMask = ~( ((SetOffsetContainer)pow(2, SET_OFFSET_BITS) - 1) >> lShiftCount );
+        
+//        lDELETEMEShiftedValue2 = (lWorkingValue >> lShiftCount);
+//        lDELETEMEMaskedOriginalValue2 = (_set_offsets[i][lField+1] & lShiftMask );
+//        lDELETEMEOREDTOGETHER2 = (_set_offsets[i][lField+1] & lShiftMask ) | (lWorkingValue >> lShiftCount);
+        
+        _set_offsets[i][lField+1] = (_set_offsets[i][lField+1] & lShiftMask ) | (lWorkingValue >> lShiftCount);
+        
+//        lDELETEMEField2After = _set_offsets[i][lField+1];
+      }
+  
+      SetOffset lCircVal = SetOffsetBinToSetOffset(aBin, i);
+      assert( lCircVal == aVal);
+      
+      return true;
     }
     
     SetHandle SetOffsetToSet( SetOffset aOffset )

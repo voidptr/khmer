@@ -229,7 +229,7 @@ namespace bleu {
           unsigned int lSetID = 0;
           if ( lSet != NULL )
           {
-            lSetID = lSet->PrimarySetOffset;
+            lSetID = lSet->GetPrimarySetOffset();
             
             if ( lSet->JoinOfConvenience )
             {
@@ -514,7 +514,10 @@ namespace bleu {
                   lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
               }
               else
+              {
+                
                 _Sets_Manager->add_to_set( lWorkingSet, hash );
+              }
             }
           }
         }
