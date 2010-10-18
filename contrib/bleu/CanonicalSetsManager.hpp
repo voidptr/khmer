@@ -17,7 +17,7 @@
 
 #define HASHES 8
 #define CACHESIZE 10
-#define SET_OFFSET_BITS 17
+#define SET_OFFSET_BITS 18
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
 
 namespace bleu {
@@ -286,6 +286,9 @@ namespace bleu {
     
     void canonicalize()
     {
+      time_t lStart;
+      lStart = time(NULL);
+      cout << "Canonicalization starting." << endl;
       // go through all the set offsets and point them to their canonical locations.
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -323,7 +326,7 @@ namespace bleu {
         }
       }
       
-      cout << "Canonicalizing: Released " << _released_set_offsets.size() << " sets." << endl;
+      cout << "Canonicalizing: Released " << _released_set_offsets.size() << " sets, in " << difftime(time(NULL), lStart) << " seconds." << endl;
     }
     
     void join ( SetHandle aJoinee, SetHandle aJoiner )
