@@ -399,14 +399,7 @@ namespace bleu {
             lKmerCt += read.seq.length() - _ksize + 1;
           }
         }
-        
-        HashBin * lBins[HASHES];
-        for ( int table = 0; table < HASHES; ++table )
-        {
-          lBins[table] = new HashBin[lKmerCt];
-        } 
-        
-//        int lKCt = 0;
+
         for ( int j = 0; j < lCount; ++j )
         {        
           const char * sp = reads[j].c_str();
@@ -427,25 +420,9 @@ namespace bleu {
               lHashGenerated = true;
             }
             
-//            for ( int table = 0; table < HASHES; ++table )
-//            {
-//              lBins[table][lKCt] = _Sets_Manager->HashToHashBin(hash, table);
-//            }
-//            ++lKCt;
             _Sets_Manager->seen_hash( hash );
           }
         }
-        
-//        for ( int l = 0; l < HASHES; ++l )
-//        {
-//          sort(lBins[l], lBins[l] + lKmerCt);
-//          
-//          //for ( int m = 0; m < lKmerCt; ++m )
-////          {
-//            _Sets_Manager->seen_hash(lBins[l], lKmerCt, l);
-//          //}
-//          
-//        }
         
         total_reads += lCount;        
         
