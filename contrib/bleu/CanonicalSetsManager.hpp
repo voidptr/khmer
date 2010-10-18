@@ -371,7 +371,7 @@ namespace bleu {
       {
         return get_a_released_offset(); 
       }
-      else if ( _last_set_offset < SETS_SIZE ) // no released ones, but we still have room at the head of the list
+      else if ( _last_set_offset < SETS_SIZE-1 ) // no released ones, but we still have room at the head of the list
       {
         return ++_last_set_offset;
       }
@@ -566,36 +566,36 @@ namespace bleu {
       int lSpaceUsed = (sizeof(SetOffsetContainer)*8) - lLocalBit;
       SetOffsetContainer lAssignmentMask = ~( ((SetOffsetContainer)pow(2, SET_OFFSET_BITS) - 1) << lLocalBit );
       
-//      SetOffsetContainer lDELETEMEField1 = _set_offsets[i][lField];
-//      SetOffsetContainer lDELETEMEField2 = 0;
-//      SetOffsetContainer lDELETEMEField2After = 0;
-//      
-//      SetOffsetContainer lDELETEMEShiftedValue = (lWorkingValue << lLocalBit);
-//      SetOffsetContainer lDELETEMEMaskedOriginalValue = (_set_offsets[i][lField] & lAssignmentMask);
-//      SetOffsetContainer lDELETEMEOREDTOGETHER = (_set_offsets[i][lField] & lAssignmentMask) | (lWorkingValue << lLocalBit);
-//
-//      SetOffsetContainer lDELETEMEShiftedValue2 = 0;
-//      SetOffsetContainer lDELETEMEMaskedOriginalValue2 = 0;
-//      SetOffsetContainer lDELETEMEOREDTOGETHER2 = 0;
+      SetOffsetContainer lDELETEMEField1 = _set_offsets[i][lField];
+      SetOffsetContainer lDELETEMEField2 = 0;
+      SetOffsetContainer lDELETEMEField2After = 0;
+      
+      SetOffsetContainer lDELETEMEShiftedValue = (lWorkingValue << lLocalBit);
+      SetOffsetContainer lDELETEMEMaskedOriginalValue = (_set_offsets[i][lField] & lAssignmentMask);
+      SetOffsetContainer lDELETEMEOREDTOGETHER = (_set_offsets[i][lField] & lAssignmentMask) | (lWorkingValue << lLocalBit);
+
+      SetOffsetContainer lDELETEMEShiftedValue2 = 0;
+      SetOffsetContainer lDELETEMEMaskedOriginalValue2 = 0;
+      SetOffsetContainer lDELETEMEOREDTOGETHER2 = 0;
 
       
       _set_offsets[i][lField] = (_set_offsets[i][lField] & lAssignmentMask) | (lWorkingValue << lLocalBit);
       
-//      SetOffsetContainer lDELETEMEField1After = _set_offsets[i][lField];
+      SetOffsetContainer lDELETEMEField1After = _set_offsets[i][lField];
       
       if ( lSpaceUsed < SET_OFFSET_BITS )
       {
-//        lDELETEMEField2 = _set_offsets[i][lField+1];
+        lDELETEMEField2 = _set_offsets[i][lField+1];
         int lShiftCount = lSpaceUsed;
         SetOffsetContainer lShiftMask = ~( ((SetOffsetContainer)pow(2, SET_OFFSET_BITS) - 1) >> lShiftCount );
         
-//        lDELETEMEShiftedValue2 = (lWorkingValue >> lShiftCount);
-//        lDELETEMEMaskedOriginalValue2 = (_set_offsets[i][lField+1] & lShiftMask );
-//        lDELETEMEOREDTOGETHER2 = (_set_offsets[i][lField+1] & lShiftMask ) | (lWorkingValue >> lShiftCount);
+        lDELETEMEShiftedValue2 = (lWorkingValue >> lShiftCount);
+        lDELETEMEMaskedOriginalValue2 = (_set_offsets[i][lField+1] & lShiftMask );
+        lDELETEMEOREDTOGETHER2 = (_set_offsets[i][lField+1] & lShiftMask ) | (lWorkingValue >> lShiftCount);
         
         _set_offsets[i][lField+1] = (_set_offsets[i][lField+1] & lShiftMask ) | (lWorkingValue >> lShiftCount);
         
-//        lDELETEMEField2After = _set_offsets[i][lField+1];
+        lDELETEMEField2After = _set_offsets[i][lField+1];
       }
   
       SetOffset lCircVal = SetOffsetBinToSetOffset(aBin, i);
