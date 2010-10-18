@@ -17,7 +17,7 @@
 
 #define HASHES 8
 #define CACHESIZE 10
-#define SET_OFFSET_BITS 18
+#define SET_OFFSET_BITS 20
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
 
 namespace bleu {
@@ -64,11 +64,14 @@ namespace bleu {
     vector<SetOffset> _released_set_offsets;
     
     vector<SetPointer> _sorted_sets;
+  public:
+    unsigned long long _average_size_at_sort;
     
   public:
     CanonicalSetsManager( unsigned long long aMaxMemory )
     {
       _last_set_offset = 0; // init to zero
+      _average_size_at_sort = 0;
       
       _tablesizes[0] = get_first_prime_below( aMaxMemory / HASHES );
       for ( int i = 1; i < HASHES; ++i )      
@@ -234,9 +237,8 @@ namespace bleu {
       {
         lSet = get_least_crowded_set();
         if ( lSet != NULL ) 
-	{
+        {
           lSet->JoinOfConvenience = true;
-          cout << ".";
         }
         else // damn damn.
         {
@@ -250,7 +252,6 @@ namespace bleu {
             re_sort_sets();
             lSet = get_least_crowded_set();
             lSet->JoinOfConvenience = true;
-            cout << ".";
           }
         }
       }
@@ -355,22 +356,42 @@ namespace bleu {
       if (_sorted_sets.empty() )
         return NULL;
       
-      SetHandle lSmallestSet = *(_sorted_sets.back());
-      _sorted_sets.pop_back();
+      SetHandle lSmallestSet = NULL;
+      while ( (lSmallestSet == NULL || lSmallestSet->KmerCount >= _average_size_at_sort ) && !_sorted_sets.empty() )
+      {      
+        lSmallestSet = *(_sorted_sets.back());
+        _sorted_sets.pop_back();
+      }      
       
-      return lSmallestSet;
+      return lSmallestSet; // it'll either have a legit set, or it'll be empty.
     }
     
     void re_sort_sets()
     {
       _sorted_sets.clear();
+
+      unsigned long long lCount = 0;
       for (int i = 0; i < SETS_SIZE; ++i )
       {
         if ( _sets[i] != NULL && (*(_sets[i]))->GetPrimarySetOffset() == i ) // I'm in my canonical spot
+        {
+          lCount += (*(_sets[i]))->KmerCount;
           _sorted_sets.push_back( _sets[i] );
+        }
       }
+      int lSize = _sorted_sets.size();
+      _average_size_at_sort = lCount / lSize; // re-set it.
+
       
       sort( _sorted_sets.begin(), _sorted_sets.end(), CanonicalSet::CompSet() );
+      int pos = 0;
+      for (; pos < lSize; ++pos) // troll through them until you find the edge of the too-bigs
+      {
+        if ( (*(_sorted_sets[pos]))->KmerCount < _average_size_at_sort )
+          break;
+      }
+      
+      _sorted_sets.erase( _sorted_sets.begin(), _sorted_sets.begin() + pos ); // pull them out.
     }
 
     SetOffset get_free_address()

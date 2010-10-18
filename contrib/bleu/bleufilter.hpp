@@ -267,7 +267,14 @@ namespace bleu {
         cout << setw(10) << lIt->second;
         
         if ( lFosteredCounts.find( lIt->first ) != lFosteredCounts.end() )
+        {
           cout << setw(10) << "T";
+          
+          if ( lIt->second >= _Sets_Manager->_average_size_at_sort )
+            cout << setw(10) << "***";
+        }
+        
+        
         
                 
         cout << endl;
