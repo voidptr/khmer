@@ -433,7 +433,7 @@ namespace bleu {
       for (int i = 0; i < HASHES; ++i)
       {
         
-        unsigned long long lContainerCount = ceil( (17/(double)(sizeof(SetOffsetContainer)*8)) *_hash_table_total_bit_counts[i]);
+        unsigned long long lContainerCount = ceil( (SET_OFFSET_BITS/(double)(sizeof(SetOffsetContainer)*8)) *_hash_table_total_bit_counts[i]);
       
         _set_offsets[i] = new SetOffsetContainer[ lContainerCount ];
         memset(_set_offsets[i], 0, lContainerCount * sizeof(SetOffsetContainer));
