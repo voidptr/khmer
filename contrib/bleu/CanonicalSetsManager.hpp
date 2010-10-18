@@ -233,16 +233,21 @@ namespace bleu {
       if ( lAddress == 0 ) // damn. do a round of fostering
       {
         lSet = get_least_crowded_set();
-        if ( lSet == NULL ) // damn damn.
+        if ( lSet != NULL ) 
+	{
+          lSet->JoinOfConvenience = true;
+          cout << ".";
+        }
+        else // damn damn.
         {
           canonicalize();
-          re_sort_sets();
           
           // one more try
           lAddress = get_free_address();
           
           if ( lAddress == 0 ) // ok, fine, foster away.
           {
+            re_sort_sets();
             lSet = get_least_crowded_set();
             lSet->JoinOfConvenience = true;
             cout << ".";

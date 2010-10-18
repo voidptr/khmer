@@ -133,8 +133,8 @@ public:
   cRawBitArray(const unsigned long long num_bits) {
     const unsigned long long num_fields = GetNumFields(num_bits);
     bit_fields = new unsigned int[ num_fields ];
-    memset(bit_fields, 0, sizeof(unsigned int) * num_fields);
-//    Zero(num_bits);
+//    memset(bit_fields, 0, sizeof(unsigned int) * num_fields);
+    Zero(num_bits);
   }
   
   // The Copy() method and the Copy Constructor must both be told how many
