@@ -221,8 +221,8 @@ namespace bleu {
           dump_seen_hashes_into_table( SeenHashes[i][j], SeenHashCounts[i][j], i );
           delete SeenHashes[i][j];
         }
-        delete SeenHashes[i];
-        delete SeenHashCounts[i];                          
+        //delete SeenHashes[i];
+        //delete SeenHashCounts[i];                          
       }
     }
     
