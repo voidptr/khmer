@@ -346,17 +346,17 @@ namespace bleu {
         {
           // does it make sense to canonicalize? payback would be more than 5% of total
           
-          //if ( _releasable_set_offsets_count > CANONICALIZATION_THRESHOLD )
-//          {
+          if ( _releasable_set_offsets_count > CANONICALIZATION_THRESHOLD )
+          {
             canonicalize();
             // one more try
             lAddress = get_free_address();
-          //}
-//          else 
-//          {
-          
-          if ( lAddress == 0 ) // ok, fine, foster away.
+          }
+          else 
           {
+          
+//          if ( lAddress == 0 ) // ok, fine, foster away.
+//          {
             re_sort_sets();
             lSet = get_least_crowded_set();
             lSet->JoinOfConvenience = true;
