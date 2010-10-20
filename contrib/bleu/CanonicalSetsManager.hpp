@@ -20,6 +20,9 @@
 #define SET_OFFSET_BITS 20
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
 
+#define CACHED_HASH_SEGMENT_SIZE 1000000
+#define CACHED_HASH_SEGMENT_CAPACITY 10000
+
 namespace bleu {
   
   using namespace khmer;
@@ -64,6 +67,8 @@ namespace bleu {
     vector<SetOffset> _released_set_offsets;
     
     vector<SetPointer> _sorted_sets;
+    
+    vector<HashBin> ** SeenHashes[HASHES];
   public:
     unsigned long long _average_size_at_sort;
     
@@ -99,7 +104,15 @@ namespace bleu {
         
         _set_offset_bin_cache_last_used_index[j] = 0;
         memset(_set_offset_bin_cache[j], 0, sizeof(pair<HashBin,SetOffsetBin>) * CACHESIZE);
+        
+        SeenHashes[j] = new vector<HashBin> * [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
+        
+        for ( int k = 0; k < (_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE) + 1; ++k )
+        {
+          SeenHashes[j][k] = new vector<HashBin>();
+        }
       }
+      
       
       _sets.resize(SETS_SIZE, NULL);
       cout << SETS_SIZE << endl;
@@ -110,37 +123,79 @@ namespace bleu {
     //    
     
     // mark a kmer/hash as "interesting" if it appears more than once.
-    void seen_hash( HashBin * aBins, unsigned long long lCount, int lTable )
-    {
-      cBitArray * lPrelim = _hash_table_preliminary[lTable];
-      cBitArray * lFinal = _hash_table[lTable];
-      HashBin lBin = 0;
-      for ( int i = 0; i < lCount; ++i )
-      {
-        lBin = aBins[i];
-        
-        if ( lPrelim->Get(lBin) )
-          lFinal->Set(lBin, true);
-        else
-          lPrelim->Set(lBin, true);
-
-      }
-    }
+//    void seen_hash( HashBin * aBins, unsigned long long lCount, int lTable )
+//    {
+//      cBitArray * lPrelim = _hash_table_preliminary[lTable];
+//      cBitArray * lFinal = _hash_table[lTable];
+//      HashBin lBin = 0;
+//      for ( int i = 0; i < lCount; ++i )
+//      {
+//        lBin = aBins[i];
+//        
+//        if ( lPrelim->Get(lBin) )
+//          lFinal->Set(lBin, true);
+//        else
+//          lPrelim->Set(lBin, true);
+//
+//      }
+//    }
     
     void seen_hash( HashIntoType aHash )
     {
-      
       for ( int i = 0; i < HASHES; ++i )
       {
         unsigned long long lHashBin = HashToHashBin(aHash, i); 
-
-        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
-          _hash_table[i]->Set(lHashBin, true);
-        else
-          _hash_table_preliminary[i]->Set(lHashBin, true);
-       } 
-          
+        
+        SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ]->push_back( lHashBin );
+        
+        if ( SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ]->size() > CACHED_HASH_SEGMENT_CAPACITY )
+        {
+          //cout << "dumping: " << i << " segment " << lHashBin / CACHED_HASH_SEGMENT_SIZE << endl;
+          dump_seen_hashes_into_table( SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ], i );
+          SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ]->clear();
+          //cout << " done" << endl;
+        }
+      }      
     }
+    
+    void dump_seen_hashes_into_table( vector<HashBin> * aHashBins, int i )
+    {
+      //cout << ".";
+      for ( int j = 0; j < aHashBins->size(); ++j )
+      {
+        if ( _hash_table_preliminary[i]->Get( (*aHashBins)[j] ) == true )
+          _hash_table[i]->Set( (*aHashBins)[j], true );
+        else
+          _hash_table_preliminary[i]->Set( (*aHashBins)[j], true );
+      }
+    }
+    
+    void finalize_seen_hash()
+    {
+      for ( int i = 0; i < HASHES; ++i )
+      {
+        for ( int j = 0; j < (_tablesizes[i] / CACHED_HASH_SEGMENT_SIZE) + 1; ++j )
+        {
+          dump_seen_hashes_into_table( SeenHashes[i][j], i );
+          SeenHashes[i][j]->clear();
+        }
+      }
+    }
+    
+//    void seen_hash( HashIntoType aHash )
+//    {
+//      
+//      for ( int i = 0; i < HASHES; ++i )
+//      {
+//        unsigned long long lHashBin = HashToHashBin(aHash, i); 
+//
+//        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
+//          _hash_table[i]->Set(lHashBin, true);
+//        else
+//          _hash_table_preliminary[i]->Set(lHashBin, true);
+//       } 
+//          
+//    }
     
     //
     // second pass through the reads -- actually perform the set assignments

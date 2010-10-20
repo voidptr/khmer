@@ -383,7 +383,7 @@ namespace bleu {
       string currSeq = "";
       
       string reads[100000];
-      
+            
       while(!parser->is_complete())  {
         
         int lCount = 0;
@@ -428,6 +428,8 @@ namespace bleu {
         
         cout << total_reads << endl;
       }
+      
+      _Sets_Manager->finalize_seen_hash();
       
       end = time(NULL);        
       std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
