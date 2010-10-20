@@ -1,4 +1,4 @@
-CXXFLAGS=-fPIC -O3 -Wall -pg -I$(KMERDIR)
+CXXFLAGS=-O3 -Wall
 
 KMERDIR=../../lib
 EXTLIBDIR=../external_lib
@@ -16,7 +16,7 @@ bleu:
 	make bleuexe
 
 bleuexe: bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
-	$(CXX) -o bleu bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
+	$(CXX) $(CXXFLAGS) -o bleu bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
 
 #ktable.o: $(KMERDIR)/ktable.cc $(KMERDIR)/ktable.hh
 
