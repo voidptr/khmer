@@ -20,8 +20,46 @@
 #define SET_OFFSET_BITS 20
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
 
-#define CACHED_HASH_SEGMENT_SIZE 1000000
+// 8mb cache, 2gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 1000000
+//#define CACHED_HASH_SEGMENT_CAPACITY 10000
+
+//// 4mb cache, 2gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 500000
+//#define CACHED_HASH_SEGMENT_CAPACITY 5000
+
+//// 2mb cache, 2gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 250000
+//#define CACHED_HASH_SEGMENT_CAPACITY 2500
+
+//// 2mb cache, 4gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 250000
+//#define CACHED_HASH_SEGMENT_CAPACITY 5000
+
+// 2mb cache, 8gb footprint
+#define CACHED_HASH_SEGMENT_SIZE 250000
 #define CACHED_HASH_SEGMENT_CAPACITY 10000
+
+//// 1mb cache, 2gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 125000
+//#define CACHED_HASH_SEGMENT_CAPACITY 1250
+
+//// 512k cache, 2gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 62500
+//#define CACHED_HASH_SEGMENT_CAPACITY 625
+
+//// 512k cache, 4gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 62500
+//#define CACHED_HASH_SEGMENT_CAPACITY 1250
+
+// 256k cache, 4gb footprint
+//#define CACHED_HASH_SEGMENT_SIZE 31250
+//#define CACHED_HASH_SEGMENT_CAPACITY 1024
+
+
+
+
+
 
 namespace bleu {
   
@@ -68,7 +106,8 @@ namespace bleu {
     
     vector<SetPointer> _sorted_sets;
     
-    vector<HashBin> ** SeenHashes[HASHES];
+    HashBin ** SeenHashes[HASHES];
+    unsigned int * SeenHashCounts[HASHES];
   public:
     unsigned long long _average_size_at_sort;
     
@@ -105,11 +144,13 @@ namespace bleu {
         _set_offset_bin_cache_last_used_index[j] = 0;
         memset(_set_offset_bin_cache[j], 0, sizeof(pair<HashBin,SetOffsetBin>) * CACHESIZE);
         
-        SeenHashes[j] = new vector<HashBin> * [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
+        SeenHashes[j] = new HashBin * [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
+        SeenHashCounts[j] = new unsigned int [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
         
         for ( int k = 0; k < (_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE) + 1; ++k )
         {
-          SeenHashes[j][k] = new vector<HashBin>();
+          SeenHashes[j][k] = new HashBin[ CACHED_HASH_SEGMENT_CAPACITY ];
+          SeenHashCounts[j][k] = 0;
         }
       }
       
@@ -145,28 +186,29 @@ namespace bleu {
       for ( int i = 0; i < HASHES; ++i )
       {
         unsigned long long lHashBin = HashToHashBin(aHash, i); 
+        unsigned long long lSegmentIndex = lHashBin / CACHED_HASH_SEGMENT_SIZE;
         
-        SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ]->push_back( lHashBin );
+        SeenHashes[i][ lSegmentIndex ][ SeenHashCounts[i][lSegmentIndex]++ ] = lHashBin;
         
-        if ( SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ]->size() > CACHED_HASH_SEGMENT_CAPACITY )
+        if ( SeenHashCounts[i][ lSegmentIndex ] == CACHED_HASH_SEGMENT_CAPACITY )
         {
           //cout << "dumping: " << i << " segment " << lHashBin / CACHED_HASH_SEGMENT_SIZE << endl;
-          dump_seen_hashes_into_table( SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ], i );
-          SeenHashes[i][ lHashBin / CACHED_HASH_SEGMENT_SIZE ]->clear();
+          dump_seen_hashes_into_table( SeenHashes[i][ lSegmentIndex ], SeenHashCounts[i][ lSegmentIndex ], i );
+          SeenHashCounts[i][ lSegmentIndex ]=0;
           //cout << " done" << endl;
         }
       }      
     }
     
-    void dump_seen_hashes_into_table( vector<HashBin> * aHashBins, int i )
+    void dump_seen_hashes_into_table( HashBin * aHashBins, unsigned int aCount, int i )
     {
       //cout << ".";
-      for ( int j = 0; j < aHashBins->size(); ++j )
+      for ( int j = 0; j < aCount; ++j )
       {
-        if ( _hash_table_preliminary[i]->Get( (*aHashBins)[j] ) == true )
-          _hash_table[i]->Set( (*aHashBins)[j], true );
+        if ( _hash_table_preliminary[i]->Get( aHashBins[j] ) == true )
+          _hash_table[i]->Set( aHashBins[j], true );
         else
-          _hash_table_preliminary[i]->Set( (*aHashBins)[j], true );
+          _hash_table_preliminary[i]->Set( aHashBins[j], true );
       }
     }
     
@@ -176,9 +218,11 @@ namespace bleu {
       {
         for ( int j = 0; j < (_tablesizes[i] / CACHED_HASH_SEGMENT_SIZE) + 1; ++j )
         {
-          dump_seen_hashes_into_table( SeenHashes[i][j], i );
-          SeenHashes[i][j]->clear();
+          dump_seen_hashes_into_table( SeenHashes[i][j], SeenHashCounts[i][j], i );
+          delete SeenHashes[i][j];
         }
+        delete SeenHashes[i];
+        delete SeenHashCounts[i];                          
       }
     }
     

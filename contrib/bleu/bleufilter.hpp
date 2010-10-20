@@ -274,9 +274,6 @@ namespace bleu {
             cout << setw(10) << "***";
         }
         
-        
-        
-                
         cout << endl;
       }
       
@@ -291,83 +288,6 @@ namespace bleu {
     }
     
 
-
-//    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
-//    void consume_reads(const std::string &filename,
-//                       unsigned int &total_reads,
-//                       unsigned long long &n_consumed,
-//                       ConsumeStringFN consume_string_fn,
-//                       HashIntoType lower_bound = 0,
-//                       HashIntoType upper_bound = 0,
-//                       ReadMaskTable ** orig_readmask = NULL,
-//                       bool update_readmask = true,
-//                       CallbackFn callback = NULL,
-//                       void * callback_data = NULL)
-//    {
-//      total_reads = 0;
-//      n_consumed = 0;
-//      
-//      IParser* parser = IParser::get_parser(filename.c_str());
-//      Read read;
-//      
-//      string currName = "";
-//      string currSeq = "";
-//      
-//      string reads[10000];
-//      
-//      //vector<pthread_t> lThreads;
-//
-//      while(!parser->is_complete())  {
-//        
-//        int lCount = 0;
-//        for (int i = 0; i < 10000 && !parser->is_complete(); ++i)
-//        {
-//          read = parser->get_next_read();
-//          reads[i] = read.seq;
-//          lCount = i + 1;
-//        }
-//          
-//        // yep! process.
-//
-//        pthread_t lThread;  
-//        //lThreads.push_back( lThread );
-//        
-//        typedef struct ThreadArgs {
-//          ConsumeStringFN aMethod;
-//          string * aReads;
-//          int aCount;
-//          BleuFilter * aThis;
-//          int aChunk;
-//        };
-//
-//        ThreadArgs * lArgs = new ThreadArgs();
-//        lArgs->aMethod = consume_string_fn;
-//        lArgs->aReads = reads;
-//        lArgs->aCount = lCount;
-//        lArgs->aThis = this;
-//        lArgs->aChunk = 0;
-//        
-//        pthread_create(&lThread, NULL, &ThreadStart, lArgs);
-//        pthread_join(lThread, NULL);
-//        
-//        //unsigned int this_n_consumed = (this->*consume_string_fn)(reads, lCount);
-//        
-//        total_reads += lCount;
-//        
-//        cout << total_reads << " " << n_consumed << endl;
-//        
-////        if ( lThreads.size() >= THREADCT )
-////        {
-////          for (int i = 0; i < lThreads.size(); ++i)
-////          {
-////            pthread_join(lThreads[i], NULL);
-////            cout << "hihi " << i << endl;
-////          }
-////          lThreads.clear();
-////        }
-//      }
-//    }
-    
     // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
     void consume_strings_for_hash_table(const std::string &filename)
     {
