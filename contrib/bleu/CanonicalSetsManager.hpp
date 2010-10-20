@@ -19,6 +19,7 @@
 #define CACHESIZE 10
 #define SET_OFFSET_BITS 20
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
+#define CANONICALIZATION_THRESHOLD = SETS_SIZE * .05
 
 // 8mb cache, 2gb footprint
 //#define CACHED_HASH_SEGMENT_SIZE 1000000
@@ -103,6 +104,7 @@ namespace bleu {
     int _set_offset_bin_cache_last_used_index[HASHES];
     
     vector<SetOffset> _released_set_offsets;
+    unsigned int _releasable_set_offsets_count;
     
     vector<SetPointer> _sorted_sets;
     
@@ -116,6 +118,7 @@ namespace bleu {
     {
       _last_set_offset = 0; // init to zero
       _average_size_at_sort = 0;
+      _releasable_set_offsets_count = 0;
       
       _tablesizes[0] = get_first_prime_below( aMaxMemory / HASHES );
       for ( int i = 1; i < HASHES; ++i )      
@@ -341,10 +344,16 @@ namespace bleu {
         }
         else // damn damn.
         {
-          canonicalize();
+          // does it make sense to canonicalize? payback would be more than 5% of total
           
-          // one more try
-          lAddress = get_free_address();
+          //if ( _releasable_set_offsets_count > CANONICALIZATION_THRESHOLD )
+//          {
+            canonicalize();
+            // one more try
+            lAddress = get_free_address();
+          //}
+//          else 
+//          {
           
           if ( lAddress == 0 ) // ok, fine, foster away.
           {
@@ -391,9 +400,19 @@ namespace bleu {
     
     void canonicalize()
     {
+      
+        
       time_t lStart;
       lStart = time(NULL);
       cout << "Canonicalization starting." << endl;
+      cout << "expect to release " << _releasable_set_offsets_count << " offsets." << endl;
+      
+      if ( _releasable_set_offsets_count <= CANONICALIZATION_THRESHOLD )
+      {
+        cout << "Canonicalization benefit expectation is less than " << CANONICALIZATION_THRESHOLD << " freed offsets. Not advised." << endl; 
+      }
+
+
       // go through all the set offsets and point them to their canonical locations.
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -432,6 +451,7 @@ namespace bleu {
       }
       
       cout << "Canonicalizing: Released " << _released_set_offsets.size() << " sets, in " << difftime(time(NULL), lStart) << " seconds." << endl;
+      _releasable_set_offsets_count = 0;
     }
     
     void join ( SetHandle aJoinee, SetHandle aJoiner )
@@ -448,6 +468,8 @@ namespace bleu {
       // add up the stuff
       aJoinee->KmerCount += aJoiner->KmerCount;
       delete aJoiner;
+      
+      _releasable_set_offsets_count++;
     }
  
     SetHandle get_least_crowded_set()
