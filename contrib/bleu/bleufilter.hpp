@@ -265,13 +265,17 @@ namespace bleu {
       {
         cout << setw(10) << lIt->first;
         cout << setw(10) << lIt->second;
-        
-        if ( lFosteredCounts.find( lIt->first ) != lFosteredCounts.end() )
+        if ( lIt->first > 0 )
         {
-          cout << setw(10) << "T";
+          cout << setw(10) << (*(_Sets_Manager->_sets[ lIt->first ]))->KmerCount;
           
-          if ( lIt->second >= _Sets_Manager->_average_size_at_sort )
-            cout << setw(10) << "***";
+          if ( (*(_Sets_Manager->_sets[ lIt->first ]))->JoinOfConvenience )
+          {
+            cout << setw(10) << "JoC";
+            
+            if ( (*(_Sets_Manager->_sets[ lIt->first ]))->KmerCount >= _Sets_Manager->_average_size_at_sort )
+              cout << setw(10) << "*";
+          }
         }
         
         cout << endl;

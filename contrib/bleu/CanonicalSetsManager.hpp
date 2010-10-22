@@ -17,7 +17,7 @@
 
 #define HASHES 8
 #define CACHESIZE 10
-#define SET_OFFSET_BITS 20
+#define SET_OFFSET_BITS 16
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
 #define CANONICALIZATION_THRESHOLD SETS_SIZE * .05
 
@@ -91,8 +91,7 @@ namespace bleu {
     unsigned long long _hash_table_total_bit_counts[HASHES];
     SetOffsetContainer * _set_offsets[HASHES]; 
     
-    // contents set during (based on the processing of the reads)  
-    vector<SetPointer> _sets; // array of sets
+
     
     
     // caching system so I don't have to re-modulo. Dunno if this is faster than modulo or not. will test.
@@ -112,6 +111,9 @@ namespace bleu {
     unsigned int * SeenHashCounts[HASHES];
   public:
     unsigned long long _average_size_at_sort;
+    
+    // contents set during (based on the processing of the reads)  
+    vector<SetPointer> _sets; // array of sets
     
   public:
     CanonicalSetsManager( unsigned long long aMaxMemory )
@@ -479,9 +481,14 @@ namespace bleu {
       
       SetHandle lSmallestSet = NULL;
       while ( (lSmallestSet == NULL || lSmallestSet->KmerCount >= _average_size_at_sort ) && !_sorted_sets.empty() )
-      {      
+      { 
         lSmallestSet = *(_sorted_sets.back());
-        _sorted_sets.pop_back();
+
+        // if the one we just grabbed was too big, pop it, and grab the next fresh one. We don't care about balance here, just efficiency.
+        if ( lSmallestSet != NULL && lSmallestSet->KmerCount >= _average_size_at_sort )
+        {
+          _sorted_sets.pop_back();
+        }
       }      
       
       return lSmallestSet; // it'll either have a legit set, or it'll be empty.
