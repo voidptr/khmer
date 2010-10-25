@@ -153,6 +153,77 @@ unsigned long long cRawBitArray::CountBits(const unsigned long long start_bit, c
 
 // This technique is another way of counting bits; It does a bunch of
 // clever bit tricks to do it in parallel in each int.
+unsigned long long cRawBitArray::CountBits2(const unsigned long long start_bit, const unsigned long long stop_bit) const
+{
+  //const unsigned long long num_fields = GetNumFields(num_bits);
+  unsigned long long bit_count = 0;
+  
+  unsigned long long start_field = GetField( start_bit );
+  unsigned long long stop_field = GetField( stop_bit );
+  unsigned int start_pos = GetFieldPos( start_bit );
+  unsigned int stop_pos = GetFieldPos( stop_bit );
+  
+  
+  if ( start_field == stop_field ) // eek.
+  {
+    unsigned int temp = bit_fields[start_field];
+    temp >>= start_pos;
+    temp <<= (sizeof(unsigned int) * 8) - 1 - stop_pos;
+
+    while (temp != 0) {
+      temp = temp & (temp - 1);
+      bit_count++;
+    }
+  } 
+  else
+  {  
+  
+    if ( start_pos > 0 )
+    {
+      unsigned int temp = bit_fields[start_field];
+      temp >>= start_pos;
+      
+      if ( start_field != stop_field ) // if we're a separate field than the last one, go ahead and do this counting.
+      {
+        while (temp != 0) {
+          temp = temp & (temp - 1);
+          bit_count++;
+        }
+      }
+      
+      start_field++;
+    } 
+    
+    if ( stop_pos < 31 )
+    {
+      unsigned int temp = bit_fields[stop_field];
+      
+      temp <<= (sizeof(unsigned int) * 8) - 1 - stop_pos;
+      
+      while (temp != 0) {
+        temp = temp & (temp - 1);
+        bit_count++;
+      }
+      
+      stop_field--;
+    }
+    
+    for (unsigned long long i = start_field; i <= stop_field; ++i) {
+      const int v = bit_fields[i];
+//      if ( v > 0 )
+//      {
+        unsigned int const t1 = v - ((v >> 1) & 0x55555555);
+        unsigned int const t2 = (t1 & 0x33333333) + ((t1 >> 2) & 0x33333333);
+        bit_count += ((t2 + (t2 >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+//      }
+    }
+  }
+  
+  return bit_count;
+}
+
+// This technique is another way of counting bits; It does a bunch of
+// clever bit tricks to do it in parallel in each int.
 unsigned long long cRawBitArray::CountBits2(const unsigned long long num_bits) const
 {
   const unsigned long long num_fields = GetNumFields(num_bits);

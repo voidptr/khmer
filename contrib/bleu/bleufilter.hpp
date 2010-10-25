@@ -311,7 +311,7 @@ namespace bleu {
       while(!parser->is_complete())  {
         
         int lCount = 0;
-        int lKmerCt = 0;
+        //int lKmerCt = 0;
         for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
         {
           read = parser->get_next_read();
@@ -320,7 +320,7 @@ namespace bleu {
             reads[lCount] = read.seq;
             lCount++;
             
-            lKmerCt += read.seq.length() - _ksize + 1;
+            //lKmerCt += read.seq.length() - _ksize + 1;
           }
         }
 

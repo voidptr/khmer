@@ -203,6 +203,7 @@ public:
   unsigned long long CountBits(const unsigned long long num_bits) const; // Better for sparse arrays
   unsigned long long CountBits(const unsigned long long start_bit, const unsigned long long stop_bit) const; // count the bits between a start and stop point
   unsigned long long CountBits2(const unsigned long long num_bits) const; // Better for dense arrays
+  unsigned long long CountBits2(const unsigned long long start_bit, const unsigned long long stop_bit) const; // Better for dense arrays
   
   // Other bit-play
   unsigned long long FindBit1(const unsigned long long num_bits, const unsigned long long start_pos) const;
@@ -341,7 +342,9 @@ public:
   unsigned long long CountBits() const { return bit_array.CountBits(array_size); }
   unsigned long long CountBits( unsigned long long start_bit, unsigned long long stop_bit ) const { return bit_array.CountBits( start_bit, stop_bit ); }
   unsigned long long CountBits2() const { return bit_array.CountBits2(array_size); }
+  unsigned long long CountBits2( unsigned long long start_bit, unsigned long long stop_bit ) const { return bit_array.CountBits2( start_bit, stop_bit ); }
 
+  
   unsigned long long FindBit1(unsigned long long start_bit=0) const
     { return bit_array.FindBit1(array_size, start_bit); }
   tArray<int> GetOnes() const { return bit_array.GetOnes(array_size); }

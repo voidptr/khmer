@@ -17,7 +17,7 @@
 
 #define HASHES 8
 #define CACHESIZE 10
-#define SET_OFFSET_BITS 20
+#define SET_OFFSET_BITS 17
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
 #define CANONICALIZATION_THRESHOLD SETS_SIZE * .05
 
@@ -347,7 +347,6 @@ namespace bleu {
         else // damn damn.
         {
           // does it make sense to canonicalize? payback would be more than 5% of total
-          
           if ( _releasable_set_offsets_count > CANONICALIZATION_THRESHOLD )
           {
             canonicalize();
@@ -356,9 +355,6 @@ namespace bleu {
           }
           else 
           {
-          
-//          if ( lAddress == 0 ) // ok, fine, foster away.
-//          {
             re_sort_sets();
             lSet = get_least_crowded_set();
             lSet->JoinOfConvenience = true;
@@ -401,9 +397,7 @@ namespace bleu {
     }
     
     void canonicalize()
-    {
-      
-        
+    {   
       time_t lStart;
       lStart = time(NULL);
       cout << "Canonicalization starting." << endl;
@@ -563,7 +557,7 @@ namespace bleu {
             lSectionStopIndex = _tablesizes[i] - 1;
           
           // temporarily store the single section count. (this section may be problematic, since ..lookup[i]'s value is a pointer, so what does [j] do?
-          _hash_table_bit_counts_lookup[i][j] = _hash_table[i]->CountBits(lSectionStartIndex, lSectionStopIndex);
+          _hash_table_bit_counts_lookup[i][j] = _hash_table[i]->CountBits2(lSectionStartIndex, lSectionStopIndex);
           
           if ( j > 0 ) // apply the summation
           {
@@ -668,7 +662,7 @@ namespace bleu {
       
       assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION));       
       
-      unsigned long long lSetOffsetBin = _hash_table[i]->CountBits( lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
+      unsigned long long lSetOffsetBin = _hash_table[i]->CountBits2(lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
       
       if ( lBinSectionIndex > 0 )      
         lSetOffsetBin += _hash_table_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
