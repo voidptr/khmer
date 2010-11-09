@@ -275,7 +275,7 @@ namespace bleu {
         lHandle = get_existing_set( aHash );
       else
       {
-        lHandle = create_set();
+        lHandle = create_set_canonicalize_first();
         add_to_set(lHandle, aHash);
       }
       
@@ -332,7 +332,7 @@ namespace bleu {
     }
 
     // create a set
-    SetHandle create_set()
+    SetHandle create_set_foster_first()
     {
       SetOffset lAddress = get_free_address();
       SetHandle lSet = NULL;
@@ -370,6 +370,52 @@ namespace bleu {
       
       return lSet;
     }
+    
+    // create a set
+    // try for a free address
+    // if that fails, try for canonicalization
+    // if that fails, attempt a canonicalization
+    // if I can't do that, repopulate the set lists, and fetch least crowded and go with that.
+    
+    SetHandle create_set_canonicalize_first()
+    {
+      SetOffset lAddress = get_free_address();
+      SetHandle lSet = NULL;
+      
+      if ( lAddress == 0 ) // damn
+      {        
+        if ( _releasable_set_offsets_count > CANONICALIZATION_THRESHOLD ) // try to canonicalize first
+        {
+          _sorted_sets.clear(); // reset here
+          canonicalize();
+          // one more try
+          lAddress = get_free_address();
+        } 
+        else // foster for this one.
+        {
+          lSet = get_least_crowded_set();
+          if ( lSet != NULL ) // did it work?
+          {
+            lSet->JoinOfConvenience = true;
+          }
+          else // resort and try again.
+          {
+            re_sort_sets();
+            lSet = get_least_crowded_set();
+            lSet->JoinOfConvenience = true;
+          }
+        }
+      }
+      
+      if ( lAddress != 0 )
+      {
+        lSet = new CanonicalSet( lAddress );
+        _sets[ lAddress ] = lSet->Self;  
+      }
+      
+      return lSet;
+    }
+    
     
     bool sets_are_disconnected( SetHandle aSet1, SetHandle aSet2 )
     {
