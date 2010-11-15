@@ -3,7 +3,6 @@
  *  bleu
  *
  *  Created by Rosangela Canino-Koning on 10/8/10.
- *  Copyright 2010 __MyCompanyName__. All rights reserved.
  *
  */
 

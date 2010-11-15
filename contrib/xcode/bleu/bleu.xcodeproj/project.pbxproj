@@ -56,6 +56,7 @@
 		D89805EE121DCC0C0007A0AB /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = README.txt; path = ../../README.txt; sourceTree = SOURCE_ROOT; };
 		D898060D121DCF9D0007A0AB /* bleu.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bleu.cpp; path = ../../bleu/bleu.cpp; sourceTree = SOURCE_ROOT; };
 		D898060E121DCF9D0007A0AB /* bleufilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = bleufilter.hpp; path = ../../bleu/bleufilter.hpp; sourceTree = SOURCE_ROOT; };
+		D8AD16E5128AFEED00ECE596 /* SequenceHash.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHash.hpp; path = ../../bleu/SequenceHash.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA82125A7585007AEFA4 /* ChainedSet.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSet.hpp; path = ../../bleu/ChainedSet.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA83125A7585007AEFA4 /* ChainedSetsManager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSetsManager.hpp; path = ../../bleu/ChainedSetsManager.hpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -90,7 +91,7 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				D845C6531267B757003A3CE6 /* BitArray.hpp */,
+				D8AD16E5128AFEED00ECE596 /* SequenceHash.hpp */,
 				D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */,
 				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
@@ -121,6 +122,7 @@
 		D8147BE4125F8355003A81C1 /* Deprecated */ = {
 			isa = PBXGroup;
 			children = (
+				D845C6531267B757003A3CE6 /* BitArray.hpp */,
 				D8B9DA82125A7585007AEFA4 /* ChainedSet.hpp */,
 				D8B9DA83125A7585007AEFA4 /* ChainedSetsManager.hpp */,
 			);

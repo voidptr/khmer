@@ -3,7 +3,6 @@
  *  bleu
  *
  *  Created by Rosangela Canino-Koning on 10/8/10.
- *  Copyright 2010 __MyCompanyName__. All rights reserved.
  *
  */
 
@@ -11,6 +10,7 @@
 #include "../../lib/parsers.hh"
 #include "../external_lib/cBitArray.h"
 #include "CanonicalSet.hpp"
+#include "SequenceHash.hpp"
 #include <algorithm>
 
 #define BIT_COUNT_PARTITION 1000
@@ -95,7 +95,7 @@ namespace bleu {
     
     
     // caching system so I don't have to re-modulo. Dunno if this is faster than modulo or not. will test.
-    pair<HashIntoType, HashBin> _hash_bin_cache[HASHES][CACHESIZE];
+    pair<SequenceHash, HashBin> _hash_bin_cache[HASHES][CACHESIZE];
     int _hash_bin_cache_last_used_index[HASHES];
     
     // caching system so I don't have to keep re-counting the bits. Dunno if this is faster than counting or not.
@@ -186,7 +186,7 @@ namespace bleu {
 //      }
 //    }
     
-    void seen_hash( HashIntoType aHash )
+    void seen_hash( SequenceHash aHash )
     {
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -251,7 +251,7 @@ namespace bleu {
     //
     
     // check whether a kmer can have a set. (I keep wanting to type can_has_set) Damned lolcats.
-    bool can_have_set( HashIntoType aHash )
+    bool can_have_set( SequenceHash aHash )
     {
       bool lCanHaveASet = false;
       for ( int i = 0; i < HASHES; ++i )
@@ -267,7 +267,7 @@ namespace bleu {
       return lCanHaveASet;
     }    
     // find a set for this hash. if there isn't one, create it.
-    SetHandle get_set( HashIntoType aHash )
+    SetHandle get_set( SequenceHash aHash )
     { 
       SetHandle lHandle = NULL;
       
@@ -282,7 +282,7 @@ namespace bleu {
       return lHandle;
     }
     // check whether a kmer has already been assigned a set.
-    bool has_existing_set( HashIntoType aHash )
+    bool has_existing_set( SequenceHash aHash )
     {
       for ( int i = 0; i < HASHES; ++i )
       {
@@ -293,7 +293,7 @@ namespace bleu {
       return true;
     }
     // find a set for this hash that already exists.
-    SetHandle get_existing_set( HashIntoType aHash, SetHandle aWorkingSet=NULL )
+    SetHandle get_existing_set( SequenceHash aHash, SetHandle aWorkingSet=NULL )
     {    
       map<SetHandle, int> lRepresented;
       
@@ -321,7 +321,7 @@ namespace bleu {
 
     
     // add a hash to an existing set
-    void add_to_set( SetHandle aSet, HashIntoType aHash )
+    void add_to_set( SetHandle aSet, SequenceHash aHash )
     {   
       for ( int i = 0; i < HASHES; ++i ) // go through and make this hash and its bins and set offsets point at this set
       {
@@ -666,9 +666,9 @@ namespace bleu {
 //      
 //      return lHashBin;  
 //    }    
-    HashBin HashToHashBin( HashIntoType aHash, int i ) // no idea which is faster.
+    HashBin HashToHashBin( SequenceHash aHash, int i ) // no idea which is faster.
     {
-      return (aHash % _tablesizes[i]);
+      return (aHash.canonical_hash % _tablesizes[i]);
     }
     
     // calculate the set offset bin from a hash bin

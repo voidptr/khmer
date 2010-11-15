@@ -4,6 +4,7 @@
 #include "../../lib/hashtable.hh"
 #include "../../lib/parsers.hh"
 #include "CanonicalSetsManager.hpp"
+//#include "SequenceHash.hpp"
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -158,21 +159,21 @@ namespace bleu {
 //      return n_consumed;
 //    }
     
-    HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
-    {
-      unsigned long long lTwoBit = twobit_repr( aNextNucleotide );
-      
-      aOldForwardHash = aOldForwardHash << 2; // left-shift the previous hash over
-      aOldForwardHash |= lTwoBit; // 'or' in the current nucleotide
-      aOldForwardHash &= bitmask; // mask off the 2 bits we shifted over.
-      
-      // now handle reverse complement
-      aOldReverseHash = aOldReverseHash >> 2;
-      aOldReverseHash |= (compl_twobit(lTwoBit) << (_ksize*2 - 2));
-      
-      // pick the better bin of the forward or reverse hashes
-      return uniqify_rc(aOldForwardHash, aOldReverseHash);
-    }
+//    HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
+//    {
+//      unsigned long long lTwoBit = twobit_repr( aNextNucleotide );
+//      
+//      aOldForwardHash = aOldForwardHash << 2; // left-shift the previous hash over
+//      aOldForwardHash |= lTwoBit; // 'or' in the current nucleotide
+//      aOldForwardHash &= bitmask; // mask off the 2 bits we shifted over.
+//      
+//      // now handle reverse complement
+//      aOldReverseHash = aOldReverseHash >> 2;
+//      aOldReverseHash |= (compl_twobit(lTwoBit) << (_ksize*2 - 2));
+//      
+//      // pick the better bin of the forward or reverse hashes
+//      return uniqify_rc(aOldForwardHash, aOldReverseHash);
+//    }
         
     virtual unsigned int output_partitioned_file(const std::string infilename,
                                                  const std::string outputfilename,
@@ -205,16 +206,18 @@ namespace bleu {
           
           
           SetHandle lSet = NULL;
-          HashIntoType hash = 0;
-          HashIntoType forward_hash = 0, reverse_hash = 0;          
+          SequenceHash hash;
+//          HashIntoType forward_hash = 0, reverse_hash = 0;          
           bool lHashGenerated = false;          
           for (unsigned int i = _ksize - 1; i < length; ++i) // run through the kmers until you find a set
           {
             if ( lHashGenerated )
-              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
+              hash.MoveForward(sp[i]);
+              //hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
             else
             {
-              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+              hash.Hash(sp, _ksize);
+//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
               lHashGenerated = true;
             }
             
@@ -329,18 +332,20 @@ namespace bleu {
           const char * sp = reads[j].c_str();
           const unsigned int length = reads[j].length();
           
-          HashIntoType forward_hash = 0, reverse_hash = 0;
+          //HashIntoType forward_hash = 0, reverse_hash = 0;
                     
-          HashIntoType hash = 0;
+          SequenceHash hash;
           bool lHashGenerated = false;
           
           for (unsigned int k = _ksize - 1; k < length; ++k)
           {
             if ( lHashGenerated )
-              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
+              hash.MoveForward(sp[k]);
+//              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
             else
             {
-              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+              hash.Hash(sp, _ksize);
+//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
               lHashGenerated = true;
             }
             
@@ -397,16 +402,18 @@ namespace bleu {
           HashIntoType forward_hash = 0, reverse_hash = 0;
           
           SetHandle lWorkingSet = NULL;
-          HashIntoType hash = 0;
+          SequenceHash hash;
           bool lHashGenerated = false;
           
           for (unsigned int k = _ksize - 1; k < length; ++k)
           {
             if ( lHashGenerated )
-              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
+              hash.MoveForward(sp[k]);
+            //              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
             else
             {
-              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
+              hash.Hash(sp, _ksize);
+              //              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
               lHashGenerated = true;
             }
             
