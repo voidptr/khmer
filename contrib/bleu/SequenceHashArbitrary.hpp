@@ -32,6 +32,10 @@ ch == 'T' || ch == 't' )
 
 namespace bleu {
  
+  // class SequenceHashArbitrary
+  //
+  // Respresents a DNA sequence of arbitrary length (currently limited to 200)
+  // as a 64 bit hash value.
   class SequenceHashArbitrary {
   private:
 //    unsigned long long forward_hash;
@@ -46,6 +50,8 @@ namespace bleu {
     unsigned long long canonical_hash;
     
   public:
+    // default constructor, to satisfy the Pair<T> class requirements
+    // don't use it.
     SequenceHashArbitrary()
     {
 //      forward_hash = 0;
@@ -54,10 +60,13 @@ namespace bleu {
       canonical_hash = 0;
     }
   
-    SequenceHashArbitrary(string aSequence)//, unsigned char aWordLength)
+    // constructor
+    // takes a sequence, and hashes it.
+    // note, the sequence is used as is, using the length as K.
+    SequenceHashArbitrary(string aSequence)
     {
       sequence = aSequence;      
-      canonical_hash = hash(aSequence);//, //word_length, 
+      canonical_hash = hash(aSequence);
     }
     
     bool operator==( SequenceHashArbitrary & aOther)
@@ -75,6 +84,7 @@ namespace bleu {
       return ( canonical_hash > aOther.canonical_hash );
     }
     
+    // compare the actual sequence
     bool SeqEquals( SequenceHashArbitrary & aOther )
     {
       return ( sequence == aOther.sequence );
@@ -90,6 +100,15 @@ namespace bleu {
       return b;
     } 
 
+    // takes a sequence and computes the forward and reverse strand hashes, then
+    // picks the lower value as the canonical hash.
+    //
+    // each position is converted to the corresponding prime number (in Primes[])
+    // and raised to the nucleotide's power (Nucleotides[]).
+    // then each position is multiplied successively with each other position,
+    // letting the extra bits fall off the end.
+    // The total is bit-rotated clockwise after each multiplication.
+    // finally the corresponding hashes are uniquified.
     unsigned long long hash(string & aSeq)
     {
       unsigned long long lHash = pow(Primes[0], 
@@ -105,7 +124,6 @@ namespace bleu {
         unsigned long long lTimes =  pow(Primes[i], 
           Nucleotides[twobit_representation(aSeq[i])]);
         lHash = mul( lHash, lTimes );
-
         
         unsigned long long lRevTimes = pow(Primes[i], 
           Nucleotides[twobit_complement(aSeq[j])]); 
