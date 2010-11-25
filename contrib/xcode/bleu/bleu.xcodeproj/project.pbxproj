@@ -59,6 +59,7 @@
 		D8AD16E5128AFEED00ECE596 /* SequenceHash.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHash.hpp; path = ../../bleu/SequenceHash.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA82125A7585007AEFA4 /* ChainedSet.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSet.hpp; path = ../../bleu/ChainedSet.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA83125A7585007AEFA4 /* ChainedSetsManager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSetsManager.hpp; path = ../../bleu/ChainedSetsManager.hpp; sourceTree = SOURCE_ROOT; };
+		E7946EB21291139000F2756F /* SequenceHashArbitrary.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary.hpp; path = ../../bleu/SequenceHashArbitrary.hpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,7 +92,7 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				D8AD16E5128AFEED00ECE596 /* SequenceHash.hpp */,
+				E7946EB21291139000F2756F /* SequenceHashArbitrary.hpp */,
 				D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */,
 				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
@@ -122,6 +123,7 @@
 		D8147BE4125F8355003A81C1 /* Deprecated */ = {
 			isa = PBXGroup;
 			children = (
+				D8AD16E5128AFEED00ECE596 /* SequenceHash.hpp */,
 				D845C6531267B757003A3CE6 /* BitArray.hpp */,
 				D8B9DA82125A7585007AEFA4 /* ChainedSet.hpp */,
 				D8B9DA83125A7585007AEFA4 /* ChainedSetsManager.hpp */,
@@ -192,7 +194,6 @@
 			isa = PBXProject;
 			buildConfigurationList = 1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "bleu" */;
 			compatibilityVersion = "Xcode 3.1";
-			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
 				en,

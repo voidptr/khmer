@@ -59,122 +59,7 @@ namespace bleu {
     void allocate_set_offset_table() {
       _Sets_Manager->allocate_set_offset_table();      
     }
-        
-//    // consume_string: run through every k-mer in the given string, & hash it.
-//    // overriding the Hashtable version to support my new thang.
-//    unsigned int consume_strings_for_hash_table(string * aReads,
-//                                                int aReadCount)
-//    {      
-//      unsigned int n_consumed = 0;
-//
-//      for ( int i = 0; i < aReadCount; ++i )        
-//      {
-//        if ( check_read( aReads[i] ) ) // read's ok
-//        {
-//          const char * sp = aReads[i].c_str();
-//          const unsigned int length = aReads[i].length();
-//          
-//          HashIntoType forward_hash = 0, reverse_hash = 0;
-//          
-//          HashIntoType hash = 0;
-//          bool lHashGenerated = false;      
-//          for (unsigned int i = _ksize - 1; i < length; ++i)
-//          {
-//            if ( lHashGenerated )
-//              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
-//            else
-//            {
-//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-//              lHashGenerated = true;
-//            }
-//            
-//            _Sets_Manager->seen_hash( hash );
-//            ++n_consumed;
-//            
-//          }   
-//        }
-////        if ( i % 100 == 0 )
-////          cout << i << endl;
-//      }
-//      
-//      
-//      
-//      return n_consumed;
-//    }
-//    
-//    
-//    // consume_string: run through every k-mer in the given string, & hash it.
-//    // overriding the Hashtable version to support my new thang.
-//    unsigned int consume_strings_for_set(
-//                                string * reads,
-//                                int aReadCount)
-//
-//    {
-//      unsigned int n_consumed = 0;
-//      
-//      for ( int i = 0; i < aReadCount; ++i )
-//      {
-//        if ( check_read( reads[i] ) )
-//        {
-//          const char * sp = reads[i].c_str();
-//          const unsigned int length = reads[i].length();
-//         
-//          HashIntoType forward_hash = 0, reverse_hash = 0;
-//          
-//          SetHandle lWorkingSet = NULL;
-//          HashIntoType hash = 0;
-//          bool lHashGenerated = false;
-//          
-//          for (unsigned int i = _ksize - 1; i < length; ++i)
-//          {
-//            if ( lHashGenerated )
-//              hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
-//            else
-//            {
-//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-//              lHashGenerated = true;
-//            }
-//            
-//            ++n_consumed;
-//             
-//            if ( _Sets_Manager->can_have_set( hash ) )
-//            {
-//              if ( lWorkingSet == NULL )
-//              {
-//                lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
-//                continue; // move on
-//              }
-//              if ( _Sets_Manager->has_existing_set( hash ) )
-//              {
-//                SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
-//                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
-//                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
-//              }
-//              else
-//                _Sets_Manager->add_to_set( lWorkingSet, hash );
-//            }
-//          }
-//        }
-//      }
-//      return n_consumed;
-//    }
-    
-//    HashIntoType _move_hash_foward( HashIntoType & aOldForwardHash, HashIntoType & aOldReverseHash, const char & aNextNucleotide )
-//    {
-//      unsigned long long lTwoBit = twobit_repr( aNextNucleotide );
-//      
-//      aOldForwardHash = aOldForwardHash << 2; // left-shift the previous hash over
-//      aOldForwardHash |= lTwoBit; // 'or' in the current nucleotide
-//      aOldForwardHash &= bitmask; // mask off the 2 bits we shifted over.
-//      
-//      // now handle reverse complement
-//      aOldReverseHash = aOldReverseHash >> 2;
-//      aOldReverseHash |= (compl_twobit(lTwoBit) << (_ksize*2 - 2));
-//      
-//      // pick the better bin of the forward or reverse hashes
-//      return uniqify_rc(aOldForwardHash, aOldReverseHash);
-//    }
-        
+
     virtual unsigned int output_partitioned_file(const std::string infilename,
                                                  const std::string outputfilename,
                                                  CallbackFn callback=0,
@@ -201,25 +86,15 @@ namespace bleu {
         
         if (check_read(seq)) {
           
-          const char * sp = seq.c_str();
+          //const char * sp = seq.c_str();
           const unsigned int length = seq.length();
           
           
           SetHandle lSet = NULL;
-          SequenceHash hash;
-//          HashIntoType forward_hash = 0, reverse_hash = 0;          
-          bool lHashGenerated = false;          
-          for (unsigned int i = _ksize - 1; i < length; ++i) // run through the kmers until you find a set
+          for ( unsigned int i = 0; i < length - _ksize + 1; ++i )
           {
-            if ( lHashGenerated )
-              hash.MoveForward(sp[i]);
-              //hash = _move_hash_foward( forward_hash, reverse_hash, sp[i] );
-            else
-            {
-              hash.Hash(sp, _ksize);
-//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-              lHashGenerated = true;
-            }
+
+            SequenceHashArbitrary hash( seq.substr(i, _ksize) );
             
             if ( _Sets_Manager->can_have_set( hash ) )
             {
@@ -323,31 +198,16 @@ namespace bleu {
             reads[lCount] = read.seq;
             lCount++;
             
-            //lKmerCt += read.seq.length() - _ksize + 1;
           }
         }
 
         for ( int j = 0; j < lCount; ++j )
         {        
-          const char * sp = reads[j].c_str();
           const unsigned int length = reads[j].length();
           
-          //HashIntoType forward_hash = 0, reverse_hash = 0;
-                    
-          SequenceHash hash;
-          bool lHashGenerated = false;
-          
-          for (unsigned int k = _ksize - 1; k < length; ++k)
+          for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
           {
-            if ( lHashGenerated )
-              hash.MoveForward(sp[k]);
-//              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
-            else
-            {
-              hash.Hash(sp, _ksize);
-//              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-              lHashGenerated = true;
-            }
+            SequenceHashArbitrary hash( reads[j].substr(k, _ksize) );
             
             _Sets_Manager->seen_hash( hash );
           }
@@ -396,44 +256,30 @@ namespace bleu {
         
         for ( int j = 0; j < lCount; ++j )
         {        
-          const char * sp = reads[j].c_str();
           const unsigned int length = reads[j].length();
           
-          HashIntoType forward_hash = 0, reverse_hash = 0;
-          
           SetHandle lWorkingSet = NULL;
-          SequenceHash hash;
-          bool lHashGenerated = false;
-          
-          for (unsigned int k = _ksize - 1; k < length; ++k)
+          for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
           {
-            if ( lHashGenerated )
-              hash.MoveForward(sp[k]);
-            //              hash = _move_hash_foward( forward_hash, reverse_hash, sp[k] );
-            else
-            {
-              hash.Hash(sp, _ksize);
-              //              hash = _hash(sp, _ksize, forward_hash, reverse_hash);
-              lHashGenerated = true;
-            }
+            SequenceHashArbitrary lHash( reads[j].substr(k, _ksize) );
             
-            if ( _Sets_Manager->can_have_set( hash ) )
+            if ( _Sets_Manager->can_have_set( lHash ) )
             {
               if ( lWorkingSet == NULL )
               {
-                lWorkingSet = _Sets_Manager->get_set( hash ); // this'll either find the one it goes in, or create it          
+                lWorkingSet = _Sets_Manager->get_set( lHash ); // this'll either find the one it goes in, or create it          
                 continue; // move on
               }
-              if ( _Sets_Manager->has_existing_set( hash ) )
+              if ( _Sets_Manager->has_existing_set( lHash ) )
               {
-                SetHandle lExistingSet = _Sets_Manager->get_existing_set( hash );
+                SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
                 if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
                   lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
               }
               else
               {
                 
-                _Sets_Manager->add_to_set( lWorkingSet, hash );
+                _Sets_Manager->add_to_set( lWorkingSet, lHash );
               }
             }
           }
