@@ -11,6 +11,7 @@
 #include "../external_lib/cBitArray.h"
 #include "CanonicalSet.hpp"
 #include "SequenceHashArbitrary.hpp"
+//#include "SequenceHashArbitrary_LookupTable.hpp"
 #include <algorithm>
 
 #define BIT_COUNT_PARTITION 1000
@@ -118,6 +119,8 @@ namespace bleu {
   public:
     CanonicalSetsManager( unsigned long long aMaxMemory )
     {
+      generate_lookup_table();
+    
       _last_set_offset = 0; // init to zero
       _average_size_at_sort = 0;
       _releasable_set_offsets_count = 0;

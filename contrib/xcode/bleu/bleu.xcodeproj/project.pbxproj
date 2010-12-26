@@ -15,6 +15,14 @@
 		D8980523121D8A600007A0AB /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051D121D8A600007A0AB /* ktable.cc */; };
 		D8980524121D8A600007A0AB /* parsers.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051F121D8A600007A0AB /* parsers.cc */; };
 		D898060F121DCF9D0007A0AB /* bleu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D898060D121DCF9D0007A0AB /* bleu.cpp */; };
+		E787C0B612C7D87400EF9891 /* hashtable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051A121D8A600007A0AB /* hashtable.cc */; };
+		E787C0B712C7D87400EF9891 /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051D121D8A600007A0AB /* ktable.cc */; };
+		E787C0B812C7D87400EF9891 /* parsers.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051F121D8A600007A0AB /* parsers.cc */; };
+		E787C0BA12C7D87400EF9891 /* cBitArray.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89424C81238021800DCC84E /* cBitArray.cc */; };
+		E787C0BB12C7D87400EF9891 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = D8158656126FA48300AEEEE8 /* Makefile */; };
+		E787C0BC12C7D87400EF9891 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = D8158658126FA49C00AEEEE8 /* Makefile */; };
+		E787C0BF12C7D87400EF9891 /* bleu.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* bleu.1 */; };
+		E787C0C612C7D8A400EF9891 /* bleutests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E787C0C512C7D8A400EF9891 /* bleutests.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +33,16 @@
 			dstSubfolderSpec = 0;
 			files = (
 				8DD76F6A0486A84900D96B5E /* bleu.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		E787C0BE12C7D87400EF9891 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 8;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				E787C0BF12C7D87400EF9891 /* bleu.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -59,11 +77,21 @@
 		D8AD16E5128AFEED00ECE596 /* SequenceHash.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHash.hpp; path = ../../bleu/SequenceHash.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA82125A7585007AEFA4 /* ChainedSet.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSet.hpp; path = ../../bleu/ChainedSet.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA83125A7585007AEFA4 /* ChainedSetsManager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSetsManager.hpp; path = ../../bleu/ChainedSetsManager.hpp; sourceTree = SOURCE_ROOT; };
+		E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_LookupTable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary_LookupTable.hpp; path = ../../bleu/SequenceHashArbitrary_LookupTable.hpp; sourceTree = SOURCE_ROOT; };
+		E787C0C312C7D87400EF9891 /* bleu */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bleu; sourceTree = BUILT_PRODUCTS_DIR; };
+		E787C0C512C7D8A400EF9891 /* bleutests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bleutests.cpp; path = ../../bleu/bleutests.cpp; sourceTree = SOURCE_ROOT; };
 		E7946EB21291139000F2756F /* SequenceHashArbitrary.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary.hpp; path = ../../bleu/SequenceHashArbitrary.hpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		8DD76F660486A84900D96B5E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E787C0BD12C7D87400EF9891 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -93,9 +121,11 @@
 			isa = PBXGroup;
 			children = (
 				E7946EB21291139000F2756F /* SequenceHashArbitrary.hpp */,
+				E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_LookupTable.hpp */,
 				D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */,
 				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
+				E787C0C512C7D8A400EF9891 /* bleutests.cpp */,
 				D898060D121DCF9D0007A0AB /* bleu.cpp */,
 				D8B9DAE2125A7C65007AEFA4 /* SupportingFiles */,
 				D8147BE4125F8355003A81C1 /* Deprecated */,
@@ -107,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				8DD76F6C0486A84900D96B5E /* bleu */,
+				E787C0C312C7D87400EF9891 /* bleu */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -187,6 +218,24 @@
 			productReference = 8DD76F6C0486A84900D96B5E /* bleu */;
 			productType = "com.apple.product-type.tool";
 		};
+		E787C0B412C7D87400EF9891 /* bleu_tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E787C0C012C7D87400EF9891 /* Build configuration list for PBXNativeTarget "bleu_tests" */;
+			buildPhases = (
+				E787C0B512C7D87400EF9891 /* Sources */,
+				E787C0BD12C7D87400EF9891 /* Frameworks */,
+				E787C0BE12C7D87400EF9891 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = bleu_tests;
+			productInstallPath = "$(HOME)/bin";
+			productName = bleu;
+			productReference = E787C0C312C7D87400EF9891 /* bleu */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -202,6 +251,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				E787C0B412C7D87400EF9891 /* bleu_tests */,
 				8DD76F620486A84900D96B5E /* bleu */,
 				D8980516121D89F60007A0AB /* make bleu */,
 			);
@@ -223,6 +273,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E787C0B512C7D87400EF9891 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E787C0B612C7D87400EF9891 /* hashtable.cc in Sources */,
+				E787C0B712C7D87400EF9891 /* ktable.cc in Sources */,
+				E787C0B812C7D87400EF9891 /* parsers.cc in Sources */,
+				E787C0BA12C7D87400EF9891 /* cBitArray.cc in Sources */,
+				E787C0BB12C7D87400EF9891 /* Makefile in Sources */,
+				E787C0BC12C7D87400EF9891 /* Makefile in Sources */,
+				E787C0C612C7D8A400EF9891 /* bleutests.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -234,7 +298,7 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_MODEL_TUNING = G5;
-				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_OPTIMIZATION_LEVEL = 3;
 				INSTALL_PATH = /usr/local/bin;
 				PRODUCT_NAME = bleu;
 			};
@@ -299,6 +363,32 @@
 			};
 			name = Release;
 		};
+		E787C0C112C7D87400EF9891 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INSTALL_PATH = /usr/local/bin;
+				PRODUCT_NAME = bleu;
+			};
+			name = Debug;
+		};
+		E787C0C212C7D87400EF9891 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_MODEL_TUNING = G5;
+				GCC_OPTIMIZATION_LEVEL = 3;
+				INSTALL_PATH = /usr/local/bin;
+				PRODUCT_NAME = bleu;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -325,6 +415,15 @@
 			buildConfigurations = (
 				D8980517121D89F60007A0AB /* Debug */,
 				D8980518121D89F60007A0AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E787C0C012C7D87400EF9891 /* Build configuration list for PBXNativeTarget "bleu_tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E787C0C112C7D87400EF9891 /* Debug */,
+				E787C0C212C7D87400EF9891 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

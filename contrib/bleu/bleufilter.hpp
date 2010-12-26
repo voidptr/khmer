@@ -141,7 +141,11 @@ namespace bleu {
       
       for ( map<unsigned int, unsigned int>::iterator lIt = lReadCounts.begin(); lIt != lReadCounts.end(); ++lIt )
       {
-        cout << setw(10) << lIt->first;
+        if ( lIt->first == 0 )
+          cout << setw(10) << "none";
+        else
+          cout << setw(10) << lIt->first;
+          
         cout << setw(10) << lIt->second;
         if ( lIt->first > 0 )
         {
