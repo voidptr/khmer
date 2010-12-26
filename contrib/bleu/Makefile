@@ -19,6 +19,7 @@ tests:
 	cd ../../ && make lib_files
 	cd ../external_lib && make 
 	make bleutestsexe
+	cd ../tests/ && ../bleu/bleutests
 
 bleuexe: bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
 	$(CXX) $(CXXFLAGS) -o bleu bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
