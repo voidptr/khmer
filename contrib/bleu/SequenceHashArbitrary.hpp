@@ -31,9 +31,9 @@ ch == 'T' || ch == 't' )
 //#define uniqify_forward_reverse(f, r) ((f) < (r) ? (f) : (r))
 
 #define MAX_K_SIZE 200
-#define CHUNK_SIZE 4
+#define CHUNK_SIZE 8
 #define PRIME_GROUPS MAX_K_SIZE/CHUNK_SIZE
-#define CHUNK_PERMUTATIONS 256 //pow(4, CHUNK_SIZE)
+#define CHUNK_PERMUTATIONS 65536 //pow(4, CHUNK_SIZE)
 
 #include "SequenceHashArbitrary_LookupTable.hpp"
 
@@ -96,8 +96,6 @@ namespace bleu {
     unsigned long long rotatebitsclockwise( unsigned long long aHash )
     {
       return ( aHash >> 1 ) | ( aHash << 63 );
-//      b ^= aHash << 63;
-//      return b;
     } 
     
     
