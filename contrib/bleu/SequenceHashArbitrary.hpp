@@ -88,10 +88,9 @@ namespace bleu {
 
     unsigned long long rotatebitsclockwise( unsigned long long aHash )
     {
-      unsigned long long b = aHash >> 1;
-      b ^= aHash << 63;
-      
-      return b;
+      return ( aHash >> 1 ) | ( aHash << 63 );
+//      b ^= aHash << 63;
+//      return b;
     } 
 
     // takes a sequence and computes the forward and reverse strand hashes, then
@@ -105,42 +104,38 @@ namespace bleu {
     // finally the corresponding hashes are uniquified.
     unsigned long long hash(string & aSeq)
     {
-      unsigned long long lHash = PrimePowers[0][twobit_representation(aSeq[0])];
-      unsigned long long lHashRev = PrimePowers[0][twobit_complement(aSeq[ aSeq.length() - 1 ])];
+      int lLength = aSeq.length();
 
-      lHash = rotatebitsclockwise( lHash );
-      lHashRev = rotatebitsclockwise( lHashRev );
+      unsigned long long lHash = 1;
+      unsigned long long lHashRev = 1;
+    
+//      unsigned long long lHash = PrimePowers[0][twobit_representation(aSeq[0])];
+//      unsigned long long lHashRev = PrimePowers[0][twobit_complement(aSeq[ lLength - 1 ])];
+
+//      lHash = rotatebitsclockwise( lHash );
+//      lHashRev = rotatebitsclockwise( lHashRev );
       
-      for (int i = 1, j = aSeq.length() - 2; i < aSeq.length(); ++i, --j)
+//      for (int i = 1, j = lLength - 2; i < lLength; ++i, --j)
+//      for (int i = 0, j = lLength - 1; i < lLength; ++i, --j)
+      for( int i = 0; i < lLength; ++i )
       {
-        unsigned long long lTimes = PrimePowers[i][twobit_representation(aSeq[i])];
-        lHash = mul( lHash, lTimes );
+        unsigned char lTwoBitRep = twobit_representation(aSeq[i]);
         
-        unsigned long long lRevTimes = PrimePowers[i][twobit_complement(aSeq[j])];
-        lHashRev = mul( lHashRev, lRevTimes );
+        lHash *= PrimePowers[i][lTwoBitRep];
+        lHashRev *= PrimePowers[i][complement_twobit(lTwoBitRep)];
         
         lHash = rotatebitsclockwise( lHash );
         lHashRev = rotatebitsclockwise( lHashRev );
       }
       
-      //unsigned long long lFinalHash = uniqify_forward_reverse(lHash, lHashRev);
-      unsigned long long lFinalHash = lHash ^ lHashRev;
-
-      return lFinalHash;
+      return lHash ^ lHashRev;
     }
     
-    unsigned long long mul(unsigned long long x, unsigned long long y)
-    {
-      unsigned long long r = 0;
-      
-      for ( ; y != 0 ; y >>= 1, x <<= 1 )
-      {    
-        if ( y & 1 )
-          r += x;
-      } 
-      return r;
-      
-    }
+//    unsigned long long hash(string & aSeq )
+//    {
+//      return (rand() % 10029385110);
+//    }
+    
   };
   
   const unsigned long long SequenceHashArbitrary::PrimePowers[199][4] =
