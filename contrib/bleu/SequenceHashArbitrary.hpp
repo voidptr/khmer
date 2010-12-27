@@ -40,7 +40,7 @@ namespace bleu {
   private:
     
     string sequence;    
-    static const unsigned long long PrimePowers[199][4];
+    static const unsigned long long PrimePowers[200][4];
     
   public:
     unsigned long long canonical_hash;
@@ -108,15 +108,7 @@ namespace bleu {
 
       unsigned long long lHash = 1;
       unsigned long long lHashRev = 1;
-    
-//      unsigned long long lHash = PrimePowers[0][twobit_representation(aSeq[0])];
-//      unsigned long long lHashRev = PrimePowers[0][twobit_complement(aSeq[ lLength - 1 ])];
 
-//      lHash = rotatebitsclockwise( lHash );
-//      lHashRev = rotatebitsclockwise( lHashRev );
-      
-//      for (int i = 1, j = lLength - 2; i < lLength; ++i, --j)
-//      for (int i = 0, j = lLength - 1; i < lLength; ++i, --j)
       for( int i = 0; i < lLength; ++i )
       {
         unsigned char lTwoBitRep = twobit_representation(aSeq[i]);
@@ -131,14 +123,9 @@ namespace bleu {
       return lHash ^ lHashRev;
     }
     
-//    unsigned long long hash(string & aSeq )
-//    {
-//      return (rand() % 10029385110);
-//    }
-    
   };
   
-  const unsigned long long SequenceHashArbitrary::PrimePowers[199][4] =
+  const unsigned long long SequenceHashArbitrary::PrimePowers[200][4] =
   {
     { 3, 9, 27, 81 }, 
     { 5, 25, 125, 625 }, 
@@ -338,7 +325,8 @@ namespace bleu {
     { 1201, 1442401, 1732323601, 2080520644801 }, 
     { 1213, 1471369, 1784770597, 2164926734161 }, 
     { 1217, 1481089, 1802485313, 2193624625921 }, 
-    { 1223, 1495729, 1829276567, 2237205241441 }
+    { 1223, 1495729, 1829276567, 2237205241441 },
+    { 1229, 1510441, 1856331989, 2281432014481 } 
   };
 
 }

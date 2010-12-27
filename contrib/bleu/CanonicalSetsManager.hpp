@@ -11,6 +11,7 @@
 #include "../external_lib/cBitArray.h"
 #include "CanonicalSet.hpp"
 #include "SequenceHashArbitrary.hpp"
+#include "SequenceHashArbitrary_LookupTable.hpp"
 #include <algorithm>
 
 #define BIT_COUNT_PARTITION 1000
@@ -57,11 +58,6 @@
 //#define CACHED_HASH_SEGMENT_SIZE 31250
 //#define CACHED_HASH_SEGMENT_CAPACITY 1024
 
-
-
-
-
-
 namespace bleu {
   
   using namespace khmer;
@@ -79,6 +75,8 @@ namespace bleu {
   class CanonicalSetsManager
   {
   private:
+    SequenceHashArbitrary_Lookup _lookup_table;
+  
     // sizes set during constructor
     cBitArray * _hash_table_preliminary[HASHES]; // two-dimensional hash-table
     cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
@@ -90,9 +88,6 @@ namespace bleu {
     // sizes set during prep 1 (based on processing of _hash_table)
     unsigned long long _hash_table_total_bit_counts[HASHES];
     SetOffsetContainer * _set_offsets[HASHES]; 
-    
-
-    
     
     // caching system so I don't have to re-modulo. Dunno if this is faster than modulo or not. will test.
     pair<SequenceHashArbitrary, HashBin> _hash_bin_cache[HASHES][CACHESIZE];
