@@ -210,6 +210,7 @@ namespace bleu {
       string currSeq = "";
       
       string reads[100000];
+      string names[100000];
       
       while(!parser->is_complete())  
       {
@@ -220,6 +221,7 @@ namespace bleu {
           if ( check_read( read.seq ) )
           {
             reads[lCount] = read.seq;
+            names[lCount] = read.name;
             lCount++;
           }
         }
@@ -246,9 +248,9 @@ namespace bleu {
                 SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
                 if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
                 {
-                  outfile << ">" << read.name << "\t" 
-                  << " " << "\n" 
-                  << read.seq << "\n"; 
+                  outfile << ">" << names[j] << "\t" 
+                  << " " << lSeq << " " << lWorkingSet->GetPrimarySetOffset() << " " << lExistingSet->GetPrimarySetOffset() << "\n" 
+                  << reads[j] << "\n"; 
                   lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
                 }
               }
