@@ -1,5 +1,5 @@
 /*
- *  SequenceHashArbitrary_LookupTable.hpp
+ *  SequenceHashArbitrary_Lookup.hpp
  *  bleu
  *
  *  Created by Rosangela Canino-Koning on 12/26/10.
@@ -14,9 +14,17 @@
 using namespace std;
 
 #define MAX_K_SIZE 200
-#define CHUNK_SIZE 8
+
+#define CHUNK_SIZE 1
+#define CHUNK_PERMUTATIONS 4 //pow(4, CHUNK_SIZE)
+
+//#define CHUNK_SIZE 2
+//#define CHUNK_PERMUTATIONS 16 //pow(4, CHUNK_SIZE)
+
+//#define CHUNK_SIZE 4
+//#define CHUNK_PERMUTATIONS 256 //pow(4, CHUNK_SIZE)
+
 #define PRIME_GROUPS MAX_K_SIZE/CHUNK_SIZE
-#define CHUNK_PERMUTATIONS 65536 //pow(4, CHUNK_SIZE)
 
 namespace bleu {
   class SequenceHashArbitrary_Lookup {

@@ -11,7 +11,8 @@
 #include "../external_lib/cBitArray.h"
 #include "CanonicalSet.hpp"
 #include "SequenceHashArbitrary.hpp"
-#include "SequenceHashArbitrary_LookupTable.hpp"
+#include "SequenceHashArbitrary_Builder.hpp"
+#include "PrimeGenerator.hpp"
 #include <algorithm>
 
 #define BIT_COUNT_PARTITION 1000
@@ -75,8 +76,6 @@ namespace bleu {
   class CanonicalSetsManager
   {
   private:
-    SequenceHashArbitrary_Lookup _lookup_table;
-  
     // sizes set during constructor
     cBitArray * _hash_table_preliminary[HASHES]; // two-dimensional hash-table
     cBitArray * _hash_table[HASHES]; // two-dimensional hash-table
@@ -117,10 +116,10 @@ namespace bleu {
       _average_size_at_sort = 0;
       _releasable_set_offsets_count = 0;
       
-      _tablesizes[0] = get_first_prime_below( aMaxMemory / HASHES );
+      _tablesizes[0] = PrimeGenerator::get_first_prime_below( aMaxMemory / HASHES );
       for ( int i = 1; i < HASHES; ++i )      
       {
-        _tablesizes[i] = get_first_prime_below(_tablesizes[i-1]); 
+        _tablesizes[i] = PrimeGenerator::get_first_prime_below(_tablesizes[i-1]); 
       }
       
       for ( int j = 0; j < HASHES; ++j )      
@@ -164,23 +163,6 @@ namespace bleu {
     //    
     
     // mark a kmer/hash as "interesting" if it appears more than once.
-//    void seen_hash( HashBin * aBins, unsigned long long lCount, int lTable )
-//    {
-//      cBitArray * lPrelim = _hash_table_preliminary[lTable];
-//      cBitArray * lFinal = _hash_table[lTable];
-//      HashBin lBin = 0;
-//      for ( int i = 0; i < lCount; ++i )
-//      {
-//        lBin = aBins[i];
-//        
-//        if ( lPrelim->Get(lBin) )
-//          lFinal->Set(lBin, true);
-//        else
-//          lPrelim->Set(lBin, true);
-//
-//      }
-//    }
-    
     void seen_hash( SequenceHashArbitrary aHash )
     {
       for ( int i = 0; i < HASHES; ++i )
@@ -192,17 +174,14 @@ namespace bleu {
         
         if ( SeenHashCounts[i][ lSegmentIndex ] == CACHED_HASH_SEGMENT_CAPACITY )
         {
-          //cout << "dumping: " << i << " segment " << lHashBin / CACHED_HASH_SEGMENT_SIZE << endl;
           dump_seen_hashes_into_table( SeenHashes[i][ lSegmentIndex ], SeenHashCounts[i][ lSegmentIndex ], i );
-          SeenHashCounts[i][ lSegmentIndex ]=0;
-          //cout << " done" << endl;
+          SeenHashCounts[i][ lSegmentIndex ] = 0;
         }
       }      
     }
     
     void dump_seen_hashes_into_table( HashBin * aHashBins, unsigned int aCount, int i )
     {
-      //cout << ".";
       for ( int j = 0; j < aCount; ++j )
       {
         if ( _hash_table_preliminary[i]->Get( aHashBins[j] ) == true )
@@ -221,26 +200,9 @@ namespace bleu {
           dump_seen_hashes_into_table( SeenHashes[i][j], SeenHashCounts[i][j], i );
           delete SeenHashes[i][j];
         }
-        //delete SeenHashes[i];
-        //delete SeenHashCounts[i];                          
       }
     }
-    
-//    void seen_hash( HashIntoType aHash )
-//    {
-//      
-//      for ( int i = 0; i < HASHES; ++i )
-//      {
-//        unsigned long long lHashBin = HashToHashBin(aHash, i); 
-//
-//        if ( _hash_table_preliminary[i]->Get(lHashBin) == true )
-//          _hash_table[i]->Set(lHashBin, true);
-//        else
-//          _hash_table_preliminary[i]->Set(lHashBin, true);
-//       } 
-//          
-//    }
-    
+        
     //
     // second pass through the reads -- actually perform the set assignments
     //
@@ -434,7 +396,6 @@ namespace bleu {
         join( aEncounteredSet, aOriginatingSet );
         return aEncounteredSet;
       }
-      //return lDominatingSet;
     }
     
     void canonicalize()
@@ -445,9 +406,7 @@ namespace bleu {
       cout << "expect to release " << _releasable_set_offsets_count << " offsets." << endl;
       
       if ( _releasable_set_offsets_count <= CANONICALIZATION_THRESHOLD )
-      {
         cout << "Canonicalization benefit expectation is less than " << CANONICALIZATION_THRESHOLD << " freed offsets. Not advised." << endl; 
-      }
 
 
       // go through all the set offsets and point them to their canonical locations.
@@ -457,29 +416,26 @@ namespace bleu {
         {
           SetOffset lOffset = SetOffsetBinToSetOffset(j, i);
           if ( lOffset != 0 ) // there's something in here
-          {
             AssignSetOffsetToBin( j, i, SetOffsetToSet( lOffset )->GetPrimarySetOffset(), true );
-//            _set_offsets[i][j] = SetOffsetToSet( lOffset )->PrimarySetOffset; 
-          }
         }
       }
       
       _released_set_offsets.clear(); // clear this.
-      
+
+      // go through the sets and put the cleared ones back on the available list.
       for ( int k = 1; k < SETS_SIZE; ++k )
       {
         if ( _sets[ k ] != NULL ) // something in this slot
         {
           SetHandle lSet = *_sets[k];
           
-          if ( k != lSet->GetPrimarySetOffset() )
+          if ( k != lSet->GetPrimarySetOffset() ) // found a non-canonical
           {
-            _sets[k] = NULL;
+            _sets[k] = NULL; // clear it
             _released_set_offsets.push_back( k ); // it's null! hey!
           }
           else // we'll only hit each set once this way.
             lSet->BackReferences.clear();
-
         }
         else
         {
@@ -633,34 +589,7 @@ namespace bleu {
     // helper functions
     //
     
-//    // calculate the hash bin from a kmer's hash
-//    // store the modulo output for future reference.
-//    HashBin HashToHashBinCached( HashIntoType aHash, int i ) // no idea if this will be faster than moduloing every time.
-//    {
-//      for (int j = 0, index = _hash_bin_cache_last_used_index[i]; j < CACHESIZE; ++j, ++index)
-//      {
-//        if ( index >= CACHESIZE )
-//          index = 0;
-//        
-//        if ( _hash_bin_cache[i][index].first == aHash )
-//        {
-//          _hash_bin_cache_last_used_index[i] = index;
-//          return _hash_bin_cache[i][index].second; // found it
-//        }
-//      }
-//      
-//      // didn't find it.
-//      HashBin lHashBin = HashToHashBin(aHash, i);
-//      
-//      // insert it into the cache;
-//      _hash_bin_cache_last_used_index[i]++;
-//      if ( _hash_bin_cache_last_used_index[i] >= CACHESIZE )
-//        _hash_bin_cache_last_used_index[i] = 0;
-//      
-//      _hash_bin_cache[i][ _hash_bin_cache_last_used_index[i] ] = pair<HashIntoType,HashBin>(aHash, lHashBin);
-//      
-//      return lHashBin;  
-//    }    
+    // calculate the hash bin from a kmer's hash
     HashBin HashToHashBin( SequenceHashArbitrary aHash, int i ) // no idea which is faster.
     {
       return (aHash.canonical_hash % _tablesizes[i]);
@@ -696,8 +625,7 @@ namespace bleu {
     }    
     SetOffsetBin HashBinToSetOffsetBin( HashBin aBin, int i )
     {      
-      assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
-//      assert( _hash_table[i]->Get( aBin ) == true );
+//      assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
       
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
       
@@ -726,12 +654,9 @@ namespace bleu {
 
       int lSpaceUsed = (sizeof(SetOffsetContainer)*8) - lLocalBit;      
       
-//      SetOffsetContainer lDELETEMEField1 = _set_offsets[i][lField];
-//      SetOffsetContainer lDELETEMEField2 = 0;
       if (lSpaceUsed < SET_OFFSET_BITS)
       {
         lOffset |= (_set_offsets[i][lField+1] << lSpaceUsed) & lMask;
-//        lDELETEMEField2 = _set_offsets[i][lField+1];
       }
       
       assert( lOffset < SETS_SIZE );
@@ -757,37 +682,15 @@ namespace bleu {
 
       int lSpaceUsed = (sizeof(SetOffsetContainer)*8) - lLocalBit;
       SetOffsetContainer lAssignmentMask = ~( ((SetOffsetContainer)pow(2, SET_OFFSET_BITS) - 1) << lLocalBit );
-      
-//      SetOffsetContainer lDELETEMEField1 = _set_offsets[i][lField];
-//      SetOffsetContainer lDELETEMEField2 = 0;
-//      SetOffsetContainer lDELETEMEField2After = 0;
-//      
-//      SetOffsetContainer lDELETEMEShiftedValue = (lWorkingValue << lLocalBit);
-//      SetOffsetContainer lDELETEMEMaskedOriginalValue = (_set_offsets[i][lField] & lAssignmentMask);
-//      SetOffsetContainer lDELETEMEOREDTOGETHER = (_set_offsets[i][lField] & lAssignmentMask) | (lWorkingValue << lLocalBit);
-//
-//      SetOffsetContainer lDELETEMEShiftedValue2 = 0;
-//      SetOffsetContainer lDELETEMEMaskedOriginalValue2 = 0;
-//      SetOffsetContainer lDELETEMEOREDTOGETHER2 = 0;
-
-      
+            
       _set_offsets[i][lField] = (_set_offsets[i][lField] & lAssignmentMask) | (lWorkingValue << lLocalBit);
-      
-//      SetOffsetContainer lDELETEMEField1After = _set_offsets[i][lField];
       
       if ( lSpaceUsed < SET_OFFSET_BITS )
       {
-//        lDELETEMEField2 = _set_offsets[i][lField+1];
         int lShiftCount = lSpaceUsed;
         SetOffsetContainer lShiftMask = ~( ((SetOffsetContainer)pow(2, SET_OFFSET_BITS) - 1) >> lShiftCount );
         
-//        lDELETEMEShiftedValue2 = (lWorkingValue >> lShiftCount);
-//        lDELETEMEMaskedOriginalValue2 = (_set_offsets[i][lField+1] & lShiftMask );
-//        lDELETEMEOREDTOGETHER2 = (_set_offsets[i][lField+1] & lShiftMask ) | (lWorkingValue >> lShiftCount);
-        
         _set_offsets[i][lField+1] = (_set_offsets[i][lField+1] & lShiftMask ) | (lWorkingValue >> lShiftCount);
-        
-//        lDELETEMEField2After = _set_offsets[i][lField+1];
       }
   
       SetOffset lCircVal = SetOffsetBinToSetOffset(aBin, i);
@@ -800,63 +703,6 @@ namespace bleu {
     {      
       assert( aOffset > 0 ); // we should not be poking here if we don't have a set to go to
       return *_sets[ aOffset ]; // pick up the gateway node      
-    }
-    
-    //
-    // prime calculation functions
-    //
-    bool is_prime( unsigned long long aCandidate )
-    {
-      if ( aCandidate < 2 )
-        return false;
-      
-      if ( aCandidate == 2 )
-        return true;
-      
-      if ( aCandidate % 2 == 0 )
-        return false;
-      
-      for ( unsigned long long i = 3; i < pow((double)aCandidate, 0.5) + 1; i+= 2 )
-      {
-        if ( aCandidate % i == 0 )
-          return false;
-      }
-      
-      return true;  
-    }
-    
-    unsigned long long get_first_prime_below( unsigned long long aNumber )
-    {
-      unsigned long long i = aNumber - 1;
-      
-      if ( i % 2 == 0 ) // no even
-        --i;
-      
-      while ( i > 0 )
-      {
-        if ( is_prime( i ) )
-          return i;
-        
-        i -= 2;
-      }
-      
-      return 0;
-    }
-    
-    unsigned long long get_first_prime_above( unsigned long long aNumber )
-    {
-      unsigned long long i = aNumber + 1;
-      
-      if ( i % 2 == 0 ) // no even
-        ++i;
-      
-      while ( true )
-      {
-        if ( is_prime( i ) )
-          return i;
-        
-        i += 2;
-      }
     }
   };
 }

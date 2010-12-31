@@ -35,6 +35,7 @@ namespace bleu {
   {
   private:
     CanonicalSetsManager * _Sets_Manager;
+    SequenceHashArbitrary_Builder * _hash_builder;
 
   public:
     typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
@@ -43,6 +44,7 @@ namespace bleu {
     : Hashtable(ksize, 0)
     { 
       _Sets_Manager = new CanonicalSetsManager( aMaxMemory );
+      _hash_builder = new SequenceHashArbitrary_Builder();
       
       // housekeeping
       _counts = NULL;   
@@ -60,6 +62,213 @@ namespace bleu {
       _Sets_Manager->allocate_set_offset_table();      
     }
 
+    // fucking duplicate code drives me nuts. I swear I will clean this up once 
+    // I get some functionality that I'm happy with.
+    void consume_strings_for_hash_table(const std::string &filename)
+    {
+      time_t start, end;      
+      start = time(NULL);
+      
+      int total_reads = 0;
+      
+      IParser* parser = IParser::get_parser(filename.c_str());
+      Read read;
+      
+      string currName = "";
+      string currSeq = "";
+      
+      string reads[100000];
+            
+      while(!parser->is_complete())  {
+        
+        int lCount = 0;
+        //int lKmerCt = 0;
+        for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
+        {
+          read = parser->get_next_read();
+          if ( check_read( read.seq ) )
+          {
+            reads[lCount] = read.seq;
+            lCount++;
+            
+          }
+        }
+
+        for ( int j = 0; j < lCount; ++j )
+        {        
+          const unsigned int length = reads[j].length();
+          
+          for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
+          {
+            string lSeq = reads[j].substr(k, _ksize);  
+            SequenceHashArbitrary hash( lSeq, _hash_builder->hash( lSeq ) );
+//            cout << hash.canonical_hash << endl;
+            
+            _Sets_Manager->seen_hash( hash );
+          }
+        }
+        
+        total_reads += lCount;        
+        
+        cout << total_reads << endl;
+      }
+      
+      _Sets_Manager->finalize_seen_hash();
+      
+      end = time(NULL);        
+      cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << endl;
+    }
+    
+    // fucking duplicate code drives me nuts. I swear I will clean this up once 
+    // I get some functionality that I'm happy with.
+    void generate_sets(const std::string &filename)
+    {
+      time_t start, end;      
+      start = time(NULL);
+      
+      int total_reads = 0;
+      
+      IParser* parser = IParser::get_parser(filename.c_str());
+      Read read;
+      
+      string currName = "";
+      string currSeq = "";
+      
+      string reads[100000];
+      
+      while(!parser->is_complete())  
+      {
+        int lCount = 0;
+        for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
+        {
+          read = parser->get_next_read();
+          if ( check_read( read.seq ) )
+          {
+            reads[lCount] = read.seq;
+            lCount++;
+          }
+        }
+        
+        for ( int j = 0; j < lCount; ++j )
+        {        
+          const unsigned int length = reads[j].length();
+          
+          SetHandle lWorkingSet = NULL;
+          for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
+          {
+            string lSeq = reads[j].substr(k, _ksize);
+            SequenceHashArbitrary lHash( lSeq, _hash_builder->hash( lSeq ) );
+          
+            if ( _Sets_Manager->can_have_set( lHash ) )
+            {
+              if ( lWorkingSet == NULL )
+              {
+                lWorkingSet = _Sets_Manager->get_set( lHash ); // this'll either find the one it goes in, or create it          
+                continue; // move on
+              }
+              if ( _Sets_Manager->has_existing_set( lHash ) )
+              {
+                SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
+                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
+                {
+                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
+                }
+              }
+              else
+              {
+                
+                _Sets_Manager->add_to_set( lWorkingSet, lHash );
+              }
+            }
+          }
+        }
+        total_reads += lCount;        
+        
+        cout << total_reads << endl;
+      }
+      
+      end = time(NULL);        
+      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
+    }
+
+    // fucking duplicate code drives me nuts. I swear I will clean this up once 
+    // I get some functionality that I'm happy with.
+    void output_join_reads(const std::string &filename, const std::string &outputfilename)
+    {
+    
+      ofstream outfile(outputfilename.c_str());
+    
+      time_t start, end;      
+      start = time(NULL);
+      
+      int total_reads = 0;
+      
+      IParser* parser = IParser::get_parser(filename.c_str());
+      Read read;
+      
+      string currName = "";
+      string currSeq = "";
+      
+      string reads[100000];
+      
+      while(!parser->is_complete())  
+      {
+        int lCount = 0;
+        for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
+        {
+          read = parser->get_next_read();
+          if ( check_read( read.seq ) )
+          {
+            reads[lCount] = read.seq;
+            lCount++;
+          }
+        }
+        
+        for ( int j = 0; j < lCount; ++j )
+        {        
+          const unsigned int length = reads[j].length();
+          
+          SetHandle lWorkingSet = NULL;
+          for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
+          {
+            string lSeq = reads[j].substr(k, _ksize);
+            SequenceHashArbitrary lHash( lSeq, _hash_builder->hash( lSeq ) );
+          
+            if ( _Sets_Manager->can_have_set( lHash ) )
+            {
+              if ( lWorkingSet == NULL )
+              {
+                lWorkingSet = _Sets_Manager->get_set( lHash ); // this'll either find the one it goes in, or create it          
+                continue; // move on
+              }
+              if ( _Sets_Manager->has_existing_set( lHash ) )
+              {
+                SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
+                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
+                {
+                  outfile << ">" << read.name << "\t" 
+                  << " " << "\n" 
+                  << read.seq << "\n"; 
+                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
+                }
+              }
+              else
+              {
+                
+                _Sets_Manager->add_to_set( lWorkingSet, lHash );
+              }
+            }
+          }
+        }
+        total_reads += lCount;        
+        
+        cout << total_reads << endl;
+      }
+      
+      end = time(NULL);        
+      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
+    }
+    
     virtual unsigned int output_partitioned_file(const std::string infilename,
                                                  const std::string outputfilename,
                                                  CallbackFn callback=0,
@@ -74,9 +283,6 @@ namespace bleu {
       Read read;
       string seq;
       
-      //std::string first_kmer;
-      //HashIntoType forward_hash = 0, reverse_hash = 0;
-      
       map<unsigned int, unsigned int> lReadCounts;
       map<unsigned int, unsigned int> lFosteredCounts;
       
@@ -84,24 +290,21 @@ namespace bleu {
         read = parser->get_next_read();
         seq = read.seq;
         
-        if (check_read(seq)) {
-          
-          //const char * sp = seq.c_str();
-          const unsigned int length = seq.length();
-          
+        if (check_read(seq)) 
+        {
+          const unsigned int length = seq.length();          
           
           SetHandle lSet = NULL;
           for ( unsigned int i = 0; i < length - _ksize + 1; ++i )
           {
-
-            SequenceHashArbitrary hash( seq.substr(i, _ksize) );
+            string lSeq = seq.substr(i, _ksize);  
+            SequenceHashArbitrary hash( lSeq, _hash_builder->hash( lSeq ) );
             
             if ( _Sets_Manager->can_have_set( hash ) )
             {
               lSet = _Sets_Manager->get_existing_set( hash );
               break;
-            }
-                          
+            }                          
           }   
           
           unsigned int lSetID = 0;
@@ -166,138 +369,14 @@ namespace bleu {
       cout << setw(6) << "unique set count: "<< lReadCounts.size() << endl;
       cout << endl;
       
-      //cout << "Hash Entries: " << _total_unique_hash_count << endl;
-      
       delete parser; parser = NULL;
       
       return lReadCounts.size();
     }
     
-
-    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
-    void consume_strings_for_hash_table(const std::string &filename)
-    {
-      time_t start, end;      
-      start = time(NULL);
-      
-      int total_reads = 0;
-      
-      IParser* parser = IParser::get_parser(filename.c_str());
-      Read read;
-      
-      string currName = "";
-      string currSeq = "";
-      
-      string reads[100000];
-            
-      while(!parser->is_complete())  {
-        
-        int lCount = 0;
-        //int lKmerCt = 0;
-        for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
-        {
-          read = parser->get_next_read();
-          if ( check_read( read.seq ) )
-          {
-            reads[lCount] = read.seq;
-            lCount++;
-            
-          }
-        }
-
-        for ( int j = 0; j < lCount; ++j )
-        {        
-          const unsigned int length = reads[j].length();
-          
-          for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
-          {
-            SequenceHashArbitrary hash( reads[j].substr(k, _ksize) );
-            
-            _Sets_Manager->seen_hash( hash );
-          }
-        }
-        
-        total_reads += lCount;        
-        
-        cout << total_reads << endl;
-      }
-      
-      _Sets_Manager->finalize_seen_hash();
-      
-      end = time(NULL);        
-      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
-    }
-    
-    
-    // fucking duplicate code drives me nuts. I swear I will clean this up once I get some functionality that I'm happy with.
-    void generate_sets(const std::string &filename)
-    {
-      time_t start, end;      
-      start = time(NULL);
-      
-      int total_reads = 0;
-      
-      IParser* parser = IParser::get_parser(filename.c_str());
-      Read read;
-      
-      string currName = "";
-      string currSeq = "";
-      
-      string reads[100000];
-      
-      while(!parser->is_complete())  {
-        
-        int lCount = 0;
-        for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
-        {
-          read = parser->get_next_read();
-          if ( check_read( read.seq ) )
-          {
-            reads[lCount] = read.seq;
-            lCount++;
-          }
-        }
-        
-        for ( int j = 0; j < lCount; ++j )
-        {        
-          const unsigned int length = reads[j].length();
-          
-          SetHandle lWorkingSet = NULL;
-          for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
-          {
-            SequenceHashArbitrary lHash( reads[j].substr(k, _ksize) );
-            
-            if ( _Sets_Manager->can_have_set( lHash ) )
-            {
-              if ( lWorkingSet == NULL )
-              {
-                lWorkingSet = _Sets_Manager->get_set( lHash ); // this'll either find the one it goes in, or create it          
-                continue; // move on
-              }
-              if ( _Sets_Manager->has_existing_set( lHash ) )
-              {
-                SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
-                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
-                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
-              }
-              else
-              {
-                
-                _Sets_Manager->add_to_set( lWorkingSet, lHash );
-              }
-            }
-          }
-        }
-        total_reads += lCount;        
-        
-        cout << total_reads << endl;
-      }
-      
-      end = time(NULL);        
-      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
-    }
-    
   };
+  
+  
   
   typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
   

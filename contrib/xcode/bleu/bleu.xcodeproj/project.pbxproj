@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 45;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -77,9 +77,11 @@
 		D8AD16E5128AFEED00ECE596 /* SequenceHash.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHash.hpp; path = ../../bleu/SequenceHash.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA82125A7585007AEFA4 /* ChainedSet.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSet.hpp; path = ../../bleu/ChainedSet.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA83125A7585007AEFA4 /* ChainedSetsManager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSetsManager.hpp; path = ../../bleu/ChainedSetsManager.hpp; sourceTree = SOURCE_ROOT; };
-		E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_LookupTable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary_LookupTable.hpp; path = ../../bleu/SequenceHashArbitrary_LookupTable.hpp; sourceTree = SOURCE_ROOT; };
+		E73A351E12C94C79004EB89A /* PrimeGenerator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = PrimeGenerator.hpp; path = ../../bleu/PrimeGenerator.hpp; sourceTree = SOURCE_ROOT; };
+		E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_Lookup.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary_Lookup.hpp; path = ../../bleu/SequenceHashArbitrary_Lookup.hpp; sourceTree = SOURCE_ROOT; };
 		E787C0C312C7D87400EF9891 /* bleu */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bleu; sourceTree = BUILT_PRODUCTS_DIR; };
 		E787C0C512C7D8A400EF9891 /* bleutests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bleutests.cpp; path = ../../bleu/bleutests.cpp; sourceTree = SOURCE_ROOT; };
+		E787C16A12C9217D00EF9891 /* SequenceHashArbitrary_Builder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary_Builder.hpp; path = ../../bleu/SequenceHashArbitrary_Builder.hpp; sourceTree = SOURCE_ROOT; };
 		E7946EB21291139000F2756F /* SequenceHashArbitrary.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary.hpp; path = ../../bleu/SequenceHashArbitrary.hpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -121,7 +123,9 @@
 			isa = PBXGroup;
 			children = (
 				E7946EB21291139000F2756F /* SequenceHashArbitrary.hpp */,
-				E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_LookupTable.hpp */,
+				E787C16A12C9217D00EF9891 /* SequenceHashArbitrary_Builder.hpp */,
+				E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_Lookup.hpp */,
+				E73A351E12C94C79004EB89A /* PrimeGenerator.hpp */,
 				D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */,
 				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
@@ -241,8 +245,11 @@
 /* Begin PBXProject section */
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				ORGANIZATIONNAME = VoidPtr;
+			};
 			buildConfigurationList = 1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "bleu" */;
-			compatibilityVersion = "Xcode 3.1";
+			compatibilityVersion = "Xcode 3.2";
 			hasScannedForEncodings = 1;
 			knownRegions = (
 				en,
