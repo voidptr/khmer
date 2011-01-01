@@ -376,6 +376,82 @@ namespace bleu {
       return lReadCounts.size();
     }
     
+    virtual unsigned int analyze_joined_reads(const std::string infilename)
+    {
+      IParser* parser = IParser::get_parser(infilename);
+      
+      Read read;
+      string seq;
+      
+      //map<unsigned int, unsigned int> lReadCounts;
+      
+      //  set ID      ,     kmer  , count
+      map<unsigned int, map<string, unsigned int> > lJoinedReads;
+      
+      while(!parser->is_complete()) {
+        read = parser->get_next_read();
+        seq = read.seq;
+        
+        if (check_read(seq)) 
+        {
+          const unsigned int length = seq.length();          
+         
+          // loop through the reads in the file, and figure out what set they go in. Then, count it up.
+          SetHandle lSet = NULL;
+          string lKmer;
+          for ( unsigned int i = 0; i < length - _ksize + 1; ++i )
+          {
+            string lSeq = seq.substr(i, _ksize);  
+            SequenceHashArbitrary hash( lSeq, _hash_builder->hash( lSeq ) );
+            
+            if ( _Sets_Manager->can_have_set( hash ) )
+            {
+              lSet = _Sets_Manager->get_existing_set( hash );
+              lKmer = lSeq;
+              break;
+            }                          
+          }   
+          
+          unsigned int lSetID = 0;
+          if ( lSet != NULL )
+            lSetID = lSet->GetPrimarySetOffset();
+          
+          if ( lJoinedReads.find(lSetID) == lJoinedReads.end() )
+            lJoinedReads[lSetID][lKmer] = 0;
+          else if (lJoinedReads[lSetID].find(lKmer) == lJoinedReads[lSetID].end() )
+            lJoinedReads[lSetID][lKmer] = 0;
+          
+          lJoinedReads[lSetID][lKmer]++; // dunno if this will work, but might be worth a try.
+          
+        }
+      }
+      
+      cout << "Kmers that Joined sets" << endl;
+      for ( map<unsigned int, map<string, unsigned int> >::iterator lIt = lJoinedReads.begin(); lIt != lJoinedReads.end(); ++lIt )
+      {        
+        // if there are more than one kmer in the join
+        // or, if there's only one kmer, that it was joined against more than once.
+      
+        if ( lIt->second.size() > 1 || lIt->second.begin()->second > 1 )
+        {      
+          if ( lIt->first == 0 )
+            cout << "none: ";
+          else
+            cout << lIt->first << ": ";
+          cout << endl;
+          
+          for ( map<string, unsigned int>::iterator lIt2 = lIt->second.begin(); lIt2 != lIt->second.end(); ++lIt2 )
+          {
+            cout << "  " << lIt2->first << "  " << lIt2->second << endl;
+          }
+        }
+      }
+      
+      delete parser; parser = NULL;
+      
+      return lJoinedReads.size();
+    }
+    
   };
   
   

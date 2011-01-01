@@ -38,11 +38,17 @@ int main(int argc, char *argv[])
 
   // generate the sets
   if ( argc == 5 )
+  {
     bf.generate_sets(argv[1]);
+  }
   else // or, also output the join reads.
+  {
     bf.output_join_reads(argv[1], argv[5]);
-
+    bf.analyze_joined_reads(argv[5]);
+  }
+  
   bf.output_partitioned_file(argv[1], argv[4]);
+
   end = time(NULL);
 
 
