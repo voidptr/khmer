@@ -24,6 +24,21 @@ int main(int argc, char *argv[])
 
   start = time(NULL);
 
+  struct tm *current;
+	current = localtime(&start);
+
+
+  cout << "Bleu - ";
+  printf("%i/%i/%i %i:%i:%i", (current->tm_mon)+1, current->tm_mday, (current->tm_year)+1900, current->tm_hour, current->tm_min, current->tm_sec);
+  cout << endl;
+  
+  cout << "Executable: " << argv[0] << endl;
+  cout << "Parameters: inputfile=" << argv[1] << ", k=" << argv[2] << ", memoryfootprint=" << argv[3] << ", outputfile=" << argv[4];
+  if ( argc > 5 )
+    cout << ", readsthatjoin=" << argv[5];
+  cout << endl;
+  cout << endl;
+
   bleu::BleuFilter bf(atoi(argv[2]), atoll(argv[3]));
 
   bf.consume_strings_for_hash_table(argv[1]);
