@@ -78,7 +78,7 @@ namespace bleu {
       string currSeq = "";
       
       string reads[100000];
-            
+         
       while(!parser->is_complete())  {
         
         int lCount = 0;
@@ -95,26 +95,22 @@ namespace bleu {
         }
 
         for ( int j = 0; j < lCount; ++j )
-        {        
+        { 
           const unsigned int length = reads[j].length();
           
           for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
           {
             string lSeq = reads[j].substr(k, _ksize);  
             SequenceHashArbitrary hash( lSeq, _hash_builder->hash( lSeq ) );
-//            cout << hash.canonical_hash << endl;
-            
             _Sets_Manager->seen_hash( hash );
           }
         }
         
         total_reads += lCount;        
-        
         cout << total_reads << endl;
       }
       
       _Sets_Manager->finalize_seen_hash();
-      
       end = time(NULL);        
       cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << endl;
     }

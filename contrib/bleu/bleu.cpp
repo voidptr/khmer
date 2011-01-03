@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 	current = localtime(&start);
 
 
-  cout << "Bleu - ";
+  cout << "...Bleu - ";
   printf("%i/%i/%i %i:%i:%i", (current->tm_mon)+1, current->tm_mday, (current->tm_year)+1900, current->tm_hour, current->tm_min, current->tm_sec);
   cout << endl;
   
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
   bleu::BleuFilter bf(atoi(argv[2]), atoll(argv[3]));
 
   bf.consume_strings_for_hash_table(argv[1]);
-  
+
   // populate the hash table
   bf.deallocate_hash_table_preliminary();
 
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     bf.output_join_reads(argv[1], argv[5]);
     bf.analyze_joined_reads(argv[5]);
   }
-  
+
   bf.output_partitioned_file(argv[1], argv[4]);
 
   end = time(NULL);

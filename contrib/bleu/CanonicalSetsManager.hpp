@@ -195,7 +195,7 @@ namespace bleu {
     {
       for ( int i = 0; i < HASHES; ++i )
       {
-        for ( int j = 0; j < (_tablesizes[i] / CACHED_HASH_SEGMENT_SIZE) + 1; ++j )
+        for ( int j = 0; j < (_tablesizes[i] / CACHED_HASH_SEGMENT_SIZE); ++j )
         {
           dump_seen_hashes_into_table( SeenHashes[i][j], SeenHashCounts[i][j], i );
           delete SeenHashes[i][j];
