@@ -240,6 +240,14 @@ namespace bleu {
             {
               if ( lWorkingSet == NULL )
               {
+                // if this hash goes with something that's already there, throw the read in there, since it's a kind of join.
+                if ( _Sets_Manager->has_existing_set( lHash ) )
+                {
+                  outfile << ">" << names[j] << "\t"
+                  << " " << lSeq << " " << "\n" 
+                  << reads[j] << "\n"; 
+                }
+                  
                 lWorkingSet = _Sets_Manager->get_set( lHash ); // this'll either find the one it goes in, or create it          
                 continue; // move on
               }
@@ -248,9 +256,11 @@ namespace bleu {
                 SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
                 if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
                 {
-                  outfile << ">" << names[j] << "\t" 
-                  << " " << lSeq << " " << lWorkingSet->GetPrimarySetOffset() << " " << lExistingSet->GetPrimarySetOffset() << "\n" 
+                  // if you are joining two sets, throw the read in there
+                  outfile << ">" << names[j] << "\t"
+                  << " " << lSeq << " " << "\n" 
                   << reads[j] << "\n"; 
+//                  << lSeq << "\n";
                   lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
                 }
               }
@@ -382,71 +392,168 @@ namespace bleu {
       
       Read read;
       string seq;
+      string kmer;
+      string readname;
       
       //map<unsigned int, unsigned int> lReadCounts;
       
       //  set ID      ,     kmer  , count
-      map<unsigned int, map<string, unsigned int> > lJoinedReads;
+      map<unsigned int, map<string, pair<unsigned int, set<string> > > > lJoinedReads;
       
       while(!parser->is_complete()) {
         read = parser->get_next_read();
         seq = read.seq;
+        kmer = read.name.substr( read.name.length() - _ksize - 1, _ksize );
+        readname = read.name.substr(1, read.name.find(' ') );
+        readname.append(" ");
+        readname.append(seq);
         
         if (check_read(seq)) 
         {
           const unsigned int length = seq.length();          
          
           // loop through the reads in the file, and figure out what set they go in. Then, count it up.
-          SetHandle lSet = NULL;
-          string lKmer;
-          for ( unsigned int i = 0; i < length - _ksize + 1; ++i )
-          {
-            string lSeq = seq.substr(i, _ksize);  
-            SequenceHashArbitrary hash( lSeq, _hash_builder->hash( lSeq ) );
-            
-            if ( _Sets_Manager->can_have_set( hash ) )
-            {
-              lSet = _Sets_Manager->get_existing_set( hash );
-              lKmer = lSeq;
-              break;
-            }                          
-          }   
-          
-          unsigned int lSetID = 0;
-          if ( lSet != NULL )
-            lSetID = lSet->GetPrimarySetOffset();
+          SequenceHashArbitrary hash( kmer, _hash_builder->hash( kmer ) );
+          SetHandle lSet = _Sets_Manager->get_existing_set( hash );
+
+          unsigned int lSetID = lSet->GetPrimarySetOffset();
           
           if ( lJoinedReads.find(lSetID) == lJoinedReads.end() )
-            lJoinedReads[lSetID][lKmer] = 0;
-          else if (lJoinedReads[lSetID].find(lKmer) == lJoinedReads[lSetID].end() )
-            lJoinedReads[lSetID][lKmer] = 0;
+            lJoinedReads[lSetID][kmer].first = 0;
+          else if (lJoinedReads[lSetID].find(kmer) == lJoinedReads[lSetID].end() )
+            lJoinedReads[lSetID][kmer].first = 0;
           
-          lJoinedReads[lSetID][lKmer]++; // dunno if this will work, but might be worth a try.
-          
+          lJoinedReads[lSetID][kmer].first++; 
+          lJoinedReads[lSetID][kmer].second.insert(readname);
+                        
         }
       }
       
+      vector<int> lPercentages;
+      
       cout << "Kmers that Joined sets" << endl;
-      for ( map<unsigned int, map<string, unsigned int> >::iterator lIt = lJoinedReads.begin(); lIt != lJoinedReads.end(); ++lIt )
+      //          setID             kmer         count           reads
+      for ( map<unsigned int, map<string, pair<unsigned int, set<string> > > >::iterator lIt = lJoinedReads.begin(); lIt != lJoinedReads.end(); ++lIt )
       {        
         // if there are more than one kmer in the join
         // or, if there's only one kmer, that it was joined against more than once.
-      
-        if ( lIt->second.size() > 1 || lIt->second.begin()->second > 1 )
+       
+        if ( lIt->second.size() > 1 || lIt->second.begin()->second.first > 1 )
         {      
-          if ( lIt->first == 0 )
-            cout << "none: ";
-          else
-            cout << lIt->first << ": ";
-          cout << endl;
+        
+          cout << "Set " << lIt->first << ": " << lIt->second.size() << " kmers." << endl;
           
-          for ( map<string, unsigned int>::iterator lIt2 = lIt->second.begin(); lIt2 != lIt->second.end(); ++lIt2 )
+          //         kmer          count             reads
+          for ( map<string, pair<unsigned int, set<string> > >::iterator lIt2 = lIt->second.begin(); lIt2 != lIt->second.end(); ++lIt2 )
           {
-            cout << "  " << lIt2->first << "  " << lIt2->second << endl;
+            if ( lIt2->second.first > 1 ) // number of joins
+            {
+              cout << endl;
+              cout << " " << lIt2->second.first << " join points." << endl; // kmer & count
+              
+              // output the reads they came from, aligned.
+              
+              // first, divine the alignment
+              int lLongestAlignment = 0;
+              //        reads                          reads
+              for ( set<string>::iterator lIt3 = lIt2->second.second.begin(); lIt3 != lIt2->second.second.end(); ++lIt3 )
+              {
+                int lAlignmentStart = lIt3->find( lIt2->first ); //lRead.find( lKmer );
+                
+                if ( lAlignmentStart > lLongestAlignment )
+                  lLongestAlignment = lAlignmentStart;
+              }
+              // then output the alignment
+              string lMarker = lIt2->first;
+              lMarker.insert(0, lLongestAlignment + 3, ' ');
+              cout << lMarker << endl;
+              
+              vector<string> lLines;
+              int lBareAlignment = 0;
+              for ( set<string>::iterator lIt3 = lIt2->second.second.begin(); lIt3 != lIt2->second.second.end(); ++lIt3 )
+              {
+                int leftpad = ( lLongestAlignment - lIt3->find( lIt2->first ) );
+                string lRead = *lIt3;
+                lRead.insert( lRead.find(" "), leftpad, ' ');
+                lRead.insert(0, 3, ' ');
+                cout << lRead << endl;
+
+                string lBareAlignedRead = lIt3->substr(lIt3->rfind(" ") + 1);
+                
+                if ( lBareAlignment < lBareAlignedRead.find( lIt2->first ) )
+                  lBareAlignment = lBareAlignedRead.find( lIt2->first );
+                lLines.push_back( lBareAlignedRead );
+              }
+              
+              ///// finally, compare the aligned bits
+              
+              // resize the lines appropriately.
+              int lBareAlignedReadMaxLength = 0;
+//              cout << endl;
+              for (int i = 0; i < lLines.size(); ++i)
+              {
+                lLines[i].insert(0, lBareAlignment - lLines[i].find(lIt2->first), ' '); // pad left to align
+
+                if ( lLines[i].length() > lBareAlignedReadMaxLength )
+                  lBareAlignedReadMaxLength = lLines[i].length();
+                  
+//                cout << lLines[i] << endl;
+              }
+              
+              // go over each character and score it appropriately
+              int lBareAlignedLocation = lLines[0].find( lIt2->first ); // just grab the first one. the others should already be lined up.
+              int lMismatchScore = 0;
+              int lTotalPositionsCompared = 0;
+              for (int j = 0; j < lBareAlignedReadMaxLength; ++j) // each nucleotide
+              {
+//                bool lCompared = false;
+                set<char> lNucleotides;
+                int lComparableLines = 0;
+                for ( int k = 0; k < lLines.size(); ++k ) // line by line
+                {
+                  if ( ( j < lBareAlignedLocation || j >= lBareAlignedLocation + lIt2->first.length() ) && lLines[k].length() > j )
+                  {
+
+                    if( lLines[k][j] != ' ' )
+                    {
+                      lNucleotides.insert( lLines[k][j] );
+                      //lCompared = true;
+                      lComparableLines++;
+                    }
+                  }
+                }    
+                if ( lComparableLines > 1 )
+                {
+                  lTotalPositionsCompared++;
+ //                 cout << "x";
+                }
+//                else
+//                {
+//                  cout << ".";
+//                }
+                if ( lNucleotides.size() > 1 )
+                  lMismatchScore++;
+              }
+              if ( lTotalPositionsCompared > 0 )
+              {
+                int lPercentCorrect =  (lTotalPositionsCompared - lMismatchScore) / (double)lTotalPositionsCompared * 100;
+                cout << " " << lTotalPositionsCompared - lMismatchScore << "/" << lTotalPositionsCompared << " correct. " << lPercentCorrect << "% " <<endl;
+                lPercentages.push_back( lPercentCorrect );
+              }
+              else 
+                cout << "NO BASIS FOR COMPARISON" << endl;
+
+            } 
           }
         }
       }
       
+      cout << "Machine readable list of join percentages." << endl;
+      for (int i = 0; i < lPercentages.size(); ++i)
+      {
+        cout << lPercentages[i] << endl;
+      }
+      cout << "DONE." << endl;
       delete parser; parser = NULL;
       
       return lJoinedReads.size();
