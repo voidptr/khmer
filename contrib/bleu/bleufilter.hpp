@@ -470,7 +470,7 @@ namespace bleu {
               {
                 int leftpad = ( lLongestAlignment - lIt3->find( lIt2->first ) );
                 string lRead = *lIt3;
-                lRead.insert( lRead.find(" "), leftpad, ' ');
+                lRead.insert( lRead.rfind(" "), leftpad, ' ');
                 lRead.insert(0, 3, ' ');
                 cout << lRead << endl;
 
