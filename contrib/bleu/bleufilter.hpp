@@ -444,8 +444,8 @@ namespace bleu {
           {
             if ( lIt2->second.first > 1 ) // number of joins
             {
-              cout << endl;
-              cout << " " << lIt2->second.first << " join points." << endl; // kmer & count
+//              cout << endl;
+              cout << " kmer " << lIt2->first << ": " << lIt2->second.first << " join points." << endl; // kmer & count
               
               // output the reads they came from, aligned.
               
@@ -468,24 +468,34 @@ namespace bleu {
               int lBareAlignment = 0;
               for ( set<string>::iterator lIt3 = lIt2->second.second.begin(); lIt3 != lIt2->second.second.end(); ++lIt3 )
               {
-                int leftpad = ( lLongestAlignment - lIt3->find( lIt2->first ) );
                 string lRead = *lIt3;
-                lRead.insert( lRead.rfind(" "), leftpad, ' ');
-                lRead.insert(0, 3, ' ');
-                cout << lRead << endl;
-
-                string lBareAlignedRead = lIt3->substr(lIt3->rfind(" ") + 1);
                 
+                // strip out the pesky tab characters
+                while ( lRead.find('\t') != -1 )
+                  lRead.replace( lRead.find('\t'), 1, " ");
+
+                // make a copy of JUST the sequence, sans name.
+                string lBareAlignedRead = lRead.substr(lRead.rfind(" ") + 1);
                 if ( lBareAlignment < lBareAlignedRead.find( lIt2->first ) )
                   lBareAlignment = lBareAlignedRead.find( lIt2->first );
                 lLines.push_back( lBareAlignedRead );
+
+
+                // figure out how to pad for the display alignment
+                int leftpad = ( lLongestAlignment - lRead.find( lIt2->first ) );
+                
+                lRead.insert( lRead.rfind(" "), leftpad, ' ');
+                lRead.insert(0, 3, ' ');
+                
+                cout << lRead << endl;
+                
               }
               
               ///// finally, compare the aligned bits
               
               // resize the lines appropriately.
               int lBareAlignedReadMaxLength = 0;
-//              cout << endl;
+ //             cout << endl;
               for (int i = 0; i < lLines.size(); ++i)
               {
                 lLines[i].insert(0, lBareAlignment - lLines[i].find(lIt2->first), ' '); // pad left to align
@@ -544,6 +554,7 @@ namespace bleu {
         }
       }
       
+      cout << endl;
       cout << "Machine readable list of join percentages." << endl;
       for (int i = 0; i < lPercentages.size(); ++i)
       {
