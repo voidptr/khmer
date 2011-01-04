@@ -24,12 +24,12 @@ int main(int argc, char *argv[])
 
   start = time(NULL);
 
-  struct tm *current;
-	current = localtime(&start);
+//  struct tm *current;
+//	current = localtime(&start);
 
 
-  cout << "...Bleu - ";
-  printf("%i/%i/%i %i:%i:%i", (current->tm_mon)+1, current->tm_mday, (current->tm_year)+1900, current->tm_hour, current->tm_min, current->tm_sec);
+  cout << "Bleu - ";
+//  printf("%i/%i/%i %i:%i:%i", (current->tm_mon)+1, current->tm_mday, (current->tm_year)+1900, current->tm_hour, current->tm_min, current->tm_sec);
   cout << endl;
   
   cout << "Executable: " << argv[0] << endl;
