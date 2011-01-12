@@ -20,16 +20,17 @@ int main(int argc, char *argv[])
     cout << argv[0] << " inputfile.fa ksize memoryfootprint outpufile.fa [readsthatjoin.fa]" << endl;
     return 1;
   }
-  time_t start, end;
+  time_t start, end, now;
 
   start = time(NULL);
+  time(&now);
 
-//  struct tm *current;
-//	current = localtime(&start);
+  struct tm * current;
+	current = localtime(&now);
 
 
   cout << "Bleu - ";
-//  printf("%i/%i/%i %i:%i:%i", (current->tm_mon)+1, current->tm_mday, (current->tm_year)+1900, current->tm_hour, current->tm_min, current->tm_sec);
+  printf("%i/%i/%i %i:%i:%i", (current->tm_mon)+1, current->tm_mday, (current->tm_year)+1900, current->tm_hour, current->tm_min, current->tm_sec);
   cout << endl;
   
   cout << "Executable: " << argv[0] << endl;
