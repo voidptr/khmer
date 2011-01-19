@@ -59,6 +59,7 @@
 		D850F4A6124CFD07003E38AA /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../pyrex/Makefile; sourceTree = SOURCE_ROOT; };
 		D850F4A7124CFD2A003E38AA /* bleu.pyx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = bleu.pyx; path = ../../pyrex/bleu.pyx; sourceTree = SOURCE_ROOT; xcLanguageSpecificationIdentifier = xcode.lang.python; };
 		D850F4CE124D0DC8003E38AA /* setup.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; name = setup.py; path = ../../pyrex/setup.py; sourceTree = SOURCE_ROOT; };
+		D8549D7912E75BB5006FC2BD /* shellscript.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; name = shellscript.sh; path = ../../shellscript.sh; sourceTree = SOURCE_ROOT; };
 		D89424C81238021800DCC84E /* cBitArray.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cBitArray.cc; path = ../../external_lib/cBitArray.cc; sourceTree = SOURCE_ROOT; };
 		D89424C91238021800DCC84E /* cBitArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cBitArray.h; path = ../../external_lib/cBitArray.h; sourceTree = SOURCE_ROOT; };
 		D89424CA1238021800DCC84E /* tArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tArray.h; path = ../../external_lib/tArray.h; sourceTree = SOURCE_ROOT; };
@@ -129,6 +130,7 @@
 				D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */,
 				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
+				D8549D7912E75BB5006FC2BD /* shellscript.sh */,
 				E787C0C512C7D8A400EF9891 /* bleutests.cpp */,
 				D898060D121DCF9D0007A0AB /* bleu.cpp */,
 				D8B9DAE2125A7C65007AEFA4 /* SupportingFiles */,

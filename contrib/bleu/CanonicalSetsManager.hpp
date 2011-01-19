@@ -15,10 +15,10 @@
 #include "PrimeGenerator.hpp"
 #include <algorithm>
 
-#define BIT_COUNT_PARTITION 1000
+#define BIT_COUNT_PARTITION 5000
 
 #define HASHES 8
-#define CACHESIZE 10
+#define CACHESIZE 1
 #define SET_OFFSET_BITS 20
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
 #define CANONICALIZATION_THRESHOLD SETS_SIZE * .05
@@ -88,13 +88,9 @@ namespace bleu {
     unsigned long long _hash_table_total_bit_counts[HASHES];
     SetOffsetContainer * _set_offsets[HASHES]; 
     
-    // caching system so I don't have to re-modulo. Dunno if this is faster than modulo or not. will test.
-    pair<SequenceHashArbitrary, HashBin> _hash_bin_cache[HASHES][CACHESIZE];
-    int _hash_bin_cache_last_used_index[HASHES];
-    
     // caching system so I don't have to keep re-counting the bits. Dunno if this is faster than counting or not.
-    pair<HashBin, SetOffsetBin> _set_offset_bin_cache[HASHES][CACHESIZE];
-    int _set_offset_bin_cache_last_used_index[HASHES];
+    HashBin _set_offset_bin_cache_hashbin[HASHES];
+    SetOffsetBin _set_offset_bin_cache_offsetbin[HASHES];    
     
     vector<SetOffset> _released_set_offsets;
     unsigned int _releasable_set_offsets_count;
@@ -137,12 +133,6 @@ namespace bleu {
         _hash_table_total_bit_counts[j] = 0;
         _set_offsets[j] = NULL; // a table the size of the number of bits in the hash table.
         
-        _hash_bin_cache_last_used_index[j] = 0;
-        memset(_hash_bin_cache[j], 0, sizeof(pair<HashIntoType,HashBin>) * CACHESIZE);
-        
-        _set_offset_bin_cache_last_used_index[j] = 0;
-        memset(_set_offset_bin_cache[j], 0, sizeof(pair<HashBin,SetOffsetBin>) * CACHESIZE);
-        
         SeenHashes[j] = new HashBin * [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
         SeenHashCounts[j] = new unsigned int [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
         
@@ -153,6 +143,8 @@ namespace bleu {
         }
       }
       
+      memset(_set_offset_bin_cache_hashbin, 0, sizeof(HashBin) * HASHES);
+      memset(_set_offset_bin_cache_offsetbin, 0, sizeof(SetOffsetBin) * HASHES);      
       
       _sets.resize(SETS_SIZE, NULL);
       cout << SETS_SIZE << endl;
@@ -223,21 +215,41 @@ namespace bleu {
 
       return lCanHaveASet;
     }    
-    // find a set for this hash. if there isn't one, create it.
-    SetHandle get_set( SequenceHashArbitrary aHash )
-    { 
-      SetHandle lHandle = NULL;
-      
-      if ( has_existing_set( aHash ) )
-        lHandle = get_existing_set( aHash );
-      else
+    
+    SetHandle assign_hash_to_set( SetHandle aWorkingSet, SequenceHashArbitrary aHash )
+    {
+      if ( can_have_set( aHash ) )
       {
-        lHandle = create_set_canonicalize_first();
-        add_to_set(lHandle, aHash);
+        // does this kmer have an existing set?
+        if ( has_existing_set( aHash ) )
+        {
+          SetHandle lFoundSet = get_existing_set( aHash );
+          
+          if ( aWorkingSet == NULL ) // woohoo!
+            aWorkingSet = lFoundSet;
+          else if ( sets_are_disconnected( lFoundSet, aWorkingSet ) )                
+            aWorkingSet = combine_sets( lFoundSet, aWorkingSet );            
+        }
+        else // this hash is brand new, never before seen. :)
+        {
+          if ( aWorkingSet == NULL )
+            aWorkingSet = get_new_set( aHash );
+          else
+            add_to_set( aWorkingSet, aHash );
+        }        
       }
+      
+      return aWorkingSet;
+    }
+    
+    SetHandle get_new_set( SequenceHashArbitrary aHash )
+    {
+      SetHandle lHandle = create_set_canonicalize_first();
+      add_to_set( lHandle, aHash );
       
       return lHandle;
     }
+    
     // check whether a kmer has already been assigned a set.
     bool has_existing_set( SequenceHashArbitrary aHash )
     {
@@ -376,26 +388,21 @@ namespace bleu {
     
     bool sets_are_disconnected( SetHandle aSet1, SetHandle aSet2 )
     {
-      if ( aSet1 == aSet2 )
-        return false; // they're already in the same set.
-      else
-        return true; // one of them is 
-    }    
-    // put together two sets.
-    SetHandle bridge_sets( SetHandle aEncounteredSet, SetHandle aOriginatingSet )
+      return !( aSet1 == aSet2);
+    }   
+    
+    SetHandle combine_sets( SetHandle aSet1, SetHandle aSet2 )
     {
-      assert( aOriginatingSet != aEncounteredSet); // we really really shouldn't be the same set.
-
-      if ( aOriginatingSet->GetPrimarySetOffset() < aEncounteredSet->GetPrimarySetOffset() ) // the bigger one wins, since it almost certainly has more back references.
+      if ( aSet1->KmerCount > aSet2->KmerCount ) // the bigger set should be the consumer
       {
-        join( aOriginatingSet, aEncounteredSet );
-        return aOriginatingSet;
+        absorb( aSet1, aSet2 );
+        return aSet1;
       }
-      else
+      else 
       {
-        join( aEncounteredSet, aOriginatingSet );
-        return aEncounteredSet;
-      }
+        absorb( aSet2, aSet1 );
+        return aSet2;
+      }          
     }
     
     void canonicalize()
@@ -447,20 +454,22 @@ namespace bleu {
       _releasable_set_offsets_count = 0;
     }
     
-    void join ( SetHandle aJoinee, SetHandle aJoiner )
+    void absorb( SetHandle aConsumer, SetHandle aSet )
     {
+      assert( aConsumer != aSet );
+      
       // move the back-references
-      *aJoiner->Self = aJoinee;
-      aJoinee->BackReferences.push_back( aJoiner->Self );
-      for ( int i = 0; i < aJoiner->BackReferences.size(); ++i )
+      *aSet->Self = aConsumer;
+      aConsumer->BackReferences.push_back( aSet->Self );
+      for ( int i = 0; i < aSet->BackReferences.size(); ++i )
       {
-        *(aJoiner->BackReferences[i]) = aJoinee;
-        aJoinee->BackReferences.push_back( aJoiner->BackReferences[i] );
+        *(aSet->BackReferences[i]) = aConsumer;
+        aConsumer->BackReferences.push_back( aSet->BackReferences[i] );
       }
       
       // add up the stuff
-      aJoinee->KmerCount += aJoiner->KmerCount;
-      delete aJoiner;
+      aConsumer->KmerCount += aSet->KmerCount;
+      delete aSet;
       
       _releasable_set_offsets_count++;
     }
@@ -599,44 +608,27 @@ namespace bleu {
     // store the value for future reference.
     SetOffsetBin HashBinToSetOffsetBinCached( HashBin aBin, int i ) // no idea if this will be faster
     {
-      for (int j = 0, index = _set_offset_bin_cache_last_used_index[i]; j < CACHESIZE; ++j, ++index)
-      {
-        if ( index >= CACHESIZE )
-          index = 0;
-        
-        if ( _set_offset_bin_cache[i][index].first == aBin )
+        if ( _set_offset_bin_cache_hashbin[i] == aBin )
         {
-          _set_offset_bin_cache_last_used_index[i] = index;
-          return _set_offset_bin_cache[i][index].second; // found it
+          return _set_offset_bin_cache_offsetbin[i]; // found it
         }
-      }
-      
-      // didn't find it.
-      HashBin lSetOffsetBin = HashBinToSetOffsetBin(aBin, i);
-      
-      // insert it into the cache;
-      _set_offset_bin_cache_last_used_index[i]++;
-      if ( _set_offset_bin_cache_last_used_index[i] >= CACHESIZE )
-        _set_offset_bin_cache_last_used_index[i] = 0;
-      
-      _set_offset_bin_cache[i][ _set_offset_bin_cache_last_used_index[i] ] = pair<HashBin,SetOffsetBin>(aBin, lSetOffsetBin);
-      
-      return lSetOffsetBin;  
+        else 
+        {
+          _set_offset_bin_cache_hashbin[i] = aBin;
+          _set_offset_bin_cache_offsetbin[i] = HashBinToSetOffsetBin(aBin, i);
+          
+          return _set_offset_bin_cache_offsetbin[i]; 
+        }
+
     }    
     SetOffsetBin HashBinToSetOffsetBin( HashBin aBin, int i )
     {      
-//      assert( aBin < _tablesizes[i] ); // make sure it's a valid bin.
-      
       unsigned long long lBinSectionIndex = (aBin / BIT_COUNT_PARTITION); // the index of the section before the one we're in
-      
-      assert( lBinSectionIndex <= (_tablesizes[i] / BIT_COUNT_PARTITION));       
       
       unsigned long long lSetOffsetBin = _hash_table[i]->CountBits2(lBinSectionIndex * BIT_COUNT_PARTITION, aBin );
       
       if ( lBinSectionIndex > 0 )      
         lSetOffsetBin += _hash_table_bit_counts_lookup[i][ lBinSectionIndex - 1 ];
-      
-      assert( lSetOffsetBin > 0 );      
       
       lSetOffsetBin -= 1; // to make it an array index rather than a count.
       

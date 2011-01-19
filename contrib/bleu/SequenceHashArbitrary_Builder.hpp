@@ -18,15 +18,9 @@ ch == 'C' || ch == 'c' || \
 ch == 'G' || ch == 'g' || \
 ch == 'T' || ch == 't' )
 
-// bit representation of A/T/C/G.
-//#define twobit_representation(ch) ((toupper(ch)) == 'A' ? 0LL : \
-//(toupper(ch)) == 'C' ? 1LL : \
-//(toupper(ch)) == 'G' ? 2LL : 3LL)
-
 #define twobit_representation(ch) ( ( ch == 'A' || ch == 'a' ) ? 0LL : \
 ( ch == 'C' || ch == 'c' ) ? 1LL : \
 ( ch == 'G' || ch == 'g' ) ? 2LL : 3LL )
-
 
 #define reversetwobit_representation(n) ((n) == 0 ? 'A' : \
 (n) == 1 ? 'C' : \
@@ -48,18 +42,11 @@ namespace bleu {
       static const unsigned long long PrimePowers[200][4];
 
     private:
-//      unsigned long long rotatebitsclockwise( unsigned long long aHash )
-//      {
-//        return ( aHash >> 1 ) | ( aHash << 63 );
-//      }
+      unsigned long long rotatebitsclockwise( unsigned long long aHash )
+      {
+        return ( aHash >> 1 ) | ( aHash << 63 );
+      }
 
-    unsigned long long rotatebitsclockwise( unsigned long long aHash )
-    {
-      unsigned long long b = aHash >> 1;
-      b ^= aHash << 63;
-      
-      return b;
-    }
     public:
       
     // takes a sequence and computes the forward and reverse strand hashes, then
@@ -71,46 +58,6 @@ namespace bleu {
     // letting the extra bits fall off the end.
     // The total is bit-rotated clockwise after each multiplication.
     // finally the corresponding hashes are uniquified.
-
-    
-//    unsigned long long hash(string & aSeq)
-//    {
-//      unsigned long long lHash;
-//      // pick which side to read from
-//      
-//      // primary sequence 
-//      if ( twobit_representation(aSeq[0]) < twobit_complement(aSeq[ aSeq.length() - 1 ]) )
-//      {
-//        lHash = PrimePowers[0][twobit_representation(aSeq[0])];
-//        lHash = rotatebitsclockwise( lHash );
-//        
-//        for (int i = 1; i < aSeq.length(); ++i)
-//        {
-//          unsigned long long lTimes = PrimePowers[i][twobit_representation(aSeq[i])];
-//          lHash *= lTimes;
-//          
-//          lHash = rotatebitsclockwise( lHash );
-//        }
-//      }
-//      // reverse sequence
-//      else
-//      {
-//        lHash = PrimePowers[0][twobit_complement(aSeq[ aSeq.length() - 1 ])];
-//        lHash = rotatebitsclockwise( lHash );
-//        
-//        for (int j = aSeq.length() - 2, i = 0; j >= 0; --j, ++i)
-//        {
-//          unsigned long long lTimes = PrimePowers[i][twobit_complement(aSeq[j])];
-//          lHash *= lTimes;
-//          
-//          lHash = rotatebitsclockwise( lHash );
-//        }
-//      }
-//
-//      return lHash;
-//      
-//    }
-    
     unsigned long long hash(string & aSeq)
     {
       const char * lSeq = aSeq.c_str();
@@ -130,41 +77,8 @@ namespace bleu {
         lHashRev = rotatebitsclockwise( lHashRev );
       }
       
-//      for ( int k = 0; k < aSeq.length() / 2; ++k )
-//      {
-//        lHash = rotatebitsclockwise( lHash );
-//        lHashRev = rotatebitsclockwise( lHashRev );
-//      }
-      
-      unsigned long long lFinalHash = lHash ^ lHashRev;
-      
-      return lFinalHash;
+      return lHash ^ lHashRev;
     }
- 
-    
-    
-//    unsigned long long hash(string & aSeq)
-//    {
-//      int lLength = aSeq.length();
-//
-//      unsigned long long lHash = 1;
-//      unsigned long long lHashRev = 1;
-//
-//      for( int i = 0; i < lLength; ++i )
-//      {
-//        unsigned char lTwoBitRep = twobit_representation(aSeq[i]);
-//        
-//        lHash *= PrimePowers[i][lTwoBitRep];
-//        lHashRev *= PrimePowers[i][complement_twobit(lTwoBitRep)];
-//        
-//        lHash = rotatebitsclockwise( lHash );
-//        lHashRev = rotatebitsclockwise( lHashRev );
-//      }
-//      
-//      return lHash ^ lHashRev;
-//    }
-
-    
     
 //    unsigned long long hash(string & aSeq)
 //    {

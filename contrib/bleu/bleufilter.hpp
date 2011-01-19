@@ -154,28 +154,8 @@ namespace bleu {
           {
             string lSeq = reads[j].substr(k, _ksize);
             SequenceHashArbitrary lHash( lSeq, _hash_builder->hash( lSeq ) );
-          
-            if ( _Sets_Manager->can_have_set( lHash ) )
-            {
-              if ( lWorkingSet == NULL )
-              {
-                lWorkingSet = _Sets_Manager->get_set( lHash ); // this'll either find the one it goes in, or create it          
-                continue; // move on
-              }
-              if ( _Sets_Manager->has_existing_set( lHash ) )
-              {
-                SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
-                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
-                {
-                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
-                }
-              }
-              else
-              {
-                
-                _Sets_Manager->add_to_set( lWorkingSet, lHash );
-              }
-            }
+            
+            lWorkingSet = _Sets_Manager->assign_hash_to_set( lWorkingSet, lHash );
           }
         }
         total_reads += lCount;        
@@ -230,42 +210,35 @@ namespace bleu {
           for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
           {
             string lSeq = reads[j].substr(k, _ksize);
-            SequenceHashArbitrary lHash( lSeq, _hash_builder->hash( lSeq ) );
-          
+            SequenceHashArbitrary lHash( lSeq, _hash_builder->hash( lSeq ) );          
+
+            // WARNING - this section is the content of assign_hash_to_set, but with the output line. :/
+            // can this kmer have a set. Is it interesting?
             if ( _Sets_Manager->can_have_set( lHash ) )
             {
-              if ( lWorkingSet == NULL )
-              {
-                // if this hash goes with something that's already there, throw the read in there, since it's a kind of join.
-                if ( _Sets_Manager->has_existing_set( lHash ) )
-                {
-                  outfile << ">" << names[j] << "\t"
-                  << " " << lSeq << " " << "\n" 
-                  << reads[j] << "\n"; 
-                }
-                  
-                lWorkingSet = _Sets_Manager->get_set( lHash ); // this'll either find the one it goes in, or create it          
-                continue; // move on
-              }
+              // does this kmer have an existing set?
               if ( _Sets_Manager->has_existing_set( lHash ) )
               {
-                SetHandle lExistingSet = _Sets_Manager->get_existing_set( lHash );
-                if ( _Sets_Manager->sets_are_disconnected( lExistingSet, lWorkingSet ) )
-                {
-                  // if you are joining two sets, throw the read in there
-                  outfile << ">" << names[j] << "\t"
-                  << " " << lSeq << " " << "\n" 
-                  << reads[j] << "\n"; 
-//                  << lSeq << "\n";
-                  lWorkingSet = _Sets_Manager->bridge_sets( lExistingSet, lWorkingSet );            
-                }
-              }
-              else
-              {
+                SetHandle lFoundSet = _Sets_Manager->get_existing_set( lHash );
                 
-                _Sets_Manager->add_to_set( lWorkingSet, lHash );
+                if ( lWorkingSet == NULL ) // woohoo!
+                  lWorkingSet = lFoundSet;
+                else if ( _Sets_Manager->sets_are_disconnected( lFoundSet, lWorkingSet ) )                
+                  lWorkingSet = _Sets_Manager->combine_sets( lFoundSet, lWorkingSet );
+                
+                outfile << ">" << names[j] << "\t"
+                << " " << lSeq << " " << "\n" 
+                << reads[j] << "\n";
               }
+              else // this hash is brand new, never before seen. :)
+              {
+                if ( lWorkingSet == NULL )
+                  lWorkingSet = _Sets_Manager->get_new_set( lHash );
+                else
+                  _Sets_Manager->add_to_set( lWorkingSet, lHash );
+              }              
             }
+            // END WARNING
           }
         }
         total_reads += lCount;        
@@ -393,7 +366,7 @@ namespace bleu {
       
       //map<unsigned int, unsigned int> lReadCounts;
       
-      //  set ID      ,     kmer  , count
+      //  set ID      ,     kmer  ,      count,        reads
       map<unsigned int, map<string, pair<unsigned int, set<string> > > > lJoinedReads;
       
       while(!parser->is_complete()) {
@@ -406,7 +379,7 @@ namespace bleu {
         
         if (check_read(seq)) 
         {
-          const unsigned int length = seq.length();          
+          //const unsigned int length = seq.length();          
          
           // loop through the reads in the file, and figure out what set they go in. Then, count it up.
           SequenceHashArbitrary hash( kmer, _hash_builder->hash( kmer ) );
@@ -444,7 +417,6 @@ namespace bleu {
           {
             if ( lIt2->second.first > 1 ) // number of joins
             {
-//              cout << endl;
               cout << " kmer " << lIt2->first << ": " << lIt2->second.first << " join points." << endl; // kmer & count
               
               // output the reads they came from, aligned.
@@ -454,7 +426,7 @@ namespace bleu {
               //        reads                          reads
               for ( set<string>::iterator lIt3 = lIt2->second.second.begin(); lIt3 != lIt2->second.second.end(); ++lIt3 )
               {
-                int lAlignmentStart = lIt3->find( lIt2->first ); //lRead.find( lKmer );
+                int lAlignmentStart = lIt3->find( lIt2->first ); 
                 
                 if ( lAlignmentStart > lLongestAlignment )
                   lLongestAlignment = lAlignmentStart;
@@ -495,15 +467,12 @@ namespace bleu {
               
               // resize the lines appropriately.
               int lBareAlignedReadMaxLength = 0;
- //             cout << endl;
               for (int i = 0; i < lLines.size(); ++i)
               {
                 lLines[i].insert(0, lBareAlignment - lLines[i].find(lIt2->first), ' '); // pad left to align
 
                 if ( lLines[i].length() > lBareAlignedReadMaxLength )
                   lBareAlignedReadMaxLength = lLines[i].length();
-                  
-//                cout << lLines[i] << endl;
               }
               
               // go over each character and score it appropriately
@@ -512,7 +481,6 @@ namespace bleu {
               int lTotalPositionsCompared = 0;
               for (int j = 0; j < lBareAlignedReadMaxLength; ++j) // each nucleotide
               {
-//                bool lCompared = false;
                 set<char> lNucleotides;
                 int lComparableLines = 0;
                 for ( int k = 0; k < lLines.size(); ++k ) // line by line
@@ -523,7 +491,6 @@ namespace bleu {
                     if( lLines[k][j] != ' ' )
                     {
                       lNucleotides.insert( lLines[k][j] );
-                      //lCompared = true;
                       lComparableLines++;
                     }
                   }
@@ -531,12 +498,8 @@ namespace bleu {
                 if ( lComparableLines > 1 )
                 {
                   lTotalPositionsCompared++;
- //                 cout << "x";
                 }
-//                else
-//                {
-//                  cout << ".";
-//                }
+
                 if ( lNucleotides.size() > 1 )
                   lMismatchScore++;
               }
