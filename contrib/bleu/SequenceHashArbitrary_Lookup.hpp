@@ -40,8 +40,6 @@ namespace bleu {
     SequenceHashArbitrary_Lookup()
     {
       assert (CHUNK_PERMUTATIONS == pow(4, CHUNK_SIZE) );
-
-      cout << "Generating Lookup Table" << endl;
       memset(CurrentPrimes, 0, sizeof(unsigned long long) * CHUNK_SIZE);
       memset(PrimesLookup, 0, sizeof(unsigned long long) * PRIME_GROUPS * CHUNK_PERMUTATIONS);
 
@@ -64,7 +62,7 @@ namespace bleu {
           
         }
       }
-      cout << " done." << endl;
+      //cout << " done." << endl;
     }
   };
 

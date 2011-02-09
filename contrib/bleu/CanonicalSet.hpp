@@ -17,9 +17,6 @@
 #include "../../lib/khmer.hh"
 #include <list>
 
-
-
-#define HASHES 8
 #define BIN_SIZE 50
 
 

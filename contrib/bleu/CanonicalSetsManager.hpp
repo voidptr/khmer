@@ -17,7 +17,7 @@
 
 #define BIT_COUNT_PARTITION 5000
 
-#define HASHES 8
+#define HASHES 8 
 #define CACHESIZE 1
 #define SET_OFFSET_BITS 20
 #define SETS_SIZE pow(2, SET_OFFSET_BITS)
@@ -133,13 +133,16 @@ namespace bleu {
         _hash_table_total_bit_counts[j] = 0;
         _set_offsets[j] = NULL; // a table the size of the number of bits in the hash table.
         
-        SeenHashes[j] = new HashBin * [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
-        SeenHashCounts[j] = new unsigned int [(_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE)];
+        int lCacheSegmentsCount = (_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE) + 1;
         
-        for ( int k = 0; k < (_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE) + 1; ++k )
+        SeenHashes[j] = new HashBin * [lCacheSegmentsCount];        
+        SeenHashCounts[j] = new unsigned int [ lCacheSegmentsCount ];
+        memset( SeenHashCounts[j], 0, lCacheSegmentsCount  * sizeof(unsigned int));
+
+        for ( int k = 0; k < lCacheSegmentsCount; ++k )
         {
           SeenHashes[j][k] = new HashBin[ CACHED_HASH_SEGMENT_CAPACITY ];
-          SeenHashCounts[j][k] = 0;
+          memset(SeenHashes[j][k], 0, CACHED_HASH_SEGMENT_CAPACITY * sizeof(HashBin));
         }
       }
       
@@ -147,7 +150,7 @@ namespace bleu {
       memset(_set_offset_bin_cache_offsetbin, 0, sizeof(SetOffsetBin) * HASHES);      
       
       _sets.resize(SETS_SIZE, NULL);
-      cout << SETS_SIZE << endl;
+      //cout << SETS_SIZE << endl;
     }
     //
     // first pass through the reads -- determine if reads are interesting 
@@ -163,7 +166,7 @@ namespace bleu {
         unsigned long long lSegmentIndex = lHashBin / CACHED_HASH_SEGMENT_SIZE;
         
         SeenHashes[i][ lSegmentIndex ][ SeenHashCounts[i][lSegmentIndex]++ ] = lHashBin;
-        
+
         if ( SeenHashCounts[i][ lSegmentIndex ] == CACHED_HASH_SEGMENT_CAPACITY )
         {
           dump_seen_hashes_into_table( SeenHashes[i][ lSegmentIndex ], SeenHashCounts[i][ lSegmentIndex ], i );
@@ -550,6 +553,8 @@ namespace bleu {
     //
     void populate_hash_table_bit_count_lookups()
     {
+      cout << endl;
+      cout << "Hash Table Occupancies:" << endl;
       for (int i = 0; i < HASHES; ++i )
       {
         _hash_table_total_bit_counts[i] = _hash_table[i]->CountBits();

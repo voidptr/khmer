@@ -66,6 +66,8 @@ namespace bleu {
     // I get some functionality that I'm happy with.
     void consume_strings_for_hash_table(const std::string &filename)
     {
+      cout << "Populating Hash Table(s)..." << endl;
+      
       time_t start, end;      
       start = time(NULL);
       
@@ -112,13 +114,14 @@ namespace bleu {
       
       _Sets_Manager->finalize_seen_hash();
       end = time(NULL);        
-      cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << endl;
+      cout << "Elapsed: " << difftime(end, start)<< " seconds" << endl;
     }
     
     // fucking duplicate code drives me nuts. I swear I will clean this up once 
     // I get some functionality that I'm happy with.
     void generate_sets(const std::string &filename)
     {
+      cout << endl << "Generating Sets..." << endl;
       time_t start, end;      
       start = time(NULL);
       
@@ -164,13 +167,14 @@ namespace bleu {
       }
       
       end = time(NULL);        
-      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
+      std::cout << "Elapsed: " << difftime(end, start)<< " seconds" << std::endl;
     }
 
     // fucking duplicate code drives me nuts. I swear I will clean this up once 
     // I get some functionality that I'm happy with.
     void output_join_reads(const std::string &filename, const std::string &outputfilename)
     {
+      cout << endl << "Outputting Join Reads..." << endl;
     
       ofstream outfile(outputfilename.c_str());
     
@@ -247,7 +251,7 @@ namespace bleu {
       }
       
       end = time(NULL);        
-      std::cout << "READTEST DONE: " << difftime(end, start)<< " seconds" << std::endl;
+      std::cout << "Elapsed: " << difftime(end, start)<< " seconds" << std::endl;
     }
     
     virtual unsigned int output_partitioned_file(const std::string infilename,
@@ -255,6 +259,8 @@ namespace bleu {
                                                  CallbackFn callback=0,
                                                  void * callback_data=0)
     {
+      cout << endl << "Outputting Partitioned File..." << endl;
+      
       IParser* parser = IParser::get_parser(infilename);
       ofstream outfile(outputfilename.c_str());
       
@@ -323,31 +329,60 @@ namespace bleu {
         }
       }
       
+      cout << endl;
+      cout << "SUMMARY:" << endl;
+      cout << "Partitions w/ more than 100 reads, and unhomed reads" << endl;
+      cout << setw(20) << "Part #" << setw(10) << "Reads" << setw(20) << "Kmers (experimental)" << endl;
+      
+      int lSummary[100];
+      memset(lSummary, 0, sizeof(int)*100);
+      
       for ( map<unsigned int, unsigned int>::iterator lIt = lReadCounts.begin(); lIt != lReadCounts.end(); ++lIt )
       {
-        if ( lIt->first == 0 )
-          cout << setw(10) << "none";
-        else
-          cout << setw(10) << lIt->first;
-          
-        cout << setw(10) << lIt->second;
-        if ( lIt->first > 0 )
+        if ( lIt->second > 100 || lIt->first == 0) // does this partition have more than 100 reads in it?
         {
-          cout << setw(10) << (*(_Sets_Manager->_sets[ lIt->first ]))->KmerCount;
-          
-          if ( (*(_Sets_Manager->_sets[ lIt->first ]))->JoinOfConvenience )
-          {
-            cout << setw(10) << "JoC";
+          // set number
+          if ( lIt->first == 0 )
+            cout << setw(20) << "unhomed (no partition)";
+          else
+            cout << setw(20) << lIt->first;
             
-            if ( (*(_Sets_Manager->_sets[ lIt->first ]))->KmerCount >= _Sets_Manager->_average_size_at_sort )
-              cout << setw(10) << "*";
+          // read count
+          cout << setw(10) << lIt->second;
+          
+          // if we have a set number, do the rest of this crap.
+          if ( lIt->first > 0 )
+          {
+            cout << setw(20) << (*(_Sets_Manager->_sets[ lIt->first ]))->KmerCount;
+            
+            if ( (*(_Sets_Manager->_sets[ lIt->first ]))->JoinOfConvenience )
+            {
+              cout << setw(10) << "JoC";
+              
+              if ( (*(_Sets_Manager->_sets[ lIt->first ]))->KmerCount >= _Sets_Manager->_average_size_at_sort )
+                cout << setw(10) << "*";
+            }
           }
+          cout << endl;
         }
-        
-        cout << endl;
+        else
+        {
+          lSummary[ lIt->second ]++;
+        }
       }
       
-      cout << setw(6) << "unique set count: "<< lReadCounts.size() << endl;
+      cout << endl;      
+      cout << "Summary of smaller partitions" << endl;
+      cout << setw(10) << "Read Ct" << setw(10) << "# partitions" << endl;
+      for ( int i = 0; i < 100; ++i )
+      {
+        if ( lSummary[i] > 0 )
+          cout << setw(10) << i << setw(10) << lSummary[i] << endl;
+      }
+      
+      cout << endl;
+      cout << endl;
+      cout << setw(6) << "total unique set count: "<< lReadCounts.size() << endl;
       cout << endl;
       
       delete parser; parser = NULL;

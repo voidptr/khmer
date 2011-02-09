@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 
 
 
-  std::cout << "DONE: " << difftime(end, start)<< " seconds" << std::endl;
+  std::cout << "Total Elapsed: " << difftime(end, start)<< " seconds" << std::endl;
 
   return 0;
 }
