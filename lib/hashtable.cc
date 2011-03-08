@@ -49,7 +49,6 @@ bool Hashtable::check_read(const std::string &read) const
 void Hashtable::consume_fasta(const std::string &filename,
 			      unsigned int &total_reads,
 			      unsigned long long &n_consumed,
-            ConsumeStringFN consume_string_fn,
 			      HashIntoType lower_bound,
 			      HashIntoType upper_bound,
 			      ReadMaskTable ** orig_readmask,
@@ -167,57 +166,21 @@ unsigned int Hashtable::consume_string(const std::string &s,
 
   try {
     if (!bounded || (bin >= lower_bound && bin < upper_bound)) {
-<<<<<<< HEAD
-      bin = bin % _tablesize;
-      if (_counts[bin] != MAX_COUNT) {
-        _counts[bin]++;
-      }
-=======
       count(bin);
->>>>>>> 43238b18aef97ea532dae867861fef4d7967829f
       n_consumed++;
     }
     
     for (unsigned int i = _ksize; i < length; i++) {
-<<<<<<< HEAD
-      // left-shift the previous hash over
-      h = h << 2;
-      
-      // 'or' in the current nt
-      h |= twobit_repr(sp[i]);
-      
-      // mask off the 2 bits we shifted over.
-      h &= bitmask;
-      
-      // now handle reverse complement
-      r = r >> 2;
-      r |= (twobit_comp(sp[i]) << (_ksize*2 - 2));
-      
-      bin = uniqify_rc(h, r);
-      
-      if (!bounded || (bin >= lower_bound && bin < upper_bound)) {
-        bin = bin % _tablesize;
-        if (_counts[bin] != MAX_COUNT) {
-          _counts[bin]++;
-        }
-        n_consumed++;
-=======
       bin = _next_hash(sp[i], h, r);
 
       if (!bounded || (bin >= lower_bound && bin < upper_bound)) {
 	count(bin);
 	n_consumed++;
->>>>>>> 43238b18aef97ea532dae867861fef4d7967829f
       }
     }
   } catch (...) {
     throw;
   }
-<<<<<<< HEAD
-  
-  writelock_release();
-=======
->>>>>>> 43238b18aef97ea532dae867861fef4d7967829f
 
   return n_consumed;
 }

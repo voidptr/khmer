@@ -99,7 +99,6 @@ namespace khmer {
     void consume_fasta(const std::string &filename,
 		       unsigned int &total_reads,
 		       unsigned long long &n_consumed,
-           ConsumeStringFN consume_string_fn,
 		       HashIntoType lower_bound = 0,
 		       HashIntoType upper_bound = 0,
 		       ReadMaskTable ** readmask = NULL,

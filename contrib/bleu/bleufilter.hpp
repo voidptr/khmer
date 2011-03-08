@@ -42,13 +42,12 @@ namespace bleu {
     typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
     
     BleuFilter(WordLength ksize, unsigned long long aMaxMemory)
-    : Hashtable(ksize, 0)
+    : Hashtable(ksize)
     { 
       _Sets_Manager = new CanonicalSetsManager( aMaxMemory );
       _hash_builder = new SequenceHashArbitrary_Builder();
       
       // housekeeping
-      _counts = NULL;   
     }
     
     void populate_hash_table_bit_count_lookups() {
