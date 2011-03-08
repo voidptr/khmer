@@ -5,6 +5,7 @@
 #include "../../lib/parsers.hh"
 #include "CanonicalSetsManager.hpp"
 //#include "SequenceHash.hpp"
+#include "KmerJoins.hpp"
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -390,6 +391,14 @@ namespace bleu {
       return lReadCounts.size();
     }
     
+    ///////////////////////////
+    /// ANALYZE JOINED READS   
+    /////////////////////////// 
+
+    struct kmer_info {
+      unsigned int number_of_joins;
+      map<string, string> reads_containing_kmer;
+    };
     virtual unsigned int analyze_joined_reads(const std::string infilename)
     {
       IParser* parser = IParser::get_parser(infilename);
@@ -399,176 +408,317 @@ namespace bleu {
       string kmer;
       string readname;
       
-      //map<unsigned int, unsigned int> lReadCounts;
+      typedef map<string, kmer_info> Kmer_with_reads;
+      typedef map<unsigned int, Kmer_with_reads> Set_to_Kmer;
       
-      //  set ID      ,     kmer  ,      count,        reads
-      map<unsigned int, map<string, pair<unsigned int, set<string> > > > lJoinedReads;
+      Set_to_Kmer lSets; // twoD map, [SetID][Kmer]->(count,reads)
       
       while(!parser->is_complete()) {
         read = parser->get_next_read();
         seq = read.seq;
-        kmer = read.name.substr( read.name.length() - _ksize - 1, _ksize );
+        kmer = read.name.substr( read.name.length() - _ksize - 1, _ksize ); // extract the kmer from where we stashed it.
         readname = read.name.substr(1, read.name.find(' ') );
-        readname.append(" ");
-        readname.append(seq);
-        
+
         if (check_read(seq)) 
         {
-          //const unsigned int length = seq.length();          
-         
           // loop through the reads in the file, and figure out what set they go in. Then, count it up.
           SequenceHashArbitrary hash( kmer, _hash_builder->hash( kmer ) );
           SetHandle lSet = _Sets_Manager->get_existing_set( hash );
 
           unsigned int lSetID = lSet->GetPrimarySetOffset();
           
-          if ( lJoinedReads.find(lSetID) == lJoinedReads.end() )
-            lJoinedReads[lSetID][kmer].first = 0;
-          else if (lJoinedReads[lSetID].find(kmer) == lJoinedReads[lSetID].end() )
-            lJoinedReads[lSetID][kmer].first = 0;
+          if ( lSets.find(lSetID) == lSets.end() )
+            lSets[lSetID][kmer].number_of_joins = 0;
+          else if (lSets[lSetID].find(kmer) == lSets[lSetID].end() )
+            lSets[lSetID][kmer].number_of_joins = 0;
           
-          lJoinedReads[lSetID][kmer].first++; 
-          lJoinedReads[lSetID][kmer].second.insert(readname);
-                        
+          lSets[lSetID][kmer].number_of_joins++; 
+          lSets[lSetID][kmer].reads_containing_kmer.insert( pair<string,string>(readname, seq) );                        
         }
       }
+      cout << "Kmers that Joined sets and are unmatched beyond the kmer" << endl;
+
       
-      vector<int> lPercentages;
-      
-      cout << "Kmers that Joined sets" << endl;
-      //          setID             kmer         count           reads
-      for ( map<unsigned int, map<string, pair<unsigned int, set<string> > > >::iterator lIt = lJoinedReads.begin(); lIt != lJoinedReads.end(); ++lIt )
+      // sets
+      for ( Set_to_Kmer::iterator lSetIt = lSets.begin(); lSetIt != lSets.end(); ++lSetIt )
       {        
         // if there are more than one kmer in the join
-        // or, if there's only one kmer, that it was joined against more than once.
+        // or, if there's only one kmer, that it was joined against more than 
+        // once.
        
-        if ( lIt->second.size() > 1 || lIt->second.begin()->second.first > 1 )
-        {      
+        if ( lSetIt->second.begin()->second.number_of_joins > 1 )
+        {
         
-          cout << "Set " << lIt->first << ": " << lIt->second.size() << " kmers." << endl;
+          stringstream lWholeOutput;
+          bool lFoundBadKmers = false;
+                  
+          lWholeOutput << "Set " << lSetIt->first << ": " << lSetIt->second.size() << " kmers." << endl;
+
           
-          //         kmer          count             reads
-          for ( map<string, pair<unsigned int, set<string> > >::iterator lIt2 = lIt->second.begin(); lIt2 != lIt->second.end(); ++lIt2 )
+          // loop through the kmers in the set
+          // but first, sort them by how many joins they have.
+          multimap<unsigned int, string> lKmersSortedByAbundance;
+          for ( Kmer_with_reads::iterator lKmerIt0 = lSetIt->second.begin(); lKmerIt0 != lSetIt->second.end(); ++lKmerIt0 )
           {
-            if ( lIt2->second.first > 1 ) // number of joins
+            lKmersSortedByAbundance.insert( pair<unsigned int, string>( lKmerIt0->second.number_of_joins, lKmerIt0->first));
+          }
+          
+          // now, run throught the sorted multimap
+          for ( multimap<unsigned int, string>::iterator lKmerAbundanceIt = lKmersSortedByAbundance.begin(); 
+            lKmerAbundanceIt != lKmersSortedByAbundance.end(); ++lKmerAbundanceIt )
+          {
+            Kmer_with_reads::iterator lKmerIt = lSetIt->second.find( lKmerAbundanceIt->second );
+          
+            if ( lKmerIt->second.number_of_joins > 2 ) // number of joins
             {
-              cout << " kmer " << lIt2->first << ": " << lIt2->second.first << " join points." << endl; // kmer & count
-              
-              // output the reads they came from, aligned.
-              
-              // first, divine the alignment
-              int lLongestAlignment = 0;
-              //        reads                          reads
-              for ( set<string>::iterator lIt3 = lIt2->second.second.begin(); lIt3 != lIt2->second.second.end(); ++lIt3 )
+            
+              // pull out the reads and their names.
+              vector<string> lNames;
+              vector<string> lReads;
+              for ( map<string,string>::iterator lReadIt = lKmerIt->second.reads_containing_kmer.begin(); 
+                lReadIt != lKmerIt->second.reads_containing_kmer.end(); ++lReadIt )
               {
-                int lAlignmentStart = lIt3->find( lIt2->first ); 
-                
-                if ( lAlignmentStart > lLongestAlignment )
-                  lLongestAlignment = lAlignmentStart;
+                lNames.push_back( lReadIt->first );
+                lReads.push_back( lReadIt->second );
               }
-              // then output the alignment
-              string lMarker = lIt2->first;
-              lMarker.insert(0, lLongestAlignment + 3, ' ');
-              cout << lMarker << endl;
-              
-              vector<string> lLines;
-              int lBareAlignment = 0;
-              for ( set<string>::iterator lIt3 = lIt2->second.second.begin(); lIt3 != lIt2->second.second.end(); ++lIt3 )
+            
+              KmerJoins lKmerJoin( lKmerIt->first, lReads, lNames, lKmerIt->second.number_of_joins );
+                          
+              if ( lKmerJoin.S() > 0 ) // there are differences.
               {
-                string lRead = *lIt3;
-                
-                // strip out the pesky tab characters
-                while ( lRead.find('\t') != -1 )
-                  lRead.replace( lRead.find('\t'), 1, " ");
-
-                // make a copy of JUST the sequence, sans name.
-                string lBareAlignedRead = lRead.substr(lRead.rfind(" ") + 1);
-                if ( lBareAlignment < lBareAlignedRead.find( lIt2->first ) )
-                  lBareAlignment = lBareAlignedRead.find( lIt2->first );
-                lLines.push_back( lBareAlignedRead );
-
-
-                // figure out how to pad for the display alignment
-                int leftpad = ( lLongestAlignment - lRead.find( lIt2->first ) );
-                
-                lRead.insert( lRead.rfind(" "), leftpad, ' ');
-                lRead.insert(0, 3, ' ');
-                
-                cout << lRead << endl;
-                
-              }
-              
-              ///// finally, compare the aligned bits
-              
-              // resize the lines appropriately.
-              int lBareAlignedReadMaxLength = 0;
-              for (int i = 0; i < lLines.size(); ++i)
-              {
-                lLines[i].insert(0, lBareAlignment - lLines[i].find(lIt2->first), ' '); // pad left to align
-
-                if ( lLines[i].length() > lBareAlignedReadMaxLength )
-                  lBareAlignedReadMaxLength = lLines[i].length();
-              }
-              
-              // go over each character and score it appropriately
-              int lBareAlignedLocation = lLines[0].find( lIt2->first ); // just grab the first one. the others should already be lined up.
-              int lMismatchScore = 0;
-              int lTotalPositionsCompared = 0;
-              for (int j = 0; j < lBareAlignedReadMaxLength; ++j) // each nucleotide
-              {
-                set<char> lNucleotides;
-                int lComparableLines = 0;
-                for ( int k = 0; k < lLines.size(); ++k ) // line by line
+                if ( lKmerJoin.Pi() >= 0.05 ) // some arbitrary threshold of difference.
                 {
-                  if ( ( j < lBareAlignedLocation || j >= lBareAlignedLocation + lIt2->first.length() ) && lLines[k].length() > j )
-                  {
-
-                    if( lLines[k][j] != ' ' )
-                    {
-                      lNucleotides.insert( lLines[k][j] );
-                      lComparableLines++;
-                    }
-                  }
-                }    
-                if ( lComparableLines > 1 )
-                {
-                  lTotalPositionsCompared++;
+                  lWholeOutput << lKmerJoin.OutputKmerInfo() << endl;                                  
+                  lFoundBadKmers = true;
                 }
-
-                if ( lNucleotides.size() > 1 )
-                  lMismatchScore++;
               }
-              if ( lTotalPositionsCompared > 0 )
-              {
-                int lPercentCorrect =  (lTotalPositionsCompared - lMismatchScore) / (double)lTotalPositionsCompared * 100;
-                cout << " " << lTotalPositionsCompared - lMismatchScore << "/" << lTotalPositionsCompared << " correct. " << lPercentCorrect << "% " <<endl;
-                lPercentages.push_back( lPercentCorrect );
-              }
-              else 
-                cout << "NO BASIS FOR COMPARISON" << endl;
-
             } 
           }
+          
+          if ( lFoundBadKmers )
+          {
+            cout << lWholeOutput.str();
+            cout << "============================================================================" << endl;
+            cout << "============================================================================" << endl;
+          }
+
         }
       }
       
       cout << endl;
-      cout << "Machine readable list of join percentages." << endl;
-      for (int i = 0; i < lPercentages.size(); ++i)
-      {
-        cout << lPercentages[i] << endl;
-      }
       cout << "DONE." << endl;
       delete parser; parser = NULL;
       
-      return lJoinedReads.size();
+      return lSets.size();
     }
     
+
+    
+//    double EstimateTheta( double aPi_ProportionOfSegregatingSites, int aNumberOfReads )
+//    {
+//      double lA1 = GenerateA1( aNumberOfReads );
+//      
+//      return ( aPi_ProportionOfSegregatingSites / lA1 );
+//    }
+//    
+//    double GenerateA1( int aNumberOfReads )
+//    {
+//      double lA1 = 0;
+//      for ( int i = 1; i < aNumberOfReads; ++i )
+//      {
+//        lA1 += ( 1 / (double) i );
+//      }
+//      return lA1;
+//    }
+    
+    
+    
+
+    
+//    double Calculate_Pi__Proportion_Of_PairwiseDifferences( const vector<string> & aAlignedReads, const int aAlignmentLength, const int aK )
+//    {
+//      int lReadCount = aAlignedReads.size();      
+//      int lTotalPairwiseDifferences = 0;
+//      int lTotalPossiblePairwiseComparisons = 0;
+//      for ( int i = 0; i < aAlignmentLength; ++i ) // go through each nucleotide, left to right
+//      {
+//        char lNucleotides[4] = {0, 0, 0, 0};
+//        for ( int j = 0; j < lReadCount; ++j ) // go through the aligned reads, top to bottom.
+//        {
+//          if ( i < aAlignedReads[j].length() )
+//          {
+//            char lNucleotide = aAlignedReads[j][i];
+//            if ( lNucleotide != ' ' )
+//              lNucleotides[ twobit_representation( lNucleotide ) ]++;
+//          }
+//        }
+//        int lTotalPairwiseDifferences_PerSite = 0;
+//        for ( int k = 0; k < 3; ++k ) // two-dimensional grid, fill out half of it.
+//        {
+//          for ( int l = k+1; l < 4; ++l )
+//          {
+//            lTotalPairwiseDifferences_PerSite += ( lNucleotides[k] * lNucleotides[l] );
+//          }
+//        }
+//        lTotalPairwiseDifferences += lTotalPairwiseDifferences_PerSite;
+//        int lComparableNucleotideLines = lNucleotides[0] + lNucleotides[1] + lNucleotides[2] + lNucleotides[3];
+//        lTotalPossiblePairwiseComparisons += (lComparableNucleotideLines * ( lComparableNucleotideLines - 1 ))/2;
+//      }
+//      
+//      lTotalPossiblePairwiseComparisons -= ( ( lReadCount * ( lReadCount - 1 ) ) / 2 ) * aK; // subtract the pairs that overlap with the kmer
+//      
+//      if ( lTotalPossiblePairwiseComparisons == 0 )
+//        return 0.0;
+//      
+//      return (lTotalPairwiseDifferences / (double) lTotalPossiblePairwiseComparisons);    
+//    }
+    
+//    double Calculate_Pi__Proportion_Of_PairwiseDifferences( const vector<string> & aAlignedReads, const int aAlignmentLength, const int aK )
+//    {
+//      int lTotalComparableSites = 0;
+//      int lTotalPairwiseDifferences = 0;
+//      
+//      vector< vector<pair<int,int> > > lReadTotalPairwiseDifferences;
+//    
+//      int lReadCount = aAlignedReads.size();
+//      lReadTotalPairwiseDifferences.resize( lReadCount );
+//      for (int i = 0; i < lReadCount - 1; ++i)
+//      {                
+//        lReadTotalPairwiseDifferences[i].resize( lReadCount );
+//        for (int j = i + 1; j < lReadCount; ++j)
+//        {
+//          pair<int, int> lPairwiseDiff = Calculate_PairwiseDifferences( aAlignedReads[i], aAlignedReads[j], aAlignmentLength, aK );
+//          
+//          lReadTotalPairwiseDifferences[i][j] = lPairwiseDiff;
+//          
+//          lTotalComparableSites += lPairwiseDiff.first;
+//          lTotalPairwiseDifferences += lPairwiseDiff.second;
+//          
+//        }
+//      }
+//
+//      cout << "v-------------------------------------------------v" << endl;
+//      cout << "DEBUG!!" << endl;  
+//      int lWidth = 11;    
+//
+//      cout << setw(lWidth) << " ";
+//      for ( int m = 1; m < lReadCount; ++m )
+//      {
+//        cout << setw(lWidth) << m;
+//      }
+//      cout << endl;
+//      for ( int k = 0; k < lReadCount-1; ++k )
+//      {
+//        cout << setw(lWidth) << k;
+//        for (int l = 1; l < lReadCount; ++l ) 
+//        {
+//          pair<int,int> lBleh = lReadTotalPairwiseDifferences[k][l];
+//        
+//          double lPi = lReadTotalPairwiseDifferences[k][l].second / (double) lReadTotalPairwiseDifferences[k][l].first;
+//          cout << setw(lWidth) << lPi;
+//        }
+//        cout << endl;
+//      }
+//      cout << "^-------------------------------------------------^" << endl;
+//      
+//      return ( lTotalPairwiseDifferences / (double) lTotalComparableSites );
+//    }
+//
+    
+    
+//    string Calculate_PairwiseDifferenceCulprit( const vector<string> & aAlignedReads, const int aAlignmentLength, const int aK )
+//    {
+//      stringstream lOut;
+//    
+//      lOut << "DEBUG: Calculating Pairwise Differences, Read by Read" << endl;
+//      for ( int i = 0; i < aAlignedReads.size() - 1; ++i )
+//      {
+//        vector<string> lReadCombinations;
+//        lReadCombinations.push_back( aAlignedReads[i] );
+//        for ( int j = i+1; j < aAlignedReads.size(); ++j )
+//        {
+//          lReadCombinations.push_back( aAlignedReads[j] );
+//          double lComboDiff = Calculate_Pi__Proportion_Of_PairwiseDifferences(lReadCombinations, aAlignmentLength, aK);
+//          
+//          lOut << "Reads " << i << " through " << j << " Pi: " << lComboDiff << endl;
+//        }
+//      }
+//      lOut << "-----------------------------------------------------" << endl;
+//      
+//      return lOut.str();
+//    }
+        
+//    double Calculate_S__Proportion_Of_SegregatingSites( const vector<string> & aAlignedReads, const int aAlignmentLength, const int aK )
+//    {
+//      int lReadCount = aAlignedReads.size();
+//      int lSegregatingSitesCount = 0;
+//      
+//      for ( int i = 0; i < aAlignmentLength; ++i ) // go through each nucleotide, left to right
+//      {
+//        set<char> lNucleotides;
+//        for ( int j = 0; j < lReadCount; ++j ) // go through the aligned reads, top to bottom.
+//        {
+//          if ( i < aAlignedReads[j].length() )
+//          {
+//            char lNucleotide = aAlignedReads[j][i];
+//            if ( lNucleotide != ' ' )
+//              lNucleotides.insert( lNucleotide );
+//          }
+//        }
+//        
+//        if ( lNucleotides.size() > 1 )
+//        {
+//          lSegregatingSitesCount++;
+//        }
+//      }
+//      
+//      int aComparableSitesCount = aAlignmentLength - aK;
+//      
+//      if ( aComparableSitesCount == 0 )
+//        return 0.0;
+//        
+//      return (lSegregatingSitesCount / (double) aComparableSitesCount);
+//
+//    }
+
+//    double Calculate_BranchPoints( const vector<string> & aAlignedReads, const int aAlignmentLength, const int aK )
+//    {
+//      int lReadCount = aAlignedReads.size();
+//      int lBranchPointsCount = 0;
+//      int lLastBranchPosition = 0;
+//      
+//      for ( int i = 0; i < aAlignmentLength; ++i ) // go through each nucleotide, left to right
+//      {
+//        set<char> lNucleotides;
+//        for ( int j = 0; j < lReadCount; ++j ) // go through the aligned reads, top to bottom.
+//        {
+//          if ( i < aAlignedReads[j].length() )
+//          {
+//            char lNucleotide = aAlignedReads[j][i];
+//            if ( lNucleotide != ' ' )
+//              lNucleotides.insert( lNucleotide );
+//          }
+//        }
+//        
+//        assert( lNucleotides.size() > 0 );
+//        
+//        if ( lLastBranchPosition < i - aK && lNucleotides.size() > 1 ) // a legit branching point from this clump (rejoined)
+//        {        
+//          lBranchPointsCount += lNucleotides.size() - 1;        
+//          lLastBranchPosition = i;
+//        }
+//      }
+//      
+//      return lBranchPointsCount;
+//    }
+
+
+    
+   
   };
   
-  
-  
-  typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
+  typedef unsigned int (BleuFilter::*ConsumeStringFN)
+    ( string * aReads, int aReadCount );
   
   typedef struct ThreadArgs {
     ConsumeStringFN aMethod;
@@ -582,7 +732,8 @@ namespace bleu {
   {
     ThreadArgs * lArgs = (ThreadArgs*) aArgs;
 
-    int lConsumed = (lArgs->aThis->*lArgs->aMethod)( lArgs->aReads, lArgs->aCount );
+    int lConsumed = (lArgs->aThis->*lArgs->aMethod)
+      ( lArgs->aReads, lArgs->aCount );
     cout << "Chunk " << lArgs->aChunk << " consumed: " << lConsumed << endl;
     
     return (void*) lConsumed;

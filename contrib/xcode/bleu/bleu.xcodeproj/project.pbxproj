@@ -79,6 +79,7 @@
 		D8B9DA82125A7585007AEFA4 /* ChainedSet.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSet.hpp; path = ../../bleu/ChainedSet.hpp; sourceTree = SOURCE_ROOT; };
 		D8B9DA83125A7585007AEFA4 /* ChainedSetsManager.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ChainedSetsManager.hpp; path = ../../bleu/ChainedSetsManager.hpp; sourceTree = SOURCE_ROOT; };
 		E73A351E12C94C79004EB89A /* PrimeGenerator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = PrimeGenerator.hpp; path = ../../bleu/PrimeGenerator.hpp; sourceTree = SOURCE_ROOT; };
+		E768ADEA1325B22C00FA220F /* KmerJoins.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = KmerJoins.hpp; path = ../../bleu/KmerJoins.hpp; sourceTree = SOURCE_ROOT; };
 		E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_Lookup.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = SequenceHashArbitrary_Lookup.hpp; path = ../../bleu/SequenceHashArbitrary_Lookup.hpp; sourceTree = SOURCE_ROOT; };
 		E787C0C312C7D87400EF9891 /* bleu */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bleu; sourceTree = BUILT_PRODUCTS_DIR; };
 		E787C0C512C7D8A400EF9891 /* bleutests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bleutests.cpp; path = ../../bleu/bleutests.cpp; sourceTree = SOURCE_ROOT; };
@@ -123,6 +124,7 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				E768ADEA1325B22C00FA220F /* KmerJoins.hpp */,
 				E7946EB21291139000F2756F /* SequenceHashArbitrary.hpp */,
 				E787C16A12C9217D00EF9891 /* SequenceHashArbitrary_Builder.hpp */,
 				E787C07512C7C8F200EF9891 /* SequenceHashArbitrary_Lookup.hpp */,
@@ -130,9 +132,9 @@
 				D8147BE5125F8372003A81C1 /* CanonicalSet.hpp */,
 				D8147BE3125F834E003A81C1 /* CanonicalSetsManager.hpp */,
 				D898060E121DCF9D0007A0AB /* bleufilter.hpp */,
-				D8549D7912E75BB5006FC2BD /* shellscript.sh */,
 				E787C0C512C7D8A400EF9891 /* bleutests.cpp */,
 				D898060D121DCF9D0007A0AB /* bleu.cpp */,
+				D8549D7912E75BB5006FC2BD /* shellscript.sh */,
 				D8B9DAE2125A7C65007AEFA4 /* SupportingFiles */,
 				D8147BE4125F8355003A81C1 /* Deprecated */,
 			);
@@ -252,7 +254,6 @@
 			};
 			buildConfigurationList = 1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "bleu" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
 			hasScannedForEncodings = 1;
 			knownRegions = (
 				en,

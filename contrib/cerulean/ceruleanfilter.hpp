@@ -154,8 +154,8 @@ namespace cerulean {
     {
       _last_set = 0; // zero == none in use. any number > 1 is a set. _last_set indicates the last set that was allocated.
       
-      delete _counts; // not using these right now. Will later for presence flags.
-      _counts = NULL;
+      //delete _counts; // not using these right now. Will later for presence flags.
+      //_counts = NULL;
       
     }
     
