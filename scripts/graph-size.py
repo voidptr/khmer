@@ -1,34 +1,58 @@
 import khmer
 import sys
+import screed
+import os.path
+from khmer.thread_utils import ThreadedSequenceProcessor, verbose_fasta_iter
 
 K = 32
-HASHTABLE_SIZE=4**12+1
+HASHTABLE_SIZE=int(4e9)
+THRESHOLD=500
+N_HT=4
+WORKER_THREADS=5
 
-infile = sys.argv[1]
-threshold = int(sys.argv[2])
-outfile = sys.argv[3]
+###
 
-print 'creating ht'
-ht = khmer.new_hashtable(K, HASHTABLE_SIZE)
-print 'eating fa', infile
-total_reads, n_consumed = ht.consume_fasta(infile)
+GROUPSIZE=100
 
-#print 'hashtable occupancy:', ht.n_occupied() / float(HASHTABLE_SIZE)
-#fp = open('aaa.1', 'w')
-#total = 0
-#for n, i in enumerate(ht.graphsize_distribution(10000)):
-#    total += i
-#    print >>fp, n, i, total
-#fp.close()
+###
 
-print 'trimming to', threshold
-ht.trim_graphs(infile, threshold, outfile)
+def main():
+    infile = sys.argv[1]
+    outfile = os.path.basename(infile) + '.graphsize'
+    if len(sys.argv) == 3:
+        outfile = sys.argv[2]
 
-#print 'hashtable occupancy:', ht.n_occupied() / float(HASHTABLE_SIZE)
+    print 'input file to graphsize filter: %s' % infile
+    print 'filtering to output:', outfile
+    print '-- settings:'
+    print 'K', K
+    print 'HASHTABLE SIZE %g' % HASHTABLE_SIZE
+    print 'N HASHTABLES %d' % N_HT
+    print 'THRESHOLD', THRESHOLD
+    print 'N THREADS', WORKER_THREADS
+    print '--'
 
-#fp = open('aaa.2', 'w')
-#total = 0
-#for n, i in enumerate(ht.graphsize_distribution(5000)):
-#    total += i
-#    print >>fp, n, i, total
-#fp.close()
+    print 'creating ht'
+    ht = khmer.new_hashbits(K, HASHTABLE_SIZE, N_HT)
+    print 'eating fa', infile
+    total_reads, n_consumed = ht.consume_fasta(infile)
+    outfp = open(outfile, 'w')
+
+    ###
+    
+    def process_fn(record, ht=ht):
+        kmer = record['sequence'][:K]
+        size = ht.calc_connected_graph_size(kmer, THRESHOLD)
+        if size >= THRESHOLD:
+            return record['name'], record['sequence']
+
+        return None, None
+
+    tsp = ThreadedSequenceProcessor(process_fn, WORKER_THREADS, GROUPSIZE)
+
+    ###
+
+    tsp.start(verbose_fasta_iter(infile), outfp)
+
+if __name__ == '__main__':
+    main()

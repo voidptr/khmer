@@ -1,36 +1,47 @@
+#assert 0, "don't use this script -- use graph-size.py instead"
+
 import khmer
 import sys
 import screed
+import os
+import subprocess
+import zlib
+import gzip
 
 K = 32
-HASHTABLE_SIZE=4**12+1
+HASHTABLE_SIZE=int(4e9)
+THRESHOLD=500
+N_HT=4
 
-infile = sys.argv[1]
-threshold = int(sys.argv[2])
-outfile = sys.argv[3]
+print 'ht size'
+ht = khmer.new_hashbits(K, HASHTABLE_SIZE, N_HT)
 
-print 'creating ht'
-ht = khmer.new_hashtable(K, HASHTABLE_SIZE)
-print 'eating fa', infile
-total_reads, n_consumed = ht.consume_fasta(infile)
-outfp = open(outfile, 'w')
+read_count = 0
 
-#print 'hashtable occupancy:', ht.n_occupied() / float(HASHTABLE_SIZE)
+for filename in sys.argv[1:]:
 
-for record in screed.fasta.fasta_iter(open(infile)):
-    kmer = record['sequence'][:K]
-    size = ht.calc_connected_graph_size(kmer, threshold)
-    if size >= threshold:
-        print >>outfp, ">%s\n%s" % (record['name'], record['sequence'])
+    print 'processing file: ' + filename + ' reads processed: ' + str(read_count)
 
-#print 'trimming to', threshold
-#ht.trim_graphs(infile, threshold, outfile)
+    for n, record in enumerate(screed.fasta.fasta_iter(open(filename))):
+        seq = record['sequence']
+        if len(seq) >= K:
+           ht.consume(seq)
 
-#print 'hashtable occupancy:', ht.n_occupied() / float(HASHTABLE_SIZE)
+        if n % 10000 == 0:
+           print '... loading', n
+    
+for filename in sys.argv[1:]:
+    outfp = open(filename + '.graphsize', 'w')
+    
+    n_kept = 0
 
-#fp = open('aaa.2', 'w')
-#total = 0
-#for n, i in enumerate(ht.graphsize_distribution(5000)):
-#    total += i
-#    print >>fp, n, i, total
-#fp.close()
+    for n, record in enumerate(screed.fasta.fasta_iter(open(filename))):
+        kmer = record['sequence'][:K]
+        size = ht.calc_connected_graph_size(kmer, THRESHOLD)
+        if size >= THRESHOLD:
+            name = record['name'].rsplit('/', 2)[0] + '.%d' % n
+            print >>outfp, ">%s\n%s" % (name, record['sequence'])
+            n_kept += 1
+
+        if n % 10000 == 0:
+            print '...', n, n_kept, n - n_kept + 1

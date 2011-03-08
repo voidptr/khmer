@@ -1,18 +1,24 @@
 #! /usr/bin/env python
 import sys, khmer
 
-K = int(sys.argv[1])
+K = 32
+N_HT=4
+HT_SIZE = int(5e8)
+
+###
+
+filename = sys.argv[1]
 output = sys.argv[2]
-fa_files = sys.argv[3:]
 
-HT_SIZE = min(4**K, 4**17+1)
+ht = khmer.new_counting_hash(K, HT_SIZE, N_HT)
 
-ht = khmer.new_hashtable(K, HT_SIZE)
+ht.consume_fasta(filename)
 
-for filename in fa_files:
-    ht.consume_fasta(filename)
-
-z = ht.abundance_distribution()
+print 'preparing hist...'
+z = ht.abundance_distribution(filename)
 fp = open(output, 'w')
+
 for n, i in enumerate(z[1:]):
     print >>fp, n + 1, i
+
+#ht.fasta_dump_kmers_by_abundance(filename, 255)
