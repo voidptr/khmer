@@ -1,4 +1,5 @@
-CXXFLAGS=-O3 -Wall
+CXX=g++
+CXXFLAGS=-O3 -m64 -Wall
 
 all: parsers.o ktable.o hashtable.o
 

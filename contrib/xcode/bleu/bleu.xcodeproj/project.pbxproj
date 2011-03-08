@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		8DD76F6A0486A84900D96B5E /* bleu.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* bleu.1 */; };
-		D8158657126FA48300AEEEE8 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = D8158656126FA48300AEEEE8 /* Makefile */; };
-		D8158659126FA49C00AEEEE8 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = D8158658126FA49C00AEEEE8 /* Makefile */; };
 		D89424CB1238021800DCC84E /* cBitArray.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89424C81238021800DCC84E /* cBitArray.cc */; };
 		D8980522121D8A600007A0AB /* hashtable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051A121D8A600007A0AB /* hashtable.cc */; };
 		D8980523121D8A600007A0AB /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051D121D8A600007A0AB /* ktable.cc */; };
@@ -19,8 +17,6 @@
 		E787C0B712C7D87400EF9891 /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051D121D8A600007A0AB /* ktable.cc */; };
 		E787C0B812C7D87400EF9891 /* parsers.cc in Sources */ = {isa = PBXBuildFile; fileRef = D898051F121D8A600007A0AB /* parsers.cc */; };
 		E787C0BA12C7D87400EF9891 /* cBitArray.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89424C81238021800DCC84E /* cBitArray.cc */; };
-		E787C0BB12C7D87400EF9891 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = D8158656126FA48300AEEEE8 /* Makefile */; };
-		E787C0BC12C7D87400EF9891 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = D8158658126FA49C00AEEEE8 /* Makefile */; };
 		E787C0BF12C7D87400EF9891 /* bleu.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* bleu.1 */; };
 		E787C0C612C7D8A400EF9891 /* bleutests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E787C0C512C7D8A400EF9891 /* bleutests.cpp */; };
 /* End PBXBuildFile section */
@@ -108,13 +104,13 @@
 		08FB7794FE84155DC02AAC07 /* bleu */ = {
 			isa = PBXGroup;
 			children = (
+				D850F4A6124CFD07003E38AA /* Makefile */,
 				D8158658126FA49C00AEEEE8 /* Makefile */,
 				D8158656126FA48300AEEEE8 /* Makefile */,
 				D8980512121D89930007A0AB /* Makefile */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				C6859E8C029090F304C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
-				D850F4A6124CFD07003E38AA /* Makefile */,
 				D850F4A7124CFD2A003E38AA /* bleu.pyx */,
 				D850F4CE124D0DC8003E38AA /* setup.py */,
 			);
@@ -279,8 +275,6 @@
 				D8980524121D8A600007A0AB /* parsers.cc in Sources */,
 				D898060F121DCF9D0007A0AB /* bleu.cpp in Sources */,
 				D89424CB1238021800DCC84E /* cBitArray.cc in Sources */,
-				D8158657126FA48300AEEEE8 /* Makefile in Sources */,
-				D8158659126FA49C00AEEEE8 /* Makefile in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,8 +286,6 @@
 				E787C0B712C7D87400EF9891 /* ktable.cc in Sources */,
 				E787C0B812C7D87400EF9891 /* parsers.cc in Sources */,
 				E787C0BA12C7D87400EF9891 /* cBitArray.cc in Sources */,
-				E787C0BB12C7D87400EF9891 /* Makefile in Sources */,
-				E787C0BC12C7D87400EF9891 /* Makefile in Sources */,
 				E787C0C612C7D8A400EF9891 /* bleutests.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
