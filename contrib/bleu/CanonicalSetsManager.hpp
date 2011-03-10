@@ -13,6 +13,10 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <unistd.h>
+#ifdef _POSIX_THREADS
+#include <pthread.h>
+#endif
 
 #define BIT_COUNT_PARTITION 5000
 
@@ -92,11 +96,13 @@ namespace bleu {
     
     vector<SetOffset> _released_set_offsets;
     unsigned int _releasable_set_offsets_count;
-    
+        
     vector<SetPointer> _sorted_sets;
     
     HashBin ** SeenHashes[HASHES];
     unsigned int * SeenHashCounts[HASHES];
+    pthread_mutex_t * SeenHashLocks[HASHES];
+    
   public:
     unsigned long long _average_size_at_sort;
     
@@ -109,7 +115,7 @@ namespace bleu {
       _last_set_offset = 0; // init to zero
       _average_size_at_sort = 0;
       _releasable_set_offsets_count = 0;
-      
+                  
       _tablesizes[0] = PrimeGenerator::get_first_prime_below( aMaxMemory / HASHES );
       for ( int i = 1; i < HASHES; ++i )      
       {
@@ -134,11 +140,14 @@ namespace bleu {
         int lCacheSegmentsCount = (_tablesizes[j] / CACHED_HASH_SEGMENT_SIZE) + 1;
         
         SeenHashes[j] = new HashBin * [lCacheSegmentsCount];        
+        SeenHashLocks[j] = new pthread_mutex_t[ lCacheSegmentsCount ];
         SeenHashCounts[j] = new unsigned int [ lCacheSegmentsCount ];
         memset( SeenHashCounts[j], 0, lCacheSegmentsCount  * sizeof(unsigned int));
 
         for ( int k = 0; k < lCacheSegmentsCount; ++k )
         {
+          pthread_mutex_init(&SeenHashLocks[j][k], NULL);
+        
           SeenHashes[j][k] = new HashBin[ CACHED_HASH_SEGMENT_CAPACITY ];
           memset(SeenHashes[j][k], 0, CACHED_HASH_SEGMENT_CAPACITY * sizeof(HashBin));
         }
@@ -163,6 +172,9 @@ namespace bleu {
         unsigned long long lHashBin = HashToHashBin(aHash, i); 
         unsigned long long lSegmentIndex = lHashBin / CACHED_HASH_SEGMENT_SIZE;
         
+        // start mutex
+        pthread_mutex_lock(&SeenHashLocks[i][lSegmentIndex]);
+
         SeenHashes[i][ lSegmentIndex ][ SeenHashCounts[i][lSegmentIndex]++ ] = lHashBin;
 
         if ( SeenHashCounts[i][ lSegmentIndex ] == CACHED_HASH_SEGMENT_CAPACITY )
@@ -170,6 +182,11 @@ namespace bleu {
           dump_seen_hashes_into_table( SeenHashes[i][ lSegmentIndex ], SeenHashCounts[i][ lSegmentIndex ], i );
           SeenHashCounts[i][ lSegmentIndex ] = 0;
         }
+        
+        pthread_mutex_unlock(&SeenHashLocks[i][lSegmentIndex]);
+
+        
+        // end mutex
       }      
     }
     

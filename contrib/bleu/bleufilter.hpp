@@ -70,14 +70,14 @@ namespace bleu {
     void allocate_set_offset_table() {
       _Sets_Manager->allocate_set_offset_table();      
     }
-
-    // fucking duplicate code drives me nuts. I swear I will clean this up once 
+    
+        // fucking duplicate code drives me nuts. I swear I will clean this up once
     // I get some functionality that I'm happy with.
-    void consume_strings_for_hash_table(const std::string &filename)
+    void consume_strings_for_hash_table_nothread(const std::string &filename)
     {
       cout << "Populating Hash Table(s)..." << endl;
       
-      time_t start, end;      
+      time_t start, end;
       start = time(NULL);
       
       int total_reads = 0;
@@ -90,7 +90,7 @@ namespace bleu {
       
       string reads[100000];
          
-      while(!parser->is_complete())  {
+      while(!parser->is_complete()) {
         
         int lCount = 0;
         //int lKmerCt = 0;
@@ -106,25 +106,128 @@ namespace bleu {
         }
 
         for ( int j = 0; j < lCount; ++j )
-        { 
+        {
           const unsigned int length = reads[j].length();
           
           for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
           {
-            string lSeq = reads[j].substr(k, _ksize);  
+            string lSeq = reads[j].substr(k, _ksize);
             SequenceHashArbitrary hash( lSeq, _hash_builder->hash( lSeq ) );
             _Sets_Manager->seen_hash( hash );
           }
         }
         
-        total_reads += lCount;        
+        total_reads += lCount;
         cout << total_reads << endl;
+      }
+      
+      _Sets_Manager->finalize_seen_hash();
+      end = time(NULL);
+      cout << "Elapsed: " << difftime(end, start)<< " seconds" << endl;
+    }
+
+    typedef struct _ThreadArgs {
+      ConsumeStringFN aMethod;
+      string aReads[100000];
+      int aCount;
+      BleuFilter * aThis;
+      int aChunk;
+    } ThreadArgs;
+
+    // fucking duplicate code drives me nuts. I swear I will clean this up once 
+    // I get some functionality that I'm happy with.
+    #define NUM_THREADS 4
+    void consume_strings_for_hash_table(const std::string &filename)
+    {
+      cout << "Populating Hash Table(s)..." << endl;
+      
+      time_t start, end;      
+      start = time(NULL);
+      
+      int total_reads = 0;
+      
+      IParser* parser = IParser::get_parser(filename.c_str());
+      Read read;
+      
+      string currName = "";
+      string currSeq = "";
+      
+      pthread_t threads[NUM_THREADS];
+      ThreadArgs thread_args[NUM_THREADS];
+      
+      while(!parser->is_complete())  
+      {
+        
+        int thread_num;
+        for (thread_num = 0; thread_num < NUM_THREADS; ++thread_num)
+        {
+          int return_code;
+          
+          thread_args[thread_num].aMethod = &bleu::BleuFilter::populate_table_threaded_method;
+          thread_args[thread_num].aThis = this;
+          thread_args[thread_num].aChunk = 0;
+          thread_args[thread_num].aCount = 0; // reset the object
+
+          for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
+          {
+            read = parser->get_next_read();
+            if ( ReadUtilities::check_read( read.seq, _ksize ) )
+            {
+              thread_args[thread_num].aReads[thread_args[thread_num].aCount] = read.seq;
+              thread_args[thread_num].aCount++;              
+            }
+          }
+          
+          if ( (return_code = pthread_create( &threads[thread_num], NULL, &ThreadStart, &thread_args[thread_num]) ) )
+          {
+            cout << "ERROR PTHREAD_CREATE, return_code=" << return_code << endl;
+            return; // ARGH.
+          }
+        }
+        
+        for ( int q = 0; q < thread_num; ++q ) // wait for all threads to return
+        {
+          pthread_join( threads[q], NULL );
+        }
+      //  total_reads += lCount;        
+      //  cout << total_reads << endl;
       }
       
       _Sets_Manager->finalize_seen_hash();
       end = time(NULL);        
       cout << "Elapsed: " << difftime(end, start)<< " seconds" << endl;
     }
+    
+    unsigned int populate_table_threaded_method (string * aReads, int aReadCount) {
+ //     thread_data_t * data = (thread_data_t *) arg;
+ 
+      cout << "IN HERERERERER" << endl;
+      
+      for ( int j = 0; j < aReadCount; ++j )
+      { 
+        const unsigned int length = aReads[j].length();
+        
+        for ( unsigned int k = 0; k < length - _ksize + 1; ++k )
+        {
+          string lSeq = aReads[j].substr(k, _ksize);  
+          SequenceHashArbitrary hash( lSeq, _hash_builder->hash( lSeq ) );
+          _Sets_Manager->seen_hash( hash );
+        }
+      }
+      
+      cout << "DONEDONEDONE" << endl;
+      
+      return aReadCount;
+//      pthread_exit(NULL);      
+    }
+    
+//    typedef struct _thread_data_t 
+//    {
+//      int thread_ID;
+//      string reads[100000];
+//      int read_count;
+//    } thread_data_t;
+    
     
     // fucking duplicate code drives me nuts. I swear I will clean this up once 
     // I get some functionality that I'm happy with.
@@ -507,24 +610,27 @@ namespace bleu {
     }
   };
   
-  typedef unsigned int (BleuFilter::*ConsumeStringFN)
-    ( string * aReads, int aReadCount );
+  typedef unsigned int (BleuFilter::*HashReadsFN)( string * aReads, int aReadCount );
   
-  typedef struct ThreadArgs {
-    ConsumeStringFN aMethod;
-    string * aReads;
+  typedef struct _ThreadArgs {
+    HashReadsFN aMethod;
+    string aReads[100000];
     int aCount;
     BleuFilter * aThis;
     int aChunk;
-  };
+  } ThreadArgs;
   
   void * ThreadStart( void * aArgs )
   {
+    cout << "IN THREAD!!!" << endl;
     ThreadArgs * lArgs = (ThreadArgs*) aArgs;
 
-    int lConsumed = (lArgs->aThis->*lArgs->aMethod)
-      ( lArgs->aReads, lArgs->aCount );
+    int lConsumed = (lArgs->aThis->*lArgs->aMethod)( lArgs->aReads, lArgs->aCount );
+    
     cout << "Chunk " << lArgs->aChunk << " consumed: " << lConsumed << endl;
+
+    cout << "OUT THREAD!!!" << endl;
+
     
     return (void*) lConsumed;
   }
