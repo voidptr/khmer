@@ -28,7 +28,6 @@
 #include <pthread.h>
 
 #define CALLBACK_PERIOD 10000
-#define THREADCT 1
 
 namespace bleu {
   
@@ -73,7 +72,7 @@ namespace bleu {
     
         // fucking duplicate code drives me nuts. I swear I will clean this up once
     // I get some functionality that I'm happy with.
-    void consume_strings_for_hash_table_nothread(const std::string &filename)
+    void consume_strings_for_hash_table(const std::string &filename)
     {
       cout << "Populating Hash Table(s)..." << endl;
       
@@ -125,10 +124,14 @@ namespace bleu {
       end = time(NULL);
       cout << "Elapsed: " << difftime(end, start)<< " seconds" << endl;
     }
-
+    
+    
+    /////////////////////////////////
+    // Experimental Threaded Version
+    /////////////////////////////////
     typedef struct _ThreadArgs {
       ConsumeStringFN aMethod;
-      string aReads[100000];
+      string aReads[10000];
       int aCount;
       BleuFilter * aThis;
       int aChunk;
@@ -136,8 +139,8 @@ namespace bleu {
 
     // fucking duplicate code drives me nuts. I swear I will clean this up once 
     // I get some functionality that I'm happy with.
-    #define NUM_THREADS 4
-    void consume_strings_for_hash_table(const std::string &filename)
+    #define NUM_THREADS 8
+    void consume_strings_for_hash_table_threaded(const std::string &filename)
     {
       cout << "Populating Hash Table(s)..." << endl;
       
@@ -168,7 +171,7 @@ namespace bleu {
           thread_args[thread_num].aChunk = 0;
           thread_args[thread_num].aCount = 0; // reset the object
 
-          for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
+          for (int i = 0; i < 10000 && !parser->is_complete(); ++i)
           {
             read = parser->get_next_read();
             if ( ReadUtilities::check_read( read.seq, _ksize ) )
@@ -198,9 +201,8 @@ namespace bleu {
       cout << "Elapsed: " << difftime(end, start)<< " seconds" << endl;
     }
     
-    unsigned int populate_table_threaded_method (string * aReads, int aReadCount) {
- //     thread_data_t * data = (thread_data_t *) arg;
- 
+    unsigned int populate_table_threaded_method (string * aReads, int aReadCount) 
+    {
       cout << "IN HERERERERER" << endl;
       
       for ( int j = 0; j < aReadCount; ++j )
@@ -218,16 +220,10 @@ namespace bleu {
       cout << "DONEDONEDONE" << endl;
       
       return aReadCount;
-//      pthread_exit(NULL);      
     }
-    
-//    typedef struct _thread_data_t 
-//    {
-//      int thread_ID;
-//      string reads[100000];
-//      int read_count;
-//    } thread_data_t;
-    
+    /////////////////////////////////////
+    // End Experimental Threaded Version
+    /////////////////////////////////////
     
     // fucking duplicate code drives me nuts. I swear I will clean this up once 
     // I get some functionality that I'm happy with.
@@ -610,11 +606,15 @@ namespace bleu {
     }
   };
   
+  
+  ///////////////////////////////
+  // Threading Functions
+  ///////////////////////////////
   typedef unsigned int (BleuFilter::*HashReadsFN)( string * aReads, int aReadCount );
   
   typedef struct _ThreadArgs {
     HashReadsFN aMethod;
-    string aReads[100000];
+    string aReads[10000];
     int aCount;
     BleuFilter * aThis;
     int aChunk;
@@ -630,7 +630,6 @@ namespace bleu {
     cout << "Chunk " << lArgs->aChunk << " consumed: " << lConsumed << endl;
 
     cout << "OUT THREAD!!!" << endl;
-
     
     return (void*) lConsumed;
   }
