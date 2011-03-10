@@ -13,7 +13,7 @@
 #include "CanonicalSetsManager.hpp"
 #include "KmerJoins.hpp"
 #include "ReadUtilities.hpp"
-#include "parsers.hh"
+#include "../../lib/parsers.hh"
 #include <iostream>
 #include <iomanip>
 #include <vector>
