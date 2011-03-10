@@ -1,4 +1,4 @@
-bleu/ - a probabilistic set-based read partitioning system based on khmer.
+bleu/ - a probabilistic set-based read partitioning system.
 cerulean/ - an exact version of bleu, without false positives.
 xcode/ - a set of xcode project files for bleu and khmer
 

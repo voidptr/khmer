@@ -9,12 +9,12 @@
  
 #include <sstream>
 #include <iomanip>
+#include <set>
 
 //#include <iostream>
 
 namespace bleu {
   
-  using namespace khmer;
   using namespace std;
     
   class KmerJoins

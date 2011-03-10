@@ -39,19 +39,19 @@ public:
    bool is_complete() { return !one_read_left && infile.eof(); } 
 };
 
-class FastaGzParser : public IParser
-{
-private:
-   gzFile infile;
-   Read current_read;
-   std::string next_name;
-   bool one_read_left;
-public:
-   FastaGzParser(const std::string &inputfile);
-   ~FastaGzParser() { gzclose(infile);  }
-   Read get_next_read();
-   bool is_complete() { return !one_read_left && gzeof(infile); }
-};
+//class FastaGzParser : public IParser
+//{
+//private:
+//   gzFile infile;
+//   Read current_read;
+//   std::string next_name;
+//   bool one_read_left;
+//public:
+//   FastaGzParser(const std::string &inputfile);
+//   ~FastaGzParser() { gzclose(infile);  }
+//   Read get_next_read();
+//   bool is_complete() { return !one_read_left && gzeof(infile); }
+//};
 
 class FastqParser : public IParser
 {
@@ -65,17 +65,17 @@ public:
    bool is_complete() { return infile.eof(); }
 };
 
-class FastqGzParser : public IParser
-{
-private:
-   gzFile infile;
-   Read current_read;
-   bool one_read_left;
-public:
-   FastqGzParser(const std::string &inputfile);
-   ~FastqGzParser() { gzclose(infile); }
-   Read get_next_read();
-   bool is_complete() { return !one_read_left && gzeof(infile); }
-};
+//class FastqGzParser : public IParser
+//{
+//private:
+//   gzFile infile;
+//   Read current_read;
+//   bool one_read_left;
+//public:
+//   FastqGzParser(const std::string &inputfile);
+//   ~FastqGzParser() { gzclose(infile); }
+//   Read get_next_read();
+//   bool is_complete() { return !one_read_left && gzeof(infile); }
+//};
 
 #endif

@@ -27,17 +27,17 @@ namespace khmer {
       _counts = new Byte*[_n_tables];
 
       for (unsigned int i = 0; i < _n_tables; i++) {
-	tablesize = _tablesizes[i];
-	tablebytes = tablesize / 8 + 1;
+        tablesize = _tablesizes[i];
+        tablebytes = tablesize / 8 + 1;
 
-	_counts[i] = new Byte[tablebytes];
-	memset(_counts[i], 0, tablebytes);
+        _counts[i] = new Byte[tablebytes];
+        memset(_counts[i], 0, tablebytes);
       }
     }
 
     void _clear_partitions() {
       if (partition != NULL) {
-	partition->_clear_partitions();
+        partition->_clear_partitions();
       }
     }
 
@@ -61,14 +61,14 @@ namespace khmer {
 
     ~Hashbits() {
       if (_counts) {
-	for (unsigned int i = 0; i < _n_tables; i++) {
-	  delete _counts[i];
-	  _counts[i] = NULL;
-	}
-	delete _counts;
-	_counts = NULL;
+        for (unsigned int i = 0; i < _n_tables; i++) {
+          delete _counts[i];
+          _counts[i] = NULL;
+        }
+        delete _counts;
+        _counts = NULL;
 
-	_n_tables = 0;
+        _n_tables = 0;
       }
 
       _clear_partitions();
@@ -151,17 +151,17 @@ namespace khmer {
       bool is_new_kmer = false;
 
       for (unsigned int i = 0; i < _n_tables; i++) {
-	HashIntoType bin = khash % _tablesizes[i];
-	HashIntoType byte = bin / 8;
-	unsigned char bit = bin % 8;
-	if (!( _counts[i][byte] & (1<<bit))) {
-	  _occupied_bins += 1;
-	  is_new_kmer = true;
-	}
-	_counts[i][byte] |= (1 << bit);
+        HashIntoType bin = khash % _tablesizes[i];
+        HashIntoType byte = bin / 8;
+        unsigned char bit = bin % 8;
+        if (!( _counts[i][byte] & (1<<bit))) {
+          _occupied_bins += 1;
+          is_new_kmer = true;
+        }
+        _counts[i][byte] |= (1 << bit);
       }
       if (is_new_kmer) {
-	_n_unique_kmers +=1;
+        _n_unique_kmers +=1;
       }
     }
 
@@ -174,13 +174,13 @@ namespace khmer {
     // get the count for the given k-mer hash.
     virtual const BoundedCounterType get_count(HashIntoType khash) const {
       for (unsigned int i = 0; i < _n_tables; i++) {
-	HashIntoType bin = khash % _tablesizes[i];
-	HashIntoType byte = bin / 8;
-	unsigned char bit = bin % 8;
-      
-	if (!(_counts[i][byte] & (1 << bit))) {
-	  return 0;
-	}
+        HashIntoType bin = khash % _tablesizes[i];
+        HashIntoType byte = bin / 8;
+        unsigned char bit = bin % 8;
+            
+        if (!(_counts[i][byte] & (1 << bit))) {
+          return 0;
+        }
       }
       return 1;
     }

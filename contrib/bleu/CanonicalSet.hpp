@@ -6,23 +6,14 @@
  *
  */
 
-/*
- *  Set.hpp
- *  bleu
- *
- *  Created by Rosangela Canino-Koning on 10/4/10.
- *
- */
-
-#include "../../lib/khmer.hh"
 #include <list>
+#include <vector>
 
 #define BIN_SIZE 50
 
 
 namespace bleu {
   
-  using namespace khmer;
   using namespace std;
   
   class CanonicalSet
@@ -75,27 +66,12 @@ namespace bleu {
 
     }
     
-//    SetOffset GetPrimaryOffset() const // the main one to go to
-//    {
-//      return PrimarySetOffset;
-//    }
-    
     void ApplyJoinOfConvenience()
     {
       JoinOfConvenience = true;
     }
 
   public:
-    
-//    void Increment( unsigned long long aCount = 1 )
-//    {
-//      KmerCount+=aCount;
-//    }
-    
-//    unsigned long long GetKmerCount()
-//    {
-//      return KmerCount;
-//    }
     
     struct CompSet {
       bool operator()(SetPointer aS1, SetPointer aS2)

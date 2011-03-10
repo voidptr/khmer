@@ -1,3 +1,4 @@
+###### Bleu Makefile #######
 CXX=g++
 CXXFLAGS=-O3 -m64 -Wall
 
@@ -12,7 +13,7 @@ clean:
 	rm -f bleu
 
 bleu: 
-	cd ../../ && make lib_files
+	cd ../../lib/ && make parsers.o
 	cd ../external_lib && make 
 	make bleuexe
 	
@@ -22,13 +23,8 @@ tests:
 	make bleutestsexe
 	cd ../tests/ && ../bleu/bleutests
 
-bleuexe: bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
-	$(CXX) $(CXXFLAGS) -o bleu bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
+bleuexe: bleu.cpp $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
+	$(CXX) $(CXXFLAGS) -o bleu bleu.cpp $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
 
-bleutestsexe: bleutests.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
-	$(CXX) $(CXXFLAGS) -o bleu bleu.cpp $(KMERDIR)/hashtable.o $(KMERDIR)/ktable.o $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
-
-
-#ktable.o: $(KMERDIR)/ktable.cc $(KMERDIR)/ktable.hh
-
-#hashtable.o: $(KMERDIR)/hashtable.cc $(KMERDIR)/hashtable.hh
+bleutestsexe: bleutests.cpp $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o
+	$(CXX) $(CXXFLAGS) -o bleu bleu.cpp $(KMERDIR)/parsers.o $(EXTLIBDIR)/cBitArray.o

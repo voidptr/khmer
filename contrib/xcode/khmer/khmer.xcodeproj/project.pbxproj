@@ -8,13 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		8DD76F6A0486A84900D96B5E /* khmer.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* khmer.1 */; };
-		D89804C6121D832B0007A0AB /* bittest.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BA121D832B0007A0AB /* bittest.cc */; };
-		D89804C7121D832B0007A0AB /* consume_prof.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BB121D832B0007A0AB /* consume_prof.cc */; };
-		D89804C8121D832B0007A0AB /* graphtest.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BC121D832B0007A0AB /* graphtest.cc */; };
-		D89804C9121D832B0007A0AB /* hashtable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804BD121D832B0007A0AB /* hashtable.cc */; };
-		D89804CA121D832B0007A0AB /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804C0121D832B0007A0AB /* ktable.cc */; };
-		D89804CB121D832B0007A0AB /* parsers.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804C2121D832B0007A0AB /* parsers.cc */; };
-		D89804CC121D832B0007A0AB /* test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D89804C5121D832B0007A0AB /* test.cc */; };
+		E7D3DF72132923F1007B2B21 /* bittest.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF60132923F1007B2B21 /* bittest.cc */; };
+		E7D3DF73132923F1007B2B21 /* consume_prof.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF61132923F1007B2B21 /* consume_prof.cc */; };
+		E7D3DF74132923F1007B2B21 /* counting.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF62132923F1007B2B21 /* counting.cc */; };
+		E7D3DF75132923F1007B2B21 /* graphtest.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF64132923F1007B2B21 /* graphtest.cc */; };
+		E7D3DF76132923F1007B2B21 /* hashbits.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF65132923F1007B2B21 /* hashbits.cc */; };
+		E7D3DF77132923F1007B2B21 /* hashtable.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF67132923F1007B2B21 /* hashtable.cc */; };
+		E7D3DF78132923F1007B2B21 /* ktable.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF6A132923F1007B2B21 /* ktable.cc */; };
+		E7D3DF79132923F1007B2B21 /* parsers.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF6C132923F1007B2B21 /* parsers.cc */; };
+		E7D3DF7A132923F1007B2B21 /* subset.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF6F132923F1007B2B21 /* subset.cc */; };
+		E7D3DF7B132923F1007B2B21 /* test.cc in Sources */ = {isa = PBXBuildFile; fileRef = E7D3DF71132923F1007B2B21 /* test.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -33,21 +36,27 @@
 /* Begin PBXFileReference section */
 		8DD76F6C0486A84900D96B5E /* khmer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = khmer; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6859E8B029090EE04C91782 /* khmer.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = khmer.1; sourceTree = "<group>"; };
-		D89804BA121D832B0007A0AB /* bittest.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bittest.cc; path = ../../../lib/bittest.cc; sourceTree = SOURCE_ROOT; };
-		D89804BB121D832B0007A0AB /* consume_prof.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = consume_prof.cc; path = ../../../lib/consume_prof.cc; sourceTree = SOURCE_ROOT; };
-		D89804BC121D832B0007A0AB /* graphtest.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = graphtest.cc; path = ../../../lib/graphtest.cc; sourceTree = SOURCE_ROOT; };
-		D89804BD121D832B0007A0AB /* hashtable.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hashtable.cc; path = ../../../lib/hashtable.cc; sourceTree = SOURCE_ROOT; };
-		D89804BE121D832B0007A0AB /* hashtable.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = hashtable.hh; path = ../../../lib/hashtable.hh; sourceTree = SOURCE_ROOT; };
-		D89804BF121D832B0007A0AB /* khmer.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = khmer.hh; path = ../../../lib/khmer.hh; sourceTree = SOURCE_ROOT; };
-		D89804C0121D832B0007A0AB /* ktable.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ktable.cc; path = ../../../lib/ktable.cc; sourceTree = SOURCE_ROOT; };
-		D89804C1121D832B0007A0AB /* ktable.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ktable.hh; path = ../../../lib/ktable.hh; sourceTree = SOURCE_ROOT; };
-		D89804C2121D832B0007A0AB /* parsers.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = parsers.cc; path = ../../../lib/parsers.cc; sourceTree = SOURCE_ROOT; };
-		D89804C3121D832B0007A0AB /* parsers.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = parsers.hh; path = ../../../lib/parsers.hh; sourceTree = SOURCE_ROOT; };
-		D89804C4121D832B0007A0AB /* storage.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = storage.hh; path = ../../../lib/storage.hh; sourceTree = SOURCE_ROOT; };
-		D89804C5121D832B0007A0AB /* test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = test.cc; path = ../../../lib/test.cc; sourceTree = SOURCE_ROOT; };
 		D89804D2121D839D0007A0AB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../../lib/Makefile; sourceTree = SOURCE_ROOT; };
-		D89804F2121D84EF0007A0AB /* bittest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = bittest; path = build/Debug/bittest; sourceTree = "<group>"; };
+		D89804F2121D84EF0007A0AB /* bittest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bittest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D89805BD121D9DC30007A0AB /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../../Makefile; sourceTree = SOURCE_ROOT; };
+		E7D3DF60132923F1007B2B21 /* bittest.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bittest.cc; path = ../../../lib/bittest.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF61132923F1007B2B21 /* consume_prof.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = consume_prof.cc; path = ../../../lib/consume_prof.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF62132923F1007B2B21 /* counting.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = counting.cc; path = ../../../lib/counting.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF63132923F1007B2B21 /* counting.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = counting.hh; path = ../../../lib/counting.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF64132923F1007B2B21 /* graphtest.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = graphtest.cc; path = ../../../lib/graphtest.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF65132923F1007B2B21 /* hashbits.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hashbits.cc; path = ../../../lib/hashbits.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF66132923F1007B2B21 /* hashbits.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = hashbits.hh; path = ../../../lib/hashbits.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF67132923F1007B2B21 /* hashtable.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = hashtable.cc; path = ../../../lib/hashtable.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF68132923F1007B2B21 /* hashtable.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = hashtable.hh; path = ../../../lib/hashtable.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF69132923F1007B2B21 /* khmer.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = khmer.hh; path = ../../../lib/khmer.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF6A132923F1007B2B21 /* ktable.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ktable.cc; path = ../../../lib/ktable.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF6B132923F1007B2B21 /* ktable.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ktable.hh; path = ../../../lib/ktable.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF6C132923F1007B2B21 /* parsers.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = parsers.cc; path = ../../../lib/parsers.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF6D132923F1007B2B21 /* parsers.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = parsers.hh; path = ../../../lib/parsers.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF6E132923F1007B2B21 /* storage.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = storage.hh; path = ../../../lib/storage.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF6F132923F1007B2B21 /* subset.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = subset.cc; path = ../../../lib/subset.cc; sourceTree = SOURCE_ROOT; };
+		E7D3DF70132923F1007B2B21 /* subset.hh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = subset.hh; path = ../../../lib/subset.hh; sourceTree = SOURCE_ROOT; };
+		E7D3DF71132923F1007B2B21 /* test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = test.cc; path = ../../../lib/test.cc; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,18 +91,24 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				D89804BA121D832B0007A0AB /* bittest.cc */,
-				D89804BB121D832B0007A0AB /* consume_prof.cc */,
-				D89804BC121D832B0007A0AB /* graphtest.cc */,
-				D89804BD121D832B0007A0AB /* hashtable.cc */,
-				D89804BE121D832B0007A0AB /* hashtable.hh */,
-				D89804BF121D832B0007A0AB /* khmer.hh */,
-				D89804C0121D832B0007A0AB /* ktable.cc */,
-				D89804C1121D832B0007A0AB /* ktable.hh */,
-				D89804C2121D832B0007A0AB /* parsers.cc */,
-				D89804C3121D832B0007A0AB /* parsers.hh */,
-				D89804C4121D832B0007A0AB /* storage.hh */,
-				D89804C5121D832B0007A0AB /* test.cc */,
+				E7D3DF60132923F1007B2B21 /* bittest.cc */,
+				E7D3DF61132923F1007B2B21 /* consume_prof.cc */,
+				E7D3DF62132923F1007B2B21 /* counting.cc */,
+				E7D3DF63132923F1007B2B21 /* counting.hh */,
+				E7D3DF64132923F1007B2B21 /* graphtest.cc */,
+				E7D3DF65132923F1007B2B21 /* hashbits.cc */,
+				E7D3DF66132923F1007B2B21 /* hashbits.hh */,
+				E7D3DF67132923F1007B2B21 /* hashtable.cc */,
+				E7D3DF68132923F1007B2B21 /* hashtable.hh */,
+				E7D3DF69132923F1007B2B21 /* khmer.hh */,
+				E7D3DF6A132923F1007B2B21 /* ktable.cc */,
+				E7D3DF6B132923F1007B2B21 /* ktable.hh */,
+				E7D3DF6C132923F1007B2B21 /* parsers.cc */,
+				E7D3DF6D132923F1007B2B21 /* parsers.hh */,
+				E7D3DF6E132923F1007B2B21 /* storage.hh */,
+				E7D3DF6F132923F1007B2B21 /* subset.cc */,
+				E7D3DF70132923F1007B2B21 /* subset.hh */,
+				E7D3DF71132923F1007B2B21 /* test.cc */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -232,13 +247,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D89804C6121D832B0007A0AB /* bittest.cc in Sources */,
-				D89804C7121D832B0007A0AB /* consume_prof.cc in Sources */,
-				D89804C8121D832B0007A0AB /* graphtest.cc in Sources */,
-				D89804C9121D832B0007A0AB /* hashtable.cc in Sources */,
-				D89804CA121D832B0007A0AB /* ktable.cc in Sources */,
-				D89804CB121D832B0007A0AB /* parsers.cc in Sources */,
-				D89804CC121D832B0007A0AB /* test.cc in Sources */,
+				E7D3DF72132923F1007B2B21 /* bittest.cc in Sources */,
+				E7D3DF73132923F1007B2B21 /* consume_prof.cc in Sources */,
+				E7D3DF74132923F1007B2B21 /* counting.cc in Sources */,
+				E7D3DF75132923F1007B2B21 /* graphtest.cc in Sources */,
+				E7D3DF76132923F1007B2B21 /* hashbits.cc in Sources */,
+				E7D3DF77132923F1007B2B21 /* hashtable.cc in Sources */,
+				E7D3DF78132923F1007B2B21 /* ktable.cc in Sources */,
+				E7D3DF79132923F1007B2B21 /* parsers.cc in Sources */,
+				E7D3DF7A132923F1007B2B21 /* subset.cc in Sources */,
+				E7D3DF7B132923F1007B2B21 /* test.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

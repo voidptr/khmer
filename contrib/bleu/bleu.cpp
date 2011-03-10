@@ -1,9 +1,6 @@
 // bleu.cpp : main project file.
 
-#include "../../lib/khmer.hh"
-#include "../../lib/hashtable.hh"
 #include "bleufilter.hpp"
-//#include "hashtable.hh"
 
 #include <iostream>
 #include <time.h>

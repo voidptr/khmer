@@ -5,15 +5,14 @@
  *  Created by Rosangela Canino-Koning on 10/8/10.
  *
  */
-
-#include "../../lib/hashtable.hh"
-#include "../../lib/parsers.hh"
 #include "../external_lib/cBitArray.h"
 #include "CanonicalSet.hpp"
 #include "SequenceHashArbitrary.hpp"
 #include "SequenceHashArbitrary_Builder.hpp"
 #include "PrimeGenerator.hpp"
 #include <algorithm>
+#include <vector>
+#include <map>
 
 #define BIT_COUNT_PARTITION 5000
 
@@ -61,7 +60,6 @@
 
 namespace bleu {
   
-  using namespace khmer;
   using namespace std;
   
   typedef CanonicalSet * SetHandle;

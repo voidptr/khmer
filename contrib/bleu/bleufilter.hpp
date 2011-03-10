@@ -1,11 +1,19 @@
+/*
+ *  bleufilter.hpp : main class file.
+ *  bleu
+ *
+ *  Created by Rosangela Canino-Koning.
+ *  Licensed under the BSD license; see ../doc/LICENSE.txt. 
+ *
+ */
+
 #ifndef BLEUFILTER_HPP
 #define BLEUFILTER_HPP
 
-#include "../../lib/hashtable.hh"
-#include "../../lib/parsers.hh"
 #include "CanonicalSetsManager.hpp"
-//#include "SequenceHash.hpp"
 #include "KmerJoins.hpp"
+#include "ReadUtilities.hpp"
+#include "parsers.hh"
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -24,26 +32,27 @@
 
 namespace bleu {
   
-  using namespace khmer;
   using namespace std;
   
   typedef unsigned long long MaxSize;
+  typedef unsigned char WordLength;
   
   void * ThreadStart( void * aArgs );
   
   class BleuFilter
-  : public Hashtable
   {
   private:
     CanonicalSetsManager * _Sets_Manager;
     SequenceHashArbitrary_Builder * _hash_builder;
+    
+    unsigned long long _ksize;
 
   public:
     typedef unsigned int (BleuFilter::*ConsumeStringFN)( string * aReads, int aReadCount );
     
     BleuFilter(WordLength ksize, unsigned long long aMaxMemory)
-    : Hashtable(ksize)
     { 
+      _ksize = ksize;
       _Sets_Manager = new CanonicalSetsManager( aMaxMemory );
       _hash_builder = new SequenceHashArbitrary_Builder();
       
@@ -88,7 +97,7 @@ namespace bleu {
         for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
         {
           read = parser->get_next_read();
-          if ( check_read( read.seq ) )
+          if ( ReadUtilities::check_read( read.seq, _ksize ) )
           {
             reads[lCount] = read.seq;
             lCount++;
@@ -141,7 +150,7 @@ namespace bleu {
         for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
         {
           read = parser->get_next_read();
-          if ( check_read( read.seq ) )
+          if ( ReadUtilities::check_read( read.seq, _ksize ) )
           {
             reads[lCount] = read.seq;
             lCount++;
@@ -198,7 +207,7 @@ namespace bleu {
         for (int i = 0; i < 100000 && !parser->is_complete(); ++i)
         {
           read = parser->get_next_read();
-          if ( check_read( read.seq ) )
+          if ( ReadUtilities::check_read( read.seq, _ksize ) )
           {
             reads[lCount] = read.seq;
             names[lCount] = read.name;
@@ -255,9 +264,7 @@ namespace bleu {
     }
     
     virtual unsigned int output_partitioned_file(const std::string infilename,
-                                                 const std::string outputfilename,
-                                                 CallbackFn callback=0,
-                                                 void * callback_data=0)
+                                                 const std::string outputfilename)
     {
       cout << endl << "Outputting Partitioned File..." << endl;
       
@@ -265,7 +272,6 @@ namespace bleu {
       ofstream outfile(outputfilename.c_str());
       
       unsigned int total_reads = 0;
-      unsigned int reads_kept = 0;
       
       Read read;
       string seq;
@@ -277,7 +283,7 @@ namespace bleu {
         read = parser->get_next_read();
         seq = read.seq;
         
-        if (check_read(seq)) 
+        if ( ReadUtilities::check_read(seq, _ksize)) 
         {
           const unsigned int length = seq.length();          
           
@@ -315,17 +321,6 @@ namespace bleu {
           // reset the sequence info, increment read number
           total_reads++;
           
-          // run callback, if specified
-          if (total_reads % CALLBACK_PERIOD == 0 && callback) {
-            try {
-              callback("do_truncated_partition/output", callback_data,
-                       total_reads, reads_kept);
-            } catch (...) {
-              delete parser; parser = NULL;
-              outfile.close();
-              throw;
-            }
-          }
         }
       }
       
@@ -418,7 +413,7 @@ namespace bleu {
         kmer = read.name.substr( read.name.length() - _ksize - 1, _ksize ); // extract the kmer from where we stashed it.
         readname = read.name.substr(1, read.name.find(' ') );
 
-        if (check_read(seq)) 
+        if (ReadUtilities::check_read(seq,_ksize)) 
         {
           // loop through the reads in the file, and figure out what set they go in. Then, count it up.
           SequenceHashArbitrary hash( kmer, _hash_builder->hash( kmer ) );

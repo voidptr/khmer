@@ -12,12 +12,6 @@
 #include <assert.h>
 #include "SequenceHashArbitrary_Lookup.hpp"
 
-// test validity
-#define is_valid_dna_character(ch) ( ch == 'A' || ch == 'a' || \
-ch == 'C' || ch == 'c' || \
-ch == 'G' || ch == 'g' || \
-ch == 'T' || ch == 't' )
-
 #define twobit_representation(ch) ( ( ch == 'A' || ch == 'a' ) ? 0LL : \
 ( ch == 'C' || ch == 'c' ) ? 1LL : \
 ( ch == 'G' || ch == 'g' ) ? 2LL : 3LL )
