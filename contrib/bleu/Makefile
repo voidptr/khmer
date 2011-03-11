@@ -1,6 +1,6 @@
 ###### Bleu Makefile #######
 CXX=g++
-CXXFLAGS=-O3 -m64 -Wall
+CXXFLAGS=-O3 -m64 -Wall -lpthread
 
 KMERDIR=../../lib
 EXTLIBDIR=../external_lib
